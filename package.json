@@ -1,0 +1,35 @@
+{
+  "name": "fastify-jwt",
+  "version": "0.1.0",
+  "description": "JWT utils for Fastify",
+  "main": "jwt.js",
+  "scripts": {
+    "test": "standard && tap test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fastify/fastify-jwt.git"
+  },
+  "keywords": [
+    "jwt",
+    "json",
+    "token",
+    "jsonwebtoken",
+    "fastify"
+  ],
+  "author": "Tomas Della Vedova - @delvedor (http://delved.org)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fastify/fastify-jwt/issues"
+  },
+  "homepage": "https://github.com/fastify/fastify-jwt#readme",
+  "dependencies": {
+    "fastify-plugin": "^0.1.0",
+    "jsonwebtoken": "^7.4.1"
+  },
+  "devDependencies": {
+    "fastify": "^0.21.0",
+    "standard": "^10.0.2",
+    "tap": "^10.3.3"
+  }
+}
