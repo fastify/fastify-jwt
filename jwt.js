@@ -29,52 +29,6 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
-  function getToken (request, cb) {
-    let token
-
-    if (request.headers && request.headers.authorization) {
-      const parts = request.headers.authorization.split(' ')
-      if (parts.length === 2) {
-        const scheme = parts[0]
-        const credentials = parts[1]
-
-        if (/^Bearer$/i.test(scheme)) {
-          token = credentials
-        } else {
-          if (credentialsRequired) {
-            return cb(new Error('Format is Authorization: Bearer [token]'))
-          } else {
-            return cb()
-          }
-        }
-      } else {
-        return cb(new Error('Format is Authorization: Bearer [token]'))
-      }
-    }
-
-    if (!token) {
-      if (credentialsRequired) {
-        return cb(new Error('No authorization token was found'))
-      } else {
-        return cb()
-      }
-    }
-
-    return token
-  }
-
-  function decodeToken (token, cb) {
-    let decodedToken
-
-    try {
-      decodedToken = JWT.decode(token, { complete: true }) || {}
-    } catch (err) {
-      return cb(new Error(`invalid_token ${err}`))
-    }
-
-    return decodedToken
-  }
-
   function sign (request, reply, next) {
     let {secret, ...rest} = options
     steed.waterfall([
@@ -101,8 +55,43 @@ function fastifyJwt (fastify, options, next) {
   } // end sign
 
   function verify (request, reply, next) {
-    const token = getToken(request, next)
-    const decodedToken = decodeToken(token, next)
+    let token
+
+    if (request.headers && request.headers.authorization) {
+      const parts = request.headers.authorization.split(' ')
+      if (parts.length === 2) {
+        const scheme = parts[0]
+        const credentials = parts[1]
+
+        if (/^Bearer$/i.test(scheme)) {
+          token = credentials
+        } else {
+          if (credentialsRequired) {
+            return next(new Error('Format is Authorization: Bearer [token]'))
+          } else {
+            return next()
+          }
+        }
+      } else {
+        return next(new Error('Format is Authorization: Bearer [token]'))
+      }
+    }
+
+    if (!token) {
+      if (credentialsRequired) {
+        return next(new Error('No authorization token was found'))
+      } else {
+        return next()
+      }
+    }
+
+    let decodedToken
+
+    try {
+      decodedToken = JWT.decode(token, { complete: true }) || {}
+    } catch (err) {
+      return next(new Error(`invalid_token ${err}`))
+    }
 
     steed.waterfall([
       function getSecret (callback) {
