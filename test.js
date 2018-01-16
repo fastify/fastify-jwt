@@ -61,7 +61,7 @@ test('should throw if no secret is given as option', t => {
   })
 })
 
-test('sign should return err if the payload is missing', t => {
+test('sign should return err if the options are missing', t => {
   t.plan(2)
   const fastify = Fastify()
   fastify
@@ -80,7 +80,7 @@ test('verify should return err if the token is missing', t => {
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
       fastify.jwt.verify({}, {}, (err) => {
-        t.is(err.message, 'jwt must be provided')
+        t.is(err.message, 'No authorization token was found')
       })
     })
 })

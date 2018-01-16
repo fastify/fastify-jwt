@@ -2,12 +2,8 @@ const fp = require('fastify-plugin')
 const JWT = require('jsonwebtoken')
 const steed = require('steed')()
 
-function isFunction (object) {
-  return Object.prototype.toString.call(object) === '[object Function]'
-}
-
 function wrapStaticSecretInCallback (secret) {
-  return function (_, __, cb) { // _ = req, __ = res
+  return function (_, __, cb) {
     return cb(null, secret)
   }
 }
@@ -19,7 +15,7 @@ function fastifyJwt (fastify, options, next) {
 
   let secretCallback = options.secret
 
-  if (!isFunction(secretCallback)) { secretCallback = wrapStaticSecretInCallback(secretCallback) }
+  if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
   let _requestProperty = options.userProperty || options.requestProperty || 'user'
   let _resultProperty = options.resultProperty
@@ -33,7 +29,7 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
-  function getToken (request) {
+  function getToken (request, cb) {
     let token
 
     if (request.headers && request.headers.authorization) {
@@ -46,45 +42,44 @@ function fastifyJwt (fastify, options, next) {
           token = credentials
         } else {
           if (credentialsRequired) {
-            return next(new Error('Format is Authorization: Bearer [token]'))
+            return cb(new Error('Format is Authorization: Bearer [token]'))
           } else {
-            return next()
+            return cb()
           }
         }
       } else {
-        return next(new Error('Format is Authorization: Bearer [token]'))
+        return cb(new Error('Format is Authorization: Bearer [token]'))
       }
     }
 
     if (!token) {
       if (credentialsRequired) {
-        return next(new Error('No authorization token was found'))
+        return cb(new Error('No authorization token was found'))
       } else {
-        return next()
+        return cb()
       }
     }
 
     return token
   }
 
-  function decodeToken (token) {
+  function decodeToken (token, cb) {
     let decodedToken
 
     try {
       decodedToken = JWT.decode(token, { complete: true }) || {}
     } catch (err) {
-      return next(new Error(`invalid_token ${err}`))
+      return cb(new Error(`invalid_token ${err}`))
     }
 
     return decodedToken
   }
 
   function sign (request, reply, next) {
-    let decodedToken = decodeToken(getToken(request))
     let {secret, ...rest} = options
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(request, decodedToken, callback)
+        secretCallback({}, {}, callback)
       },
       function sign (secret, callback) {
         JWT.sign(request.body, secret, rest, function (err, token) {
@@ -106,8 +101,8 @@ function fastifyJwt (fastify, options, next) {
   } // end sign
 
   function verify (request, reply, next) {
-    const token = getToken(request)
-    const decodedToken = decodeToken(token)
+    const token = getToken(request, next)
+    const decodedToken = decodeToken(token, next)
 
     steed.waterfall([
       function getSecret (callback) {
