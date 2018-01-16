@@ -5,50 +5,47 @@ const Fastify = require('fastify')
 const jwt = require('./jwt')
 
 test('fastify-jwt should expose jwt methods', t => {
-  t.plan(5)
+  t.plan(3)
   const fastify = Fastify()
   fastify
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
       t.ok(fastify.jwt.sign)
       t.ok(fastify.jwt.verify)
-      t.ok(fastify.jwt.decode)
-      t.ok(fastify.jwt.secret)
     })
 })
 
-test('jwt.secret should be the same as the one given as option', t => {
-  t.plan(2)
-  const fastify = Fastify()
-  fastify
-    .register(jwt, { secret: 'supersecret' }, t.error)
-    .after(() => {
-      t.is(fastify.jwt.secret, 'supersecret')
-    })
-})
-
-test('sync sign and verify', t => {
+test('jwt.secretCallback should return the secret given as an option', t => {
   t.plan(3)
   const fastify = Fastify()
   fastify
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
-      const token = fastify.jwt.sign({ hello: 'world' })
-      t.ok(token)
-      t.equal(fastify.jwt.verify(token).hello, 'world')
+      fastify.jwt.secretCallback({}, {}, (err, secret) => {
+        t.error(err)
+        t.is(secret, 'supersecret')
+      })
     })
 })
 
-test('async sign and verify', t => {
+test('sign and verify', t => {
   t.plan(5)
   const fastify = Fastify()
   fastify
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
-      fastify.jwt.sign({ hello: 'world' }, (err, token) => {
+      fastify.jwt.sign({
+        body: {
+          hello: 'world'
+        }
+      }, {}, (err, token) => {
         t.error(err)
         t.ok(token)
-        fastify.jwt.verify(token, (err, payload) => {
+        fastify.jwt.verify({
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        }, {}, (err, payload) => {
           t.error(err)
           t.equal(payload.hello, 'world')
         })
@@ -64,32 +61,26 @@ test('should throw if no secret is given as option', t => {
   })
 })
 
-test('sign should throw if the payload is missing', t => {
+test('sign should return err if the payload is missing', t => {
   t.plan(2)
   const fastify = Fastify()
   fastify
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
-      try {
-        fastify.jwt.sign()
-        t.fail()
-      } catch (err) {
-        t.is(err.message, 'missing payload')
-      }
+      fastify.jwt.sign({}, {}, (err) => {
+        t.is(err.message, 'payload is required')
+      })
     })
 })
 
-test('verify should throw if the token is missing', t => {
+test('verify should return err if the token is missing', t => {
   t.plan(2)
   const fastify = Fastify()
   fastify
     .register(jwt, { secret: 'supersecret' }, t.error)
     .after(() => {
-      try {
-        fastify.jwt.verify()
-        t.fail()
-      } catch (err) {
-        t.is(err.message, 'missing token')
-      }
+      fastify.jwt.verify({}, {}, (err) => {
+        t.is(err.message, 'jwt must be provided')
+      })
     })
 })
