@@ -1,6 +1,8 @@
+'use strict'
+
 const fp = require('fastify-plugin')
 const JWT = require('jsonwebtoken')
-const steed = require('steed')()
+const steed = require('steed')
 
 function wrapStaticSecretInCallback (secret) {
   return function (_, __, cb) {
@@ -17,11 +19,8 @@ function fastifyJwt (fastify, options, next) {
 
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
-  let _requestProperty = options.userProperty || options.requestProperty || 'user'
-  let _resultProperty = options.resultProperty
-  const credentialsRequired = typeof options.credentialsRequired === 'undefined' ? true : options.credentialsRequired
-
   fastify.decorate('jwt', {
+    decode: decode,
     sign: sign,
     verify: verify,
     secretCallback: secretCallback
@@ -29,86 +28,65 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
-  function sign (request, reply, next) {
-    let {secret, resultProperty, ...rest} = options
-    steed.waterfall([
-      function getSecret (callback) {
-        secretCallback({}, {}, callback)
-      },
-      function sign (secret, callback) {
-        JWT.sign(request.body, secret, rest, function (err, token) {
-          if (err) {
-            callback(err)
-          } else {
-            callback(null, token)
-          }
-        })
-      }
-    ], function (err, result) {
-      if (_resultProperty) {
-        reply[_resultProperty] = result
-      } else {
-        request[_requestProperty] = result
-      }
-      return next(err, result)
-    })
-  } // end sign
-
-  function verify (request, reply, next) {
-    let token
-
+  function parseToken (request, next) {
     if (request.headers && request.headers.authorization) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
-        const credentials = parts[1]
+        const token = parts[1]
 
         if (/^Bearer$/i.test(scheme)) {
-          token = credentials
-        } else {
-          if (credentialsRequired) {
-            return next(new Error('Format is Authorization: Bearer [token]'))
-          } else {
-            return next()
-          }
+          return next(null, token)
         }
-      } else {
-        return next(new Error('Format is Authorization: Bearer [token]'))
       }
+      return next(new Error('Format is Authorization: Bearer [token]'))
+    } else {
+      return next(new Error('No Authorization was found in request.headers'))
     }
+  }
 
+  function decode (token, options = {}, next) {
     if (!token) {
-      if (credentialsRequired) {
-        return next(new Error('No authorization token was found'))
-      } else {
-        return next()
-      }
+      if (next) { return next(new Error('Missing token')) } else throw new Error('Missing token')
     }
 
-    let decodedToken = JWT.decode(token, { complete: true }) || {}
+    let decodedToken = JWT.decode(token, options)
 
+    if (next) { return next(null, decodedToken) } else return decodedToken
+  }
+
+  function sign (request, reply, next) {
+    let {secret, ...rest} = options
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(request, decodedToken, callback)
+        secretCallback(request, {}, callback)
       },
-      function verify (secret, callback) {
-        JWT.verify(token, secret, options, function (err, decoded) {
-          if (err) {
-            callback(err)
-          } else {
-            callback(null, decoded)
-          }
+      function sign (secret, callback) {
+        JWT.sign(request.body, secret, rest, callback)
+      }
+    ], next)
+  } // end sign
+
+  function verify (request, reply, next) {
+    steed.waterfall([
+      function getToken (callback) {
+        parseToken(request, callback)
+      },
+      function decodeToken (token, callback) {
+        decode(token, (err, decodedToken) => {
+          callback(err, token, decodedToken)
         })
+      },
+      function getSecret (token, decodedToken, callback) {
+        secretCallback(request, decodedToken, (err, secret) => {
+          callback(err, secret, token)
+        })
+      },
+      function verify (secret, token, callback) {
+        JWT.verify(token, secret, options, callback)
       }
-    ], function (err, result) {
-      if (_resultProperty) {
-        reply[_resultProperty] = result
-      } else {
-        request[_requestProperty] = result
-      }
-      return next(err, result)
-    })
+    ], next)
   } // end verify
 }
 
-module.exports = fp(fastifyJwt, '0.x')
+module.exports = fp(fastifyJwt, '>= 0.39')
