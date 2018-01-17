@@ -28,31 +28,12 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
-  function parseToken (request, next) {
-    if (request.headers && request.headers.authorization) {
-      const parts = request.headers.authorization.split(' ')
-      if (parts.length === 2) {
-        const scheme = parts[0]
-        const token = parts[1]
-
-        if (/^Bearer$/i.test(scheme)) {
-          return next(null, token)
-        }
-      }
-      return next(new Error('Format is Authorization: Bearer [token]'))
-    } else {
-      return next(new Error('No Authorization was found in request.headers'))
-    }
-  }
-
-  function decode (token, options = {}, next) {
+  function decode (token, options = {}) {
     if (!token) {
-      if (next) { return next(new Error('Missing token')) } else throw new Error('Missing token')
+      throw new Error('missing token')
     }
 
-    let decodedToken = JWT.decode(token, options)
-
-    if (next) { return next(null, decodedToken) } else return decodedToken
+    return JWT.decode(token, options)
   }
 
   function sign (request, reply, next) {
@@ -68,21 +49,28 @@ function fastifyJwt (fastify, options, next) {
   } // end sign
 
   function verify (request, reply, next) {
+    let token
+    if (request.headers && request.headers.authorization) {
+      const parts = request.headers.authorization.split(' ')
+      if (parts.length === 2) {
+        const scheme = parts[0]
+        token = parts[1]
+
+        if (!/^Bearer$/i.test(scheme)) {
+          return next(new Error('Format is Authorization: Bearer [token]'))
+        }
+      }
+    } else {
+      return next(new Error('No Authorization was found in request.headers'))
+    }
+
+    let decodedToken = JWT.decode(token, options)
+
     steed.waterfall([
-      function getToken (callback) {
-        parseToken(request, callback)
+      function getSecret (callback) {
+        secretCallback(request, decodedToken, callback)
       },
-      function decodeToken (token, callback) {
-        decode(token, (err, decodedToken) => {
-          callback(err, token, decodedToken)
-        })
-      },
-      function getSecret (token, decodedToken, callback) {
-        secretCallback(request, decodedToken, (err, secret) => {
-          callback(err, secret, token)
-        })
-      },
-      function verify (secret, token, callback) {
+      function verify (secret, callback) {
         JWT.verify(token, secret, options, callback)
       }
     ], next)
