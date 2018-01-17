@@ -30,7 +30,7 @@ function fastifyJwt (fastify, options, next) {
   next()
 
   function sign (request, reply, next) {
-    let {secret, ...rest} = options
+    let {secret, resultProperty, ...rest} = options
     steed.waterfall([
       function getSecret (callback) {
         secretCallback({}, {}, callback)
@@ -85,13 +85,7 @@ function fastifyJwt (fastify, options, next) {
       }
     }
 
-    let decodedToken
-
-    try {
-      decodedToken = JWT.decode(token, { complete: true }) || {}
-    } catch (err) {
-      return next(new Error(`invalid_token ${err}`))
-    }
+    let decodedToken = JWT.decode(token, { complete: true }) || {}
 
     steed.waterfall([
       function getSecret (callback) {
