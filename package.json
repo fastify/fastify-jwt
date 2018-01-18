@@ -31,6 +31,8 @@
   },
   "devDependencies": {
     "fastify": "^0.39",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5",
     "standard": "^10.0.3",
     "tap": "^11.0.1"
   }
