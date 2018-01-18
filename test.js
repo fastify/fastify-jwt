@@ -47,21 +47,38 @@ test('fastify-jwt fails without secret', function (t) {
 })
 
 test('sign and verify', function (t) {
-  t.plan(7)
+  t.plan(8)
   var fastify = Fastify()
   fastify.register(jwt, { secret: 'supersecret' })
 
-  fastify.post('/sign', function (request, reply) {
+  fastify.post('/signCallback', function (request, reply) {
     reply.jwtSign(request.body.payload, function (err, token) {
       if (err) { return reply.send(err) }
       return reply.send({ 'token': token })
     })
   })
 
-  fastify.get('/verify', function (request, reply) {
+  fastify.get('/verifyCallback', function (request, reply) {
     request.jwtVerify(function (err, decoded) {
       if (err) { return reply.send(err) }
       return reply.send(decoded)
+    })
+  })
+
+  fastify.post('/signPromise', function (request, reply) {
+    reply.jwtSign(request.body.payload).then(
+      function (token) {
+        return reply.send({ 'token': token })
+      }).catch(function (err) {
+        return reply.send(err)
+      })
+  })
+
+  fastify.get('/verifyPromise', function (request, reply) {
+    request.jwtVerify().then(function (decoded) {
+      return reply.send(decoded)
+    }).catch(function (err) {
+      return reply.send(err)
     })
   })
 
@@ -94,7 +111,7 @@ test('sign and verify', function (t) {
     })
   })
 
-  t.test('jwtSign and jwtVerify', function (t) {
+  t.test('jwtSign and jwtVerify with callbacks', function (t) {
     t.plan(2)
 
     rp({
@@ -107,7 +124,7 @@ test('sign and verify', function (t) {
           foo: 'bar'
         }
       },
-      uri: 'http://localhost:' + fastify.server.address().port + '/sign',
+      uri: 'http://localhost:' + fastify.server.address().port + '/signCallback',
       json: true
     }).then(function (sign) {
       rp({
@@ -116,7 +133,42 @@ test('sign and verify', function (t) {
           'Content-Type': 'application/json',
           authorization: 'Bearer ' + sign.token
         },
-        uri: 'http://localhost:' + fastify.server.address().port + '/verify',
+        uri: 'http://localhost:' + fastify.server.address().port + '/verifyCallback',
+        json: true
+      }).then(function (verify) {
+        t.ok(verify)
+        t.is(verify.foo, 'bar')
+      }).catch(function (err) {
+        t.fail(err.message)
+      })
+    }).catch(function (err) {
+      t.fail(err.message)
+    })
+  })
+
+  t.test('jwtSign and jwtVerify without callbacks', function (t) {
+    t.plan(2)
+
+    rp({
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: {
+        payload: {
+          foo: 'bar'
+        }
+      },
+      uri: 'http://localhost:' + fastify.server.address().port + '/signPromise',
+      json: true
+    }).then(function (sign) {
+      rp({
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: 'Bearer ' + sign.token
+        },
+        uri: 'http://localhost:' + fastify.server.address().port + '/verifyPromise',
         json: true
       }).then(function (verify) {
         t.ok(verify)
@@ -136,7 +188,7 @@ test('sign and verify', function (t) {
       headers: {
         'Content-Type': 'application/json'
       },
-      uri: 'http://localhost:' + fastify.server.address().port + '/verify',
+      uri: 'http://localhost:' + fastify.server.address().port + '/verifyCallback',
       json: true
     }).then(function () {
       t.fail()
@@ -153,7 +205,7 @@ test('sign and verify', function (t) {
         'Content-Type': 'application/json',
         authorization: 'Invalid TokenFormat'
       },
-      uri: 'http://localhost:' + fastify.server.address().port + '/verify',
+      uri: 'http://localhost:' + fastify.server.address().port + '/verifyCallback',
       json: true
     }).then(function () {
       t.fail()
@@ -172,7 +224,7 @@ test('sign and verify', function (t) {
       body: JSON.stringify({
         notAPayload: 'sorry'
       }),
-      uri: 'http://localhost:' + fastify.server.address().port + '/sign',
+      uri: 'http://localhost:' + fastify.server.address().port + '/signCallback',
       json: true
     }).then(function () {
       t.fail()

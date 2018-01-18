@@ -75,10 +75,10 @@ function fastifyJwt (fastify, options, next) {
       next = options
       options = {}
     } // support no options
-
+    var reply = this
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        this.replySign(payload, options, function (err, val) {
+        reply.jwtSign(payload, options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
@@ -103,15 +103,16 @@ function fastifyJwt (fastify, options, next) {
       options = {}
     } // support no options
 
+    var request = this
+
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        this.requestVerify(options, function (err, val) {
+        request.jwtVerify(options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
     }
 
-    var request = this
     var token
     if (request.headers && request.headers.authorization) {
       var parts = request.headers.authorization.split(' ')
