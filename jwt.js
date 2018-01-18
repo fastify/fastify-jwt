@@ -75,6 +75,15 @@ function fastifyJwt (fastify, options, next) {
       next = options
       options = {}
     } // support no options
+
+    if (next === undefined) {
+      return new Promise(function (resolve, reject) {
+        this.replySign(payload, options, function (err, val) {
+          err ? reject(err) : resolve(val)
+        })
+      })
+    }
+
     if (!payload) {
       return next(new Error('jwtSign requires a payload'))
     }
@@ -93,9 +102,19 @@ function fastifyJwt (fastify, options, next) {
       next = options
       options = {}
     } // support no options
+
+    if (next === undefined) {
+      return new Promise(function (resolve, reject) {
+        this.requestVerify(options, function (err, val) {
+          err ? reject(err) : resolve(val)
+        })
+      })
+    }
+
+    var request = this
     var token
-    if (this.headers && this.headers.authorization) {
-      var parts = this.headers.authorization.split(' ')
+    if (request.headers && request.headers.authorization) {
+      var parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         var scheme = parts[0]
         token = parts[1]
@@ -111,12 +130,16 @@ function fastifyJwt (fastify, options, next) {
     var decodedToken = JWT.decode(token, options)
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(this, decodedToken, callback)
+        secretCallback(request, decodedToken, callback)
       },
       function verify (secret, callback) {
         JWT.verify(token, secret, options, callback)
       }
-    ], next)
+    ], function (err, result) {
+      if (err) next(err)
+      request.user = result
+      next(null, result)
+    })
   } // end verify
 }
 

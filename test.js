@@ -28,13 +28,11 @@ test('fastify-jwt should expose jwt methods', function (t) {
       method: 'GET',
       uri: 'http://localhost:' + fastify.server.address().port + '/test',
       json: true
+    }).then(function (response) {
+      t.ok(response)
+    }).catch(function (err) {
+      t.fail(err)
     })
-      .then(function (response) {
-        t.ok(response)
-      })
-      .catch(function (err) {
-        t.fail(err)
-      })
   })
 })
 
@@ -111,28 +109,24 @@ test('sign and verify', function (t) {
       },
       uri: 'http://localhost:' + fastify.server.address().port + '/sign',
       json: true
-    })
-      .then(function (sign) {
-        rp({
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            authorization: 'Bearer ' + sign.token
-          },
-          uri: 'http://localhost:' + fastify.server.address().port + '/verify',
-          json: true
-        })
-          .then(function (verify) {
-            t.ok(verify)
-            t.is(verify.foo, 'bar')
-          })
-          .catch(function (err) {
-            t.fail(err.message)
-          })
-      })
-      .catch(function (err) {
+    }).then(function (sign) {
+      rp({
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: 'Bearer ' + sign.token
+        },
+        uri: 'http://localhost:' + fastify.server.address().port + '/verify',
+        json: true
+      }).then(function (verify) {
+        t.ok(verify)
+        t.is(verify.foo, 'bar')
+      }).catch(function (err) {
         t.fail(err.message)
       })
+    }).catch(function (err) {
+      t.fail(err.message)
+    })
   })
 
   t.test('jwtVerify throws No Authorization error', function (t) {
@@ -144,13 +138,11 @@ test('sign and verify', function (t) {
       },
       uri: 'http://localhost:' + fastify.server.address().port + '/verify',
       json: true
+    }).then(function () {
+      t.fail()
+    }).catch(function (err) {
+      t.is(err.error.message, 'No Authorization was found in request.headers')
     })
-      .then(function () {
-        t.fail()
-      })
-      .catch(function (err) {
-        t.is(err.error.message, 'No Authorization was found in request.headers')
-      })
   })
 
   t.test('jwtVerify throws Authorization Format error', function (t) {
@@ -163,13 +155,11 @@ test('sign and verify', function (t) {
       },
       uri: 'http://localhost:' + fastify.server.address().port + '/verify',
       json: true
+    }).then(function () {
+      t.fail()
+    }).catch(function (err) {
+      t.is(err.error.message, 'Format is Authorization: Bearer [token]')
     })
-      .then(function () {
-        t.fail()
-      })
-      .catch(function (err) {
-        t.is(err.error.message, 'Format is Authorization: Bearer [token]')
-      })
   })
 
   t.test('jwtSign throws payload error', function (t) {
@@ -184,13 +174,11 @@ test('sign and verify', function (t) {
       }),
       uri: 'http://localhost:' + fastify.server.address().port + '/sign',
       json: true
+    }).then(function () {
+      t.fail()
+    }).catch(function (err) {
+      t.is(err.error.message, 'jwtSign requires a payload')
     })
-      .then(function () {
-        t.fail()
-      })
-      .catch(function (err) {
-        t.is(err.error.message, 'jwtSign requires a payload')
-      })
   })
 })
 
@@ -243,28 +231,24 @@ test('secret as a function', function (t) {
       },
       uri: 'http://localhost:' + fastify.server.address().port + '/sign',
       json: true
-    })
-      .then(function (sign) {
-        t.ok(sign)
-        rp({
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            authorization: 'Bearer ' + sign.token
-          },
-          uri: 'http://localhost:' + fastify.server.address().port + '/verify',
-          json: true
-        })
-          .then(function (verify) {
-            t.ok(verify)
-            t.is(verify.foo, 'bar')
-          })
-          .catch(function (err) {
-            t.fail(err)
-          })
-      })
-      .catch(function (err) {
+    }).then(function (sign) {
+      t.ok(sign)
+      rp({
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: 'Bearer ' + sign.token
+        },
+        uri: 'http://localhost:' + fastify.server.address().port + '/verify',
+        json: true
+      }).then(function (verify) {
+        t.ok(verify)
+        t.is(verify.foo, 'bar')
+      }).catch(function (err) {
         t.fail(err)
       })
+    }).catch(function (err) {
+      t.fail(err)
+    })
   })
 })
