@@ -52,15 +52,6 @@ fastify.register(jwt, {
 
 ### fastify.jwt.sign(payload [,options] [,callback])
 The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback. 
-#### Example
-```js
-const token = fastify.jwt.sign({ foo: 'bar' })
-// or
-fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
-  if (err) fastify.log.error(err)
-  fastify.log.info(`JWT token is: ${token}`)
-})
-```
 
 ### fastify.jwt.verify(token, [,options] [,callback])
 The `verify` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback) `.verify()`. Can be used asynchronously by passing a callback function; synchronously without a callback. 
