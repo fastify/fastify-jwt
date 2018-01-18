@@ -16,8 +16,6 @@ Register as a plugin. This will decorate your `fastify` instance with the standa
 const fastify = require('fastify')
 fastify.register(require('fastify-jwt'), { 
   secret: 'supersecret' 
-  }, err => {
-  if (err) throw err
 })
 
 fastify.post('/signup', (req, reply) => {
@@ -95,15 +93,13 @@ fastify.register(jwt, {
 
 fastify.post('/sign', function (request, reply) {
   reply.jwtSign(request.body.payload, function (err, token) {
-    if (err) { return reply.send(err) }
-    return reply.send({ 'token': token })
+    return reply.send(err || { 'token': token })
   })
 })
 
 fastify.get('/verify', function (request, reply) {
   request.jwtVerify(function (err, decoded) {
-    if (err) { return reply.send(err) }
-    return reply.send(decoded)
+    return reply.send(err || decoded)
   })
 })
 

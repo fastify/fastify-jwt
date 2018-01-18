@@ -6,7 +6,7 @@ var assert = require('assert')
 var steed = require('steed')
 
 function wrapStaticSecretInCallback (secret) {
-  return function (_, __, cb) {
+  return function (request, payload, cb) {
     return cb(null, secret)
   }
 }
@@ -89,7 +89,7 @@ function fastifyJwt (fastify, options, next) {
     }
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(null, null, callback)
+        secretCallback(reply.request, payload, callback)
       },
       function sign (secret, callback) {
         JWT.sign(payload, secret, options, callback)

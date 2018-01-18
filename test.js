@@ -53,15 +53,13 @@ test('sign and verify', function (t) {
 
   fastify.post('/signCallback', function (request, reply) {
     reply.jwtSign(request.body.payload, function (err, token) {
-      if (err) { return reply.send(err) }
-      return reply.send({ 'token': token })
+      return reply.send(err || { 'token': token })
     })
   })
 
   fastify.get('/verifyCallback', function (request, reply) {
     request.jwtVerify(function (err, decoded) {
-      if (err) { return reply.send(err) }
-      return reply.send(decoded)
+      return reply.send(err || decoded)
     })
   })
 
