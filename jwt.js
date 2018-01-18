@@ -2,6 +2,7 @@
 
 const fp = require('fastify-plugin')
 const JWT = require('jsonwebtoken')
+const assert = require('assert')
 const steed = require('steed')
 
 function wrapStaticSecretInCallback (secret) {
@@ -15,43 +16,89 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('missing secret'))
   }
 
-  let secretCallback = options.secret
-
+  let secret = options.secret
+  let secretCallback = secret
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
   fastify.decorate('jwt', {
     decode: decode,
     sign: sign,
     verify: verify,
-    secretCallback: secretCallback
+    secret: options.secret
   })
+
+  fastify.decorateReply('jwtSign', replySign)
+
+  fastify.decorateRequest('jwtVerify', requestVerify)
 
   next()
 
-  function decode (token, options = {}) {
-    if (!token) {
-      throw new Error('missing token')
+  function sign (payload, options, callback) {
+    assert(payload, 'missing payload')
+    options = options || {}
+    if (typeof options === 'function') {
+      callback = options
+      options = {}
     }
 
+    if (typeof callback === 'function') {
+      JWT.sign(payload, secret, options, callback)
+    } else {
+      return JWT.sign(payload, secret, options)
+    }
+  }
+
+  function verify (token, options, callback) {
+    assert(token, 'missing token')
+    assert(secret, 'missing secret')
+    options = options || {}
+    if (typeof options === 'function') {
+      callback = options
+      options = {}
+    }
+
+    if (typeof callback === 'function') {
+      JWT.verify(token, secret, options, callback)
+    } else {
+      return JWT.verify(token, secret, options)
+    }
+  }
+
+  function decode (token, options) {
+    assert(token, 'missing token')
+    options = options || {}
     return JWT.decode(token, options)
   }
 
-  function sign (request, reply, next) {
-    let {secret, ...rest} = options
+  function replySign (payload, options, next) {
+    if (typeof options === 'function') {
+      next = options
+      options = {}
+    } // support no options
+    if (!payload) {
+      return next(new Error('jwtSign requires a payload'))
+    }
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(request, {}, callback)
+        secretCallback(null, null, callback)
       },
       function sign (secret, callback) {
-        JWT.sign(request.body, secret, rest, callback)
+        JWT.sign(payload, secret, options, callback)
       }
-    ], next)
+    ], (err, token) => {
+      if (err) return next(err)
+      return next(null, token)
+    })
   } // end sign
 
-  function verify (request, reply, next) {
+  function requestVerify (options = {}, next) {
+    if (typeof options === 'function') {
+      next = options
+      options = {}
+    } // support no options
     let token
-    if (request.headers && request.headers.authorization) {
-      const parts = request.headers.authorization.split(' ')
+    if (this.headers && this.headers.authorization) {
+      const parts = this.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
         token = parts[1]
@@ -65,10 +112,9 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let decodedToken = JWT.decode(token, options)
-
     steed.waterfall([
       function getSecret (callback) {
-        secretCallback(request, decodedToken, callback)
+        secretCallback(this, decodedToken, callback)
       },
       function verify (secret, callback) {
         JWT.verify(token, secret, options, callback)
