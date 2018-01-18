@@ -1,9 +1,9 @@
 'use strict'
 
-const fp = require('fastify-plugin')
-const JWT = require('jsonwebtoken')
-const assert = require('assert')
-const steed = require('steed')
+var fp = require('fastify-plugin')
+var JWT = require('jsonwebtoken')
+var assert = require('assert')
+var steed = require('steed')
 
 function wrapStaticSecretInCallback (secret) {
   return function (_, __, cb) {
@@ -16,8 +16,8 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('missing secret'))
   }
 
-  let secret = options.secret
-  let secretCallback = secret
+  var secret = options.secret
+  var secretCallback = secret
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
   fastify.decorate('jwt', {
@@ -85,22 +85,19 @@ function fastifyJwt (fastify, options, next) {
       function sign (secret, callback) {
         JWT.sign(payload, secret, options, callback)
       }
-    ], (err, token) => {
-      if (err) return next(err)
-      return next(null, token)
-    })
+    ], next)
   } // end sign
 
-  function requestVerify (options = {}, next) {
+  function requestVerify (options, next) {
     if (typeof options === 'function') {
       next = options
       options = {}
     } // support no options
-    let token
+    var token
     if (this.headers && this.headers.authorization) {
-      const parts = this.headers.authorization.split(' ')
+      var parts = this.headers.authorization.split(' ')
       if (parts.length === 2) {
-        const scheme = parts[0]
+        var scheme = parts[0]
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
@@ -111,7 +108,7 @@ function fastifyJwt (fastify, options, next) {
       return next(new Error('No Authorization was found in request.headers'))
     }
 
-    let decodedToken = JWT.decode(token, options)
+    var decodedToken = JWT.decode(token, options)
     steed.waterfall([
       function getSecret (callback) {
         secretCallback(this, decodedToken, callback)
