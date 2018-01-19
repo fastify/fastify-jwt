@@ -144,4 +144,7 @@ function fastifyJwt (fastify, options, next) {
   } // end verify
 }
 
-module.exports = fp(fastifyJwt, '>= 0.39')
+module.exports = fp(fastifyJwt, {
+  fastify: '>= 0.39',
+  name: 'fastify-jwt'
+})
