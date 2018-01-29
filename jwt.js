@@ -1,9 +1,9 @@
 'use strict'
 
-var fp = require('fastify-plugin')
-var JWT = require('jsonwebtoken')
-var assert = require('assert')
-var steed = require('steed')
+const fp = require('fastify-plugin')
+const jwt = require('jsonwebtoken')
+const assert = require('assert')
+const steed = require('steed')
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -42,9 +42,9 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (typeof callback === 'function') {
-      JWT.sign(payload, secret, options, callback)
+      jwt.sign(payload, secret, options, callback)
     } else {
-      return JWT.sign(payload, secret, options)
+      return jwt.sign(payload, secret, options)
     }
   }
 
@@ -58,16 +58,16 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (typeof callback === 'function') {
-      JWT.verify(token, secret, options, callback)
+      jwt.verify(token, secret, options, callback)
     } else {
-      return JWT.verify(token, secret, options)
+      return jwt.verify(token, secret, options)
     }
   }
 
   function decode (token, options) {
     assert(token, 'missing token')
     options = options || {}
-    return JWT.decode(token, options)
+    return jwt.decode(token, options)
   }
 
   function replySign (payload, options, next) {
@@ -92,10 +92,10 @@ function fastifyJwt (fastify, options, next) {
         secretCallback(reply.request, payload, callback)
       },
       function sign (secret, callback) {
-        JWT.sign(payload, secret, options, callback)
+        jwt.sign(payload, secret, options, callback)
       }
     ], next)
-  } // end sign
+  }
 
   function requestVerify (options, next) {
     if (typeof options === 'function') {
@@ -128,20 +128,20 @@ function fastifyJwt (fastify, options, next) {
       return next(new Error('No Authorization was found in request.headers'))
     }
 
-    var decodedToken = JWT.decode(token, options)
+    var decodedToken = jwt.decode(token, options)
     steed.waterfall([
       function getSecret (callback) {
         secretCallback(request, decodedToken, callback)
       },
       function verify (secret, callback) {
-        JWT.verify(token, secret, options, callback)
+        jwt.verify(token, secret, options, callback)
       }
     ], function (err, result) {
       if (err) next(err)
       request.user = result
       next(null, result)
     })
-  } // end verify
+  }
 }
 
 module.exports = fp(fastifyJwt, {
