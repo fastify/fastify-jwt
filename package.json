@@ -32,7 +32,7 @@
     "fastify": "^1.0.0-rc.1",
     "request": "^2.83.0",
     "request-promise-native": "^1.0.5",
-    "standard": "^10.0.3",
+    "standard": "^11.0.0",
     "tap": "^11.0.1"
   }
 }
