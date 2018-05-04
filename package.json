@@ -3,6 +3,9 @@
   "version": "0.2.1",
   "description": "JWT utils for Fastify",
   "main": "jwt.js",
+  "engines": {
+    "node": ">6"
+  },
   "scripts": {
     "test": "standard && tap test.js"
   },
