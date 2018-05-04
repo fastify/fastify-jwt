@@ -68,8 +68,8 @@ test('sign and verify', function (t) {
       function (token) {
         return reply.send({ 'token': token })
       }).catch(function (err) {
-        return reply.send(err)
-      })
+      return reply.send(err)
+    })
   })
 
   fastify.get('/verifyPromise', function (request, reply) {
