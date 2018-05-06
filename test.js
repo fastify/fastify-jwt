@@ -63,23 +63,21 @@ test('register', function (t) {
           method: 'post',
           url: '/sign',
           payload: { foo: 'bar' }
-        })
-          .then(function (signResponse) {
-            const token = JSON.parse(signResponse.payload).token
-            t.ok(token)
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
 
-            fastify.inject({
-              method: 'get',
-              url: '/verify',
-              headers: {
-                authorization: `Bearer ${token}`
-              }
-            })
-              .then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-              })
+          fastify.inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const decodedToken = JSON.parse(verifyResponse.payload)
+            t.is(decodedToken.foo, 'bar')
           })
+        })
       })
   })
 
@@ -174,23 +172,21 @@ test('sign and verify', function (t) {
             method: 'post',
             url: '/signSync',
             payload: { foo: 'bar' }
-          })
-            .then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+          }).then(function (signResponse) {
+            const token = JSON.parse(signResponse.payload).token
+            t.ok(token)
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              })
-                .then(function (verifyResponse) {
-                  const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.is(decodedToken.foo, 'bar')
-                })
+            fastify.inject({
+              method: 'get',
+              url: '/verifySync',
+              headers: {
+                authorization: `Bearer ${token}`
+              }
+            }).then(function (verifyResponse) {
+              const decodedToken = JSON.parse(verifyResponse.payload)
+              t.is(decodedToken.foo, 'bar')
             })
+          })
         })
 
         t.test('with callbacks', function (t) {
@@ -200,23 +196,21 @@ test('sign and verify', function (t) {
             method: 'post',
             url: '/signAsync',
             payload: { foo: 'bar' }
-          })
-            .then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+          }).then(function (signResponse) {
+            const token = JSON.parse(signResponse.payload).token
+            t.ok(token)
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              })
-                .then(function (verifyResponse) {
-                  const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.is(decodedToken.foo, 'bar')
-                })
+            fastify.inject({
+              method: 'get',
+              url: '/verifyAsync',
+              headers: {
+                authorization: `Bearer ${token}`
+              }
+            }).then(function (verifyResponse) {
+              const decodedToken = JSON.parse(verifyResponse.payload)
+              t.is(decodedToken.foo, 'bar')
             })
+          })
         })
       })
   })
@@ -273,11 +267,10 @@ test('errors', function (t) {
           payload: {
             payload: null
           }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'jwtSign requires a payload')
         })
-          .then(function (response) {
-            const error = JSON.parse(response.payload)
-            t.is(error.message, 'jwtSign requires a payload')
-          })
       })
 
       t.test('no authorization header error', function (t) {
@@ -286,11 +279,10 @@ test('errors', function (t) {
         fastify.inject({
           method: 'get',
           url: '/verify'
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'No Authorization was found in request.headers')
         })
-          .then(function (response) {
-            const error = JSON.parse(response.payload)
-            t.is(error.message, 'No Authorization was found in request.headers')
-          })
       })
 
       t.test('authorization header format error', function (t) {
@@ -302,11 +294,10 @@ test('errors', function (t) {
           headers: {
             authorization: 'Invalid Format'
           }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Format is Authorization: Bearer [token]')
         })
-          .then(function (response) {
-            const error = JSON.parse(response.payload)
-            t.is(error.message, 'Format is Authorization: Bearer [token]')
-          })
       })
     })
 })
