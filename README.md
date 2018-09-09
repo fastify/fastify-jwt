@@ -29,6 +29,71 @@ fastify.listen(3000, err => {
 })
 ```
 
+For verifying & accessing the decoded token inside your services, you can use a global `preHandler` hook to define the verification process like so:
+
+```js
+const fastify = require('fastify')
+fastify.register(require('fastify-jwt'), { 
+  secret: 'supersecret' 
+})
+
+fastify.addHook("preHandler", async (request, reply) => {
+  try {
+    await request.jwtVerify()
+  } catch (err) {
+    reply.send(err)
+  }
+})
+```
+
+Aftewards, just use `request.user` in order to retrieve the user information:
+
+```js
+module.exports = async function(fastify, opts) {
+  fastify.get("/", async function(request, reply) {
+    return request.user
+  })
+}
+```
+
+However, most of the time we want to protect only some of the routes in our application. To achieve this you can wrap your authentication logic into a plugin like
+
+```js
+const fp = require("fastify-plugin")
+
+module.exports = fp(async function(fastify, opts) {
+  fastify.register(require("fastify-jwt"), {
+    secret: "supersecret"
+  })
+
+  fastify.decorate("authenticate", async function(request, reply) {
+    try {
+      await request.jwtVerify()
+    } catch (err) {
+      reply.send(err)
+    }
+  })
+})
+```
+
+Then use the `beforeHandler` of a route to protect it & access the user information inside:
+
+```js
+module.exports = async function(fastify, opts) {
+  fastify.get(
+    "/",
+    {
+      beforeHandler: [fastify.authenticate]
+    },
+    async function(request, reply) {
+      return request.user
+    }
+  )
+}
+```
+
+Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-auth) plugin for composing more complex strategies.
+
 ## API Spec
 
 ### fastify-jwt
