@@ -274,7 +274,7 @@ test('errors', function (t) {
       })
 
       t.test('no authorization header error', function (t) {
-        t.plan(1)
+        t.plan(2)
 
         fastify.inject({
           method: 'get',
@@ -282,11 +282,12 @@ test('errors', function (t) {
         }).then(function (response) {
           const error = JSON.parse(response.payload)
           t.is(error.message, 'No Authorization was found in request.headers')
+          t.is(response.statusCode, 401)
         })
       })
 
       t.test('authorization header format error', function (t) {
-        t.plan(1)
+        t.plan(2)
 
         fastify.inject({
           method: 'get',
@@ -297,6 +298,7 @@ test('errors', function (t) {
         }).then(function (response) {
           const error = JSON.parse(response.payload)
           t.is(error.message, 'Format is Authorization: Bearer [token]')
+          t.is(response.statusCode, 400)
         })
       })
     })

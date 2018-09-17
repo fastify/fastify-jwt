@@ -4,6 +4,10 @@ const fp = require('fastify-plugin')
 const jwt = require('jsonwebtoken')
 const assert = require('assert')
 const steed = require('steed')
+const {
+  BadRequest,
+  Unauthorized
+} = require('http-errors')
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -121,11 +125,11 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          return next(new Error('Format is Authorization: Bearer [token]'))
+          return next(new BadRequest('Format is Authorization: Bearer [token]'))
         }
       }
     } else {
-      return next(new Error('No Authorization was found in request.headers'))
+      return next(new Unauthorized('No Authorization was found in request.headers'))
     }
 
     var decodedToken = jwt.decode(token, options)
