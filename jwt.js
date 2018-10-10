@@ -21,7 +21,7 @@ function fastifyJwt (fastify, options, next) {
   }
 
   var secret = options.secret
-  var defaultOptions = options.options
+  var defaultOptions = options.options || {}
   var secretCallback = secret
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
