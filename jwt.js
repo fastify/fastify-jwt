@@ -21,6 +21,7 @@ function fastifyJwt (fastify, options, next) {
   }
 
   var secret = options.secret
+  var defaultOptions = options.options
   var secretCallback = secret
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
 
@@ -40,6 +41,8 @@ function fastifyJwt (fastify, options, next) {
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
     options = options || {}
+    options = Object.assign(defaultOptions, options)
+
     if (typeof options === 'function') {
       callback = options
       options = {}
