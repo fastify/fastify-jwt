@@ -59,11 +59,14 @@ function fastifyJwt (fastify, options, next) {
     assert(token, 'missing token')
     assert(secret, 'missing secret')
     options = options || {}
+    options = Object.assign(defaultOptions, options)
     if (typeof options === 'function') {
       callback = options
       options = {}
     }
-
+    if (typeof secret === 'object') {
+      secret = secret.passphrase
+    }
     if (typeof callback === 'function') {
       jwt.verify(token, secret, options, callback)
     } else {
