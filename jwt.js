@@ -8,6 +8,7 @@ const {
   BadRequest,
   Unauthorized
 } = require('http-errors')
+let secretKey, secretPass
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -19,11 +20,25 @@ function fastifyJwt (fastify, options, next) {
   if (!options.secret) {
     return next(new Error('missing secret'))
   }
-
   var secret = options.secret
-  var defaultOptions = options.options || {}
+
+  if (typeof secret === 'object') {
+    if (!secret.key || !secret.passphrase) {
+      return next(new Error('missing secret key and/or passphrase'))
+    }
+    secretKey = secret.key
+    secretPass = secret.passphrase
+  } else {
+    secretKey = secretPass = secret
+  }
   var secretCallback = secret
   if (typeof secretCallback !== 'function') { secretCallback = wrapStaticSecretInCallback(secretCallback) }
+
+  var defaultOptions = options.options || {}
+
+  if (defaultOptions && defaultOptions.algorithm && defaultOptions.algorithm.includes('RS') && typeof secret === 'string') {
+    return next(new Error(`RSA Signatures set as Algorithm in the options require a key and passphrase to be set as the secret`))
+  }
 
   fastify.decorate('jwt', {
     decode: decode,
@@ -38,39 +53,36 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
-  function sign (payload, options, callback) {
+  function sign (payload, signOptions, callback) {
     assert(payload, 'missing payload')
-    options = options || {}
-    options = Object.assign(defaultOptions, options)
-
-    if (typeof options === 'function') {
-      callback = options
-      options = {}
+    signOptions = signOptions || {}
+    if (typeof signOptions === 'function') {
+      callback = signOptions
+      signOptions = {}
     }
+    signOptions = Object.assign(defaultOptions, signOptions)
+    delete signOptions['algorithms']
 
     if (typeof callback === 'function') {
-      jwt.sign(payload, secret, options, callback)
+      jwt.sign(payload, secretKey, signOptions, callback)
     } else {
-      return jwt.sign(payload, secret, options)
+      return jwt.sign(payload, secretKey, signOptions)
     }
   }
 
-  function verify (token, options, callback) {
+  function verify (token, verifyOptions, callback) {
     assert(token, 'missing token')
     assert(secret, 'missing secret')
-    options = options || {}
-    options = Object.assign(defaultOptions, options)
-    if (typeof options === 'function') {
-      callback = options
-      options = {}
+    verifyOptions = verifyOptions || {}
+    if (typeof verifyOptions === 'function') {
+      callback = verifyOptions
+      verifyOptions = {}
     }
-    if (typeof secret === 'object') {
-      secret = secret.passphrase
-    }
+    verifyOptions = Object.assign(defaultOptions, verifyOptions)
     if (typeof callback === 'function') {
-      jwt.verify(token, secret, options, callback)
+      jwt.verify(token, secretPass, verifyOptions, callback)
     } else {
-      return jwt.verify(token, secret, options)
+      return jwt.verify(token, secretPass, verifyOptions)
     }
   }
 
