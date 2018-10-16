@@ -8,7 +8,6 @@ const {
   BadRequest,
   Unauthorized
 } = require('http-errors')
-let secretKey, secretPass
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -17,6 +16,7 @@ function wrapStaticSecretInCallback (secret) {
 }
 
 function fastifyJwt (fastify, options, next) {
+  var secretKey, secretPass
   if (!options.secret) {
     return next(new Error('missing secret'))
   }
