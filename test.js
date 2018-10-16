@@ -1,12 +1,17 @@
 'use strict'
 
+const fs = require('fs')
+const path = require('path')
 const test = require('tap').test
 const Fastify = require('fastify')
 
 const jwt = require('./jwt')
 
+const publicKey = fs.readFileSync(`${path.join(__dirname, 'certs')}/public.key`, 'utf8')
+const privateKey = fs.readFileSync(`${path.join(__dirname, 'certs')}/private.key`, 'utf8')
+
 test('register', function (t) {
-  t.plan(3)
+  t.plan(7)
 
   t.test('expose jwt methods', function (t) {
     t.plan(6)
@@ -29,6 +34,38 @@ test('register', function (t) {
     fastify.inject({
       method: 'get',
       url: '/methods'
+    })
+  })
+
+  t.test('secret as an object', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey } }).ready(function (error) {
+      t.is(error, null)
+    })
+  })
+
+  t.test('options as an object with default HS algorithm', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test', options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience' } }).ready(function (error) {
+      t.is(error, null)
+    })
+  })
+
+  t.test('options and secret as an object with RS algorithm', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } }).ready(function (error) {
+      t.is(error, null)
+    })
+  })
+
+  t.test('secret as string, options as an object with RS algorithm', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test', options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } }).ready(function (error) {
+      t.is(error.message, 'RSA Signatures set as Algorithm in the options require a key and passphrase to be set as the secret')
     })
   })
 
@@ -94,7 +131,7 @@ test('register', function (t) {
   })
 })
 
-test('sign and verify', function (t) {
+test('sign and verify with HS-secret', function (t) {
   t.plan(2)
 
   t.test('server methods', function (t) {
@@ -102,6 +139,126 @@ test('sign and verify', function (t) {
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test' })
+
+    fastify
+      .ready()
+      .then(function () {
+        t.test('synchronous', function (t) {
+          t.plan(1)
+
+          const token = fastify.jwt.sign({ foo: 'bar' })
+          const decoded = fastify.jwt.verify(token)
+
+          t.is(decoded.foo, 'bar')
+        })
+
+        t.test('with callbacks', function (t) {
+          t.plan(3)
+
+          fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+            t.error(error)
+
+            fastify.jwt.verify(token, function (error, decoded) {
+              t.error(error)
+              t.is(decoded.foo, 'bar')
+            })
+          })
+        })
+      })
+  })
+
+  t.test('route methods', function (t) {
+    t.plan(2)
+
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test' })
+
+    fastify.post('/signSync', function (request, reply) {
+      return reply.jwtSign(request.body).then(function (token) {
+        return { token }
+      })
+    })
+
+    fastify.get('/verifySync', function (request, reply) {
+      return request.jwtVerify().then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+    })
+
+    fastify.post('/signAsync', function (request, reply) {
+      reply.jwtSign(request.body, function (error, token) {
+        return reply.send(error || { token })
+      })
+    })
+
+    fastify.get('/verifyAsync', function (request, reply) {
+      request.jwtVerify(function (error, decodedToken) {
+        return reply.send(error || decodedToken)
+      })
+    })
+
+    fastify
+      .ready()
+      .then(function () {
+        t.test('synchronous', function (t) {
+          t.plan(2)
+
+          fastify.inject({
+            method: 'post',
+            url: '/signSync',
+            payload: { foo: 'bar' }
+          }).then(function (signResponse) {
+            const token = JSON.parse(signResponse.payload).token
+            t.ok(token)
+
+            fastify.inject({
+              method: 'get',
+              url: '/verifySync',
+              headers: {
+                authorization: `Bearer ${token}`
+              }
+            }).then(function (verifyResponse) {
+              const decodedToken = JSON.parse(verifyResponse.payload)
+              t.is(decodedToken.foo, 'bar')
+            })
+          })
+        })
+
+        t.test('with callbacks', function (t) {
+          t.plan(2)
+
+          fastify.inject({
+            method: 'post',
+            url: '/signAsync',
+            payload: { foo: 'bar' }
+          }).then(function (signResponse) {
+            const token = JSON.parse(signResponse.payload).token
+            t.ok(token)
+
+            fastify.inject({
+              method: 'get',
+              url: '/verifyAsync',
+              headers: {
+                authorization: `Bearer ${token}`
+              }
+            }).then(function (verifyResponse) {
+              const decodedToken = JSON.parse(verifyResponse.payload)
+              t.is(decodedToken.foo, 'bar')
+            })
+          })
+        })
+      })
+  })
+})
+
+test('sign and verify with RSA and options', function (t) {
+  t.plan(2)
+
+  t.test('server methods', function (t) {
+    t.plan(2)
+
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } })
 
     fastify
       .ready()
