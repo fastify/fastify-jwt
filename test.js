@@ -174,17 +174,15 @@ test('sign and verify with HS-secret', function (t) {
     fastify.register(jwt, { secret: 'test' })
 
     fastify.post('/signSync', function (request, reply) {
-      reply.jwtSign(request.body)
-        .then(function (token) {
-          return reply.send({ token })
-        })
+      return reply.jwtSign(request.body).then(function (token) {
+        return { token }
+      })
     })
 
     fastify.get('/verifySync', function (request, reply) {
-      request.jwtVerify()
-        .then(function (decodedToken) {
-          return reply.send(decodedToken)
-        })
+      return request.jwtVerify().then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
     })
 
     fastify.post('/signAsync', function (request, reply) {
