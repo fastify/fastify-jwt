@@ -25,11 +25,11 @@ function fastifyJwt (fastify, options, next) {
   let secretOrPublicKey
 
   if (typeof secret === 'object') {
-    if (!secret.key || !secret.passphrase) {
-      return next(new Error('missing secret key and/or passphrase'))
+    if (!secret.private || !secret.public) {
+      return next(new Error('missing private key and/or public key'))
     }
-    secretOrPrivateKey = secret.key
-    secretOrPublicKey = secret.passphrase
+    secretOrPrivateKey = secret.private
+    secretOrPublicKey = secret.public
   } else {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
@@ -40,7 +40,12 @@ function fastifyJwt (fastify, options, next) {
   if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
 
   let defaultOptions = options.options || {}
-  if (defaultOptions && defaultOptions.algorithm && defaultOptions.algorithm.includes('RS') && typeof secret === 'string') {
+  if (
+    defaultOptions &&
+    defaultOptions.algorithm &&
+    defaultOptions.algorithm.includes('RS') &&
+    typeof secret === 'string'
+  ) {
     return next(new Error(`RSA Signatures set as Algorithm in the options require a key and passphrase to be set as the secret`))
   }
 
