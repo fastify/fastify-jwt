@@ -105,6 +105,7 @@ Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwt
 #### Example
 ```js
 const { readFileSync } = require('fs')
+const path = require('path')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 // secret as a string
