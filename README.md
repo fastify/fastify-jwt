@@ -104,6 +104,7 @@ In case of a private key with passphrase an object `{ private: { key, passphrase
 Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `reply`, and `callback` parameters.
 #### Example
 ```js
+const { readFileSync } = require('fs')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 // secret as a string
