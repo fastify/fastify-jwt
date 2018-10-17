@@ -14,8 +14,8 @@ Register as a plugin. This will decorate your `fastify` instance with the standa
 
 ```js
 const fastify = require('fastify')
-fastify.register(require('fastify-jwt'), { 
-  secret: 'supersecret' 
+fastify.register(require('fastify-jwt'), {
+  secret: 'supersecret'
 })
 
 fastify.post('/signup', (req, reply) => {
@@ -33,8 +33,8 @@ For verifying & accessing the decoded token inside your services, you can use a 
 
 ```js
 const fastify = require('fastify')
-fastify.register(require('fastify-jwt'), { 
-  secret: 'supersecret' 
+fastify.register(require('fastify-jwt'), {
+  secret: 'supersecret'
 })
 
 fastify.addHook("preHandler", async (request, reply) => {
@@ -97,7 +97,11 @@ Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-
 ## API Spec
 
 ### fastify-jwt
-`fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String or a function that returns a String. Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `reply`, and `callback` parameters.
+`fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
+
+In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` or `{ private: key, public: passphrase }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` option).
+
+Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `reply`, and `callback` parameters.
 #### Example
 ```js
 const fastify = require('fastify')()
@@ -105,19 +109,40 @@ const jwt = require('fastify-jwt')
 // secret as a string
 fastify.register(jwt, { secret: 'supersecret' })
 // secret as a function
-fastify.register(jwt, { 
+fastify.register(jwt, {
   secret: function (request, reply, callback) {
-    // do something 
+    // do something
     callback(null, 'supersecret')
   }
+})
+// secret as an object of RSA keys (without passphrase)
+// assuming the key files are inside a certs directory and loaded as strings
+fastify.register(jwt, {
+  secret: {
+    private: readFileSync(`${path.join(__dirname, 'certs')}/private.key`, 'utf8')
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.key`, 'utf8')
+  },
+  options: { algorithm: 'RS256' }
+})
+// secret as an object of RSA keys (with a passphrase)
+// assuming the pem files are inside a certs directory and loaded as buffers
+fastify.register(jwt, {
+  secret: {
+    private: {
+      key: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`),
+      passphrase: 'super secret passphrase'
+    },
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
+  },
+  options: { algorithm: 'RS256' }
 })
 ```
 
 ### fastify.jwt.sign(payload [,options] [,callback])
-The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback. 
+The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
 
 ### fastify.jwt.verify(token, [,options] [,callback])
-The `verify` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback) `.verify()`. Can be used asynchronously by passing a callback function; synchronously without a callback. 
+The `verify` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback) `.verify()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
 #### Example
 ```js
 const token = fastify.jwt.sign({ foo: 'bar' })
@@ -149,9 +174,9 @@ These methods are very similar to their standard jsonwebtoken counterparts.
 ```js
 const fastify = require('fastify')()
 
-fastify.register(jwt, { 
+fastify.register(jwt, {
   secret: function (request, reply, callback) {
-    // do something 
+    // do something
     callback(null, 'supersecret')
   }
 })
