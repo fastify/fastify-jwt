@@ -291,7 +291,7 @@ test('sign and verify with RSA and options', function (t) {
     t.plan(2)
 
     const fastify = Fastify()
-    fastify.register(jwt, { secret: 'test' })
+    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } })
 
     fastify.post('/signSync', function (request, reply) {
       reply.jwtSign(request.body)
