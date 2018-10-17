@@ -48,7 +48,14 @@ test('register', function (t) {
   t.test('options as an object with default HS algorithm', function (t) {
     t.plan(1)
     const fastify = Fastify()
-    fastify.register(jwt, { secret: 'test', options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience' } }).ready(function (error) {
+    fastify.register(jwt, {
+      secret: 'test',
+      options: {
+        issuer: 'Some issuer',
+        subject: 'Some subject',
+        audience: 'Some audience'
+      }
+    }).ready(function (error) {
       t.is(error, null)
     })
   })
@@ -56,7 +63,18 @@ test('register', function (t) {
   t.test('options and secret as an object with RS algorithm', function (t) {
     t.plan(1)
     const fastify = Fastify()
-    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } }).ready(function (error) {
+    fastify.register(jwt, {
+      secret: {
+        key: privateKey,
+        passphrase: publicKey
+      },
+      options: {
+        issuer: 'Some issuer',
+        subject: 'Some subject',
+        audience: 'Some audience',
+        algorithm: 'RS256'
+      }
+    }).ready(function (error) {
       t.is(error, null)
     })
   })
@@ -64,7 +82,15 @@ test('register', function (t) {
   t.test('secret as string, options as an object with RS algorithm', function (t) {
     t.plan(1)
     const fastify = Fastify()
-    fastify.register(jwt, { secret: 'test', options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } }).ready(function (error) {
+    fastify.register(jwt, {
+      secret: 'test',
+      options: {
+        issuer: 'Some issuer',
+        subject: 'Some subject',
+        audience: 'Some audience',
+        algorithm: 'RS256'
+      }
+    }).ready(function (error) {
       t.is(error.message, 'RSA Signatures set as Algorithm in the options require a key and passphrase to be set as the secret')
     })
   })
@@ -258,7 +284,18 @@ test('sign and verify with RSA and options', function (t) {
     t.plan(2)
 
     const fastify = Fastify()
-    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } })
+    fastify.register(jwt, {
+      secret: {
+        key: privateKey,
+        passphrase: publicKey
+      },
+      options: {
+        issuer: 'Some issuer',
+        subject: 'Some subject',
+        audience: 'Some audience',
+        algorithm: 'RS256'
+      }
+    })
 
     fastify
       .ready()
@@ -291,7 +328,18 @@ test('sign and verify with RSA and options', function (t) {
     t.plan(2)
 
     const fastify = Fastify()
-    fastify.register(jwt, { secret: { key: privateKey, passphrase: publicKey }, options: { issuer: 'Some issuer', subject: 'Some subject', audience: 'Some audience', algorithm: 'RS256' } })
+    fastify.register(jwt, {
+      secret: {
+        key: privateKey,
+        passphrase: publicKey
+      },
+      options: {
+        issuer: 'Some issuer',
+        subject: 'Some subject',
+        audience: 'Some audience',
+        algorithm: 'RS256'
+      }
+    })
 
     fastify.post('/signSync', function (request, reply) {
       reply.jwtSign(request.body)
