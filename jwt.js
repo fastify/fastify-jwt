@@ -46,7 +46,15 @@ function fastifyJwt (fastify, options, next) {
     defaultOptions.algorithm.includes('RS') &&
     typeof secret === 'string'
   ) {
-    return next(new Error(`RSA Signatures set as Algorithm in the options require a key and passphrase to be set as the secret`))
+    return next(new Error(`RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
+  }
+  if (
+    defaultOptions &&
+    defaultOptions.algorithm &&
+    defaultOptions.algorithm.includes('ES') &&
+    typeof secret === 'string'
+  ) {
+    return next(new Error(`ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
   }
 
   fastify.decorate('jwt', {

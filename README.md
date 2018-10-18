@@ -99,7 +99,9 @@ Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-
 ### fastify-jwt
 `fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
-In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` or `{ private: key, public: passphrase }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` option).
+In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` option).
+
+In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
 Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `reply`, and `callback` parameters.
 #### Example
@@ -126,7 +128,7 @@ fastify.register(jwt, {
   },
   options: { algorithm: 'RS256' }
 })
-// secret as an object of RSA keys (with a passphrase)
+// secret as an object of P-256 ECDSA keys (with a passphrase)
 // assuming the pem files are inside a certs directory and loaded as buffers
 fastify.register(jwt, {
   secret: {
@@ -136,7 +138,7 @@ fastify.register(jwt, {
     },
     public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
   },
-  options: { algorithm: 'RS256' }
+  options: { algorithm: 'ES256' }
 })
 ```
 
