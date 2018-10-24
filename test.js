@@ -194,10 +194,7 @@ test('register', function (t) {
     })
 
     fastify.get('/verify', function (request, reply) {
-      request.jwtVerify()
-        .then(function (decodedToken) {
-          return reply.send(decodedToken)
-        })
+      return request.jwtVerify()
     })
 
     fastify
@@ -287,9 +284,7 @@ test('sign and verify with HS-secret', function (t) {
     })
 
     fastify.get('/verifySync', function (request, reply) {
-      return request.jwtVerify().then(function (decodedToken) {
-        return reply.send(decodedToken)
-      })
+      return request.jwtVerify()
     })
 
     fastify.post('/signAsync', function (request, reply) {
@@ -328,7 +323,7 @@ test('sign and verify with HS-secret', function (t) {
               const decodedToken = JSON.parse(verifyResponse.payload)
               t.is(decodedToken.foo, 'bar')
             })
-          })
+          }).catch(t.threw)
         })
 
         t.test('with callbacks', function (t) {
@@ -352,7 +347,7 @@ test('sign and verify with HS-secret', function (t) {
               const decodedToken = JSON.parse(verifyResponse.payload)
               t.is(decodedToken.foo, 'bar')
             })
-          })
+          }).catch(t.threw)
         })
       })
   })
@@ -438,10 +433,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
 
       fastify.get('/verifySync', function (request, reply) {
-        request.jwtVerify()
-          .then(function (decodedToken) {
-            return reply.send(decodedToken)
-          })
+        return request.jwtVerify()
       })
 
       fastify.post('/signAsync', function (request, reply) {
@@ -481,7 +473,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
               })
-            })
+            }).catch(t.threw)
           })
 
           t.test('with callbacks', function (t) {
@@ -506,7 +498,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
               })
-            })
+            }).catch(t.threw)
           })
         })
     })
@@ -589,10 +581,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
 
       fastify.get('/verifySync', function (request, reply) {
-        request.jwtVerify()
-          .then(function (decodedToken) {
-            return reply.send(decodedToken)
-          })
+        return request.jwtVerify()
       })
 
       fastify.post('/signAsync', function (request, reply) {
@@ -632,7 +621,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
               })
-            })
+            }).catch(t.threw)
           })
 
           t.test('with callbacks', function (t) {
@@ -657,7 +646,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
               })
-            })
+            }).catch(t.threw)
           })
         })
     })
@@ -739,10 +728,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
 
       fastify.get('/verifySync', function (request, reply) {
-        request.jwtVerify()
-          .then(function (decodedToken) {
-            return reply.send(decodedToken)
-          })
+        return request.jwtVerify()
       })
 
       fastify.post('/signAsync', function (request, reply) {
@@ -782,7 +768,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.aud, 'test')
                 t.is(decodedToken.foo, 'bar')
               })
-            })
+            }).catch(t.threw)
           })
 
           t.test('with callbacks', function (t) {
@@ -807,7 +793,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.aud, 'test')
                 t.is(decodedToken.foo, 'bar')
               })
-            })
+            }).catch(t.threw)
           })
         })
     })
@@ -889,10 +875,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
 
       fastify.get('/verifySync', function (request, reply) {
-        request.jwtVerify()
-          .then(function (decodedToken) {
-            return reply.send(decodedToken)
-          })
+        return request.jwtVerify()
       })
 
       fastify.post('/signAsync', function (request, reply) {
@@ -932,7 +915,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
               })
-            })
+            }).catch(t.threw)
           })
 
           t.test('with callbacks', function (t) {
@@ -957,7 +940,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
               })
-            })
+            }).catch(t.threw)
           })
         })
     })
@@ -1046,10 +1029,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
 
       fastify.get('/verifySync', function (request, reply) {
-        request.jwtVerify()
-          .then(function (decodedToken) {
-            return reply.send(decodedToken)
-          })
+        return request.jwtVerify()
       })
 
       fastify.post('/signAsync', function (request, reply) {
@@ -1089,7 +1069,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
               })
-            })
+            }).catch(t.threw)
           })
 
           t.test('with callbacks', function (t) {
@@ -1114,7 +1094,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
               })
-            })
+            }).catch(t.threw)
           })
         })
     })
