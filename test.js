@@ -217,7 +217,11 @@ test('register', function (t) {
           }).then(function (verifyResponse) {
             const decodedToken = JSON.parse(verifyResponse.payload)
             t.is(decodedToken.foo, 'bar')
+          }).catch(function (error) {
+            t.fail(error)
           })
+        }).catch(function (error) {
+          t.fail(error)
         })
       })
   })
@@ -322,8 +326,12 @@ test('sign and verify with HS-secret', function (t) {
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
               t.is(decodedToken.foo, 'bar')
+            }).catch(function (error) {
+              t.fail(error)
             })
-          }).catch(t.threw)
+          }).catch(function (error) {
+            t.fail(error)
+          })
         })
 
         t.test('with callbacks', function (t) {
@@ -346,8 +354,12 @@ test('sign and verify with HS-secret', function (t) {
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
               t.is(decodedToken.foo, 'bar')
+            }).catch(function (error) {
+              t.fail(error)
             })
-          }).catch(t.threw)
+          }).catch(function (error) {
+            t.fail(error)
+          })
         })
       })
   })
@@ -472,8 +484,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
 
           t.test('with callbacks', function (t) {
@@ -497,8 +513,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
         })
     })
@@ -620,8 +640,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
 
           t.test('with callbacks', function (t) {
@@ -645,8 +669,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
         })
     })
@@ -767,8 +795,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.aud, 'test')
                 t.is(decodedToken.foo, 'bar')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
 
           t.test('with callbacks', function (t) {
@@ -792,8 +824,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.aud, 'test')
                 t.is(decodedToken.foo, 'bar')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
         })
     })
@@ -914,8 +950,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
 
           t.test('with callbacks', function (t) {
@@ -939,8 +979,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
         })
     })
@@ -1068,8 +1112,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
 
           t.test('with callbacks', function (t) {
@@ -1093,8 +1141,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 const decodedToken = JSON.parse(verifyResponse.payload)
                 t.is(decodedToken.foo, 'bar')
                 t.is(decodedToken.iss, 'test')
+              }).catch(function (error) {
+                t.fail(error)
               })
-            }).catch(t.threw)
+            }).catch(function (error) {
+              t.fail(error)
+            })
           })
         })
     })
