@@ -179,7 +179,7 @@ fastify.get('/decode', async (request, reply) => {
     const decodedToken = fastify.jwt.decode(token)
 
     // We decode the token using completely overided the default options
-    const decodedTokenAlt = fastify.jwt.decode(token, { complete: false })
+    const decodedTokenAlt = fastify.jwt.decode(tokenAlt, { complete: false })
 
     return { decodedToken, decodedTokenAlt }
     /**
