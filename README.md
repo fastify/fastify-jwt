@@ -99,7 +99,7 @@ Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-
 ### fastify-jwt
 `fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
-In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` option).
+In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
@@ -107,7 +107,6 @@ Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwt
 #### Example
 ```js
 const { readFileSync } = require('fs')
-const path = require('path')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 // secret as a string
@@ -120,25 +119,100 @@ fastify.register(jwt, {
   }
 })
 // secret as an object of RSA keys (without passphrase)
-// assuming the key files are inside a certs directory and loaded as strings
+// the files are loaded as strings
 fastify.register(jwt, {
   secret: {
-    private: readFileSync(`${path.join(__dirname, 'certs')}/private.key`, 'utf8')
-    public: readFileSync(`${path.join(__dirname, 'certs')}/public.key`, 'utf8')
+    private: readFileSync('path/to/private/cert.key', 'utf8'),
+    public: readFileSync('path/to/public/cert.key', 'utf8')
   },
-  options: { algorithm: 'RS256' }
+  sign: { algorithm: 'RS256' }
 })
 // secret as an object of P-256 ECDSA keys (with a passphrase)
-// assuming the pem files are inside a certs directory and loaded as buffers
+// the files are loaded as buffers
 fastify.register(jwt, {
   secret: {
     private: {
-      key: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`),
+      key: readFileSync('path/to/private/cert.pem'),
       passphrase: 'super secret passphrase'
     },
-    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
+    public: readFileSync('path/to/public/cert.pem')
   },
-  options: { algorithm: 'ES256' }
+  sign: { algorithm: 'ES256' }
+})
+```
+
+Optionaly you can define global default options that will be used by `fastify-jwt` API if you don't override them.
+
+#### Example
+```js
+const { readFileSync } = require('fs')
+const fastify = require('fastify')()
+const jwt = require('fastify-jwt')
+fastify.register(jwt, {
+  secret: {
+    private: readFileSync('path/to/private/cert.pem', 'utf8')
+    public: readFileSync('path/to/public/cert.pem', 'utf8')
+  },
+  // Global default decoding method options
+  decode: { complete: true },
+  // Global default signing method options
+  sign: {
+    algorithm: 'ES384',
+    issuer: 'api.example.tld'
+  },
+  // Global default verifying method options
+  verify: { issuer: 'api.example.tld' }
+})
+
+fastify.get('/decode', async (request, reply) => {
+  try {
+    // We clone the global signing options before modifying them
+    let altSignOptions = Object.assign({}, fastify.jwt.options.sign)
+    altSignOptions.issuer = 'another.example.tld'
+
+    // We generate a token using the default sign options
+    const token = await reply.jwtSign({ foo: 'bar' })
+    // We generate a token using overrided options
+    const tokenAlt = await reply.jwtSign({ foo: 'bar' }, altSignOptions)
+
+    // We decode the token using the default options
+    const decodedToken = fastify.jwt.decode(token)
+
+    // We decode the token using completely overided the default options
+    const decodedTokenAlt = fastify.jwt.decode(token, { complete: false })
+
+    return { decodedToken, decodedTokenAlt }
+    /**
+     * Will return:
+     *
+     * {
+     *   "decodedToken": {
+     *     "header": {
+     *       "alg": "ES384",
+     *       "typ": "JWT"
+     *     },
+     *     "payload": {
+     *       "foo": "bar",
+     *       "iat": 123...456 (a timestamp)
+     *       "iss": "api.example.tld"
+     *     },
+     *     "signature": "sdfg+dfgd_dgzar" (a string)
+     *   },
+     *   decodedTokenAlt: {
+     *     "foo": "bar",
+     *     "iat": 123...456 (a timestamp)
+     *     "iss": "another.example.tld"
+     *   },
+     * }
+     */
+  } catch (error) {
+    reply.code(500)
+    return { error }
+  }
+})
+
+fastify.listen(3000, err => {
+  if (err) throw err
 })
 ```
 
@@ -167,6 +241,98 @@ const token = fastify.jwt.sign({ foo: 'bar' })
 const decoded = fastify.jwt.decode(token)
 fastify.log.info(`Decoded JWT: ${decoded}`)
 ```
+
+### fastify.jwt.options
+For your convenience, the `decode`, `sign` and `verify` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify }` containing your options.
+
+#### Example
+```js
+const { readFileSync } = require('fs')
+const fastify = require('fastify')()
+const jwt = require('fastify-jwt')
+fastify.register(jwt, {
+  secret: {
+    private: readFileSync('path/to/private/cert.pem'),
+    public: readFileSync('path/to/public/cert.pem')
+  },
+  sign: {
+    algorithm: 'RS256',
+    audience: 'foo',
+    issuer: 'example.tld'
+  },
+  verify: {
+    audience: 'foo',
+    issuer: 'example.tld',
+  }
+})
+
+fastify.get('/', (request, reply) => {
+  const globalOptions = fastify.jwt.options
+
+  // We recommend that you clone the options like this when you need to mutate them
+  // modifiedVerifyOptions = { audience: 'foo', issuer: 'example.tld' }
+  let modifiedVerifyOptions = Object.assign({}, fastify.jwt.options.verify)
+  modifiedVerifyOptions.audience = 'bar'
+  modifiedVerifyOptions.subject = 'test'
+
+  return { globalOptions, modifiedVerifyOptions }
+  /**
+   * Will return :
+   * {
+   *   globalOptions: {
+   *     decode: {},
+   *     sign: {
+   *       algorithm: 'RS256',
+   *       audience: 'foo',
+   *       issuer: 'example.tld'
+   *     },
+   *     verify: {
+   *       audience: 'foo',
+   *       issuer: 'example.tld'
+   *     }
+   *   },
+   *   modifiedVerifyOptions: {
+   *     audience: 'bar',
+   *     issuer: 'example.tld',
+   *     subject: 'test'
+   *   }
+   * }
+   */
+})
+
+fastify.listen(3000, err => {
+  if (err) throw err
+})
+```
+
+#### decode options
+* `json`: force JSON.parse on the payload even if the header doesn't contain `"typ":"JWT"`.
+* `complete`: return an object with the decoded payload and header.
+
+#### sign options
+* `algorithm` (default: `HS256`)
+* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `audience`
+* `issuer`
+* `jwtid`
+* `subject`
+* `noTimestamp`
+* `header`
+* `keyid`
+* `mutatePayload`: if true, the sign function will modify the payload object directly. This is useful if you need a raw reference to the payload after claims have been applied to it but before it has been encoded into a token.
+
+#### verify options
+
+* `algorithms`: List of strings with the names of the allowed algorithms. For instance, `["HS256", "HS384"]`.
+* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. Eg: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
+* `issuer` (optional): string or array of strings of valid values for the `iss` field.
+* `ignoreExpiration`: if `true` do not validate the expiration of the token.
+* `ignoreNotBefore`...
+* `subject`: if you want to check subject (`sub`), provide a value here
+* `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
+* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
 
 ### fastify.jwt.secret
 For your convenience, the `secret` you specify during `.register` is made available via `fastify.jwt.secret`. `request.jwtVerify()` and `reply.jwtSign()` will wrap non-function secrets in a callback function. `request.jwtVerify()` and `reply.jwtSign()` use an asynchronous waterfall method to retrieve your secret. It's recommended that your use these methods if your `secret` method is asynchronous.
@@ -235,6 +401,22 @@ fastify.listen(3000, function (err) {
 })
 ```
 
+### Algorithms supported
+
+The following algorithms are currently supported.
+
+algorithm(s) Parameter Value | Digital Signature or MAC Algorithm
+----------------|----------------------------
+HS256 | HMAC using SHA-256 hash algorithm
+HS384 | HMAC using SHA-384 hash algorithm
+HS512 | HMAC using SHA-512 hash algorithm
+RS256 | RSASSA using SHA-256 hash algorithm
+RS384 | RSASSA using SHA-384 hash algorithm
+RS512 | RSASSA using SHA-512 hash algorithm
+ES256 | ECDSA using P-256 curve and SHA-256 hash algorithm
+ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
+ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
+none | No digital signature or MAC value included
 
 ## Acknowledgements
 
