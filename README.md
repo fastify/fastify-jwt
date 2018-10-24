@@ -107,6 +107,7 @@ Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwt
 #### Example
 ```js
 const { readFileSync } = require('fs')
+const path = require('path')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 // secret as a string
@@ -122,8 +123,8 @@ fastify.register(jwt, {
 // the files are loaded as strings
 fastify.register(jwt, {
   secret: {
-    private: readFileSync('path/to/private/cert.key', 'utf8'),
-    public: readFileSync('path/to/public/cert.key', 'utf8')
+    private: readFileSync(`${path.join(__dirname, 'certs')}/private.key`, 'utf8'),
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.key`, 'utf8')
   },
   sign: { algorithm: 'RS256' }
 })
@@ -132,10 +133,10 @@ fastify.register(jwt, {
 fastify.register(jwt, {
   secret: {
     private: {
-      key: readFileSync('path/to/private/cert.pem'),
+      key: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`),
       passphrase: 'super secret passphrase'
     },
-    public: readFileSync('path/to/public/cert.pem')
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
   },
   sign: { algorithm: 'ES256' }
 })
@@ -146,18 +147,19 @@ Optionaly you can define global default options that will be used by `fastify-jw
 #### Example
 ```js
 const { readFileSync } = require('fs')
+const path = require('path')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 fastify.register(jwt, {
   secret: {
-    private: readFileSync('path/to/private/cert.pem', 'utf8')
-    public: readFileSync('path/to/public/cert.pem', 'utf8')
+    private: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`, 'utf8')
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`, 'utf8')
   },
   // Global default decoding method options
   decode: { complete: true },
   // Global default signing method options
   sign: {
-    algorithm: 'ES384',
+    algorithm: 'ES256',
     issuer: 'api.example.tld'
   },
   // Global default verifying method options
@@ -165,50 +167,45 @@ fastify.register(jwt, {
 })
 
 fastify.get('/decode', async (request, reply) => {
-  try {
-    // We clone the global signing options before modifying them
-    let altSignOptions = Object.assign({}, fastify.jwt.options.sign)
-    altSignOptions.issuer = 'another.example.tld'
+  // We clone the global signing options before modifying them
+  let altSignOptions = Object.assign({}, fastify.jwt.options.sign)
+  altSignOptions.issuer = 'another.example.tld'
 
-    // We generate a token using the default sign options
-    const token = await reply.jwtSign({ foo: 'bar' })
-    // We generate a token using overrided options
-    const tokenAlt = await reply.jwtSign({ foo: 'bar' }, altSignOptions)
+  // We generate a token using the default sign options
+  const token = await reply.jwtSign({ foo: 'bar' })
+  // We generate a token using overrided options
+  const tokenAlt = await reply.jwtSign({ foo: 'bar' }, altSignOptions)
 
-    // We decode the token using the default options
-    const decodedToken = fastify.jwt.decode(token)
+  // We decode the token using the default options
+  const decodedToken = fastify.jwt.decode(token)
 
-    // We decode the token using completely overided the default options
-    const decodedTokenAlt = fastify.jwt.decode(tokenAlt, { complete: false })
+  // We decode the token using completely overided the default options
+  const decodedTokenAlt = fastify.jwt.decode(tokenAlt, { complete: false })
 
-    return { decodedToken, decodedTokenAlt }
-    /**
-     * Will return:
-     *
-     * {
-     *   "decodedToken": {
-     *     "header": {
-     *       "alg": "ES384",
-     *       "typ": "JWT"
-     *     },
-     *     "payload": {
-     *       "foo": "bar",
-     *       "iat": 123...456 (a timestamp)
-     *       "iss": "api.example.tld"
-     *     },
-     *     "signature": "sdfg+dfgd_dgzar" (a string)
-     *   },
-     *   decodedTokenAlt: {
-     *     "foo": "bar",
-     *     "iat": 123...456 (a timestamp)
-     *     "iss": "another.example.tld"
-     *   },
-     * }
-     */
-  } catch (error) {
-    reply.code(500)
-    return { error }
-  }
+  return { decodedToken, decodedTokenAlt }
+  /**
+   * Will return:
+   *
+   * {
+   *   "decodedToken": {
+   *     "header": {
+   *       "alg": "ES256",
+   *       "typ": "JWT"
+   *     },
+   *     "payload": {
+   *       "foo": "bar",
+   *       "iat": 1540305336
+   *       "iss": "api.example.tld"
+   *     },
+   *     "signature": "gVf5bzROYB4nPgQC0nbJTWCiJ3Ya51cyuP-N50cidYo"
+   *   },
+   *   decodedTokenAlt: {
+   *     "foo": "bar",
+   *     "iat": 1540305337
+   *     "iss": "another.example.tld"
+   *   },
+   * }
+   */
 })
 
 fastify.listen(3000, err => {
@@ -248,12 +245,13 @@ For your convenience, the `decode`, `sign` and `verify` options you specify duri
 #### Example
 ```js
 const { readFileSync } = require('fs')
+const path = require('path')
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 fastify.register(jwt, {
   secret: {
-    private: readFileSync('path/to/private/cert.pem'),
-    public: readFileSync('path/to/public/cert.pem')
+    private: readFileSync(`${path.join(__dirname, 'certs')}/private.key`),
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.key`)
   },
   sign: {
     algorithm: 'RS256',
@@ -403,7 +401,7 @@ fastify.listen(3000, function (err) {
 
 ### Algorithms supported
 
-The following algorithms are currently supported.
+The following algorithms are currently supported by [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#algorithms-supported) that is internally used by `fastify-jwt`.
 
 algorithm(s) Parameter Value | Digital Signature or MAC Algorithm
 ----------------|----------------------------
