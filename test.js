@@ -22,7 +22,7 @@ const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/
 const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
 
 test('register', function (t) {
-  t.plan(7)
+  t.plan(8)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(7)
@@ -59,6 +59,47 @@ test('register', function (t) {
       }
     }).ready(function (error) {
       t.is(error, null)
+    })
+  })
+
+  t.test('secret as a malformed object', function (t) {
+    t.plan(2)
+
+    t.test('only private key (Must return an error)', function (t) {
+      t.plan(1)
+
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          private: privateKey
+        },
+        sign: {
+          algorithm: 'RS256',
+          audience: 'Some audience',
+          issuer: 'Some issuer',
+          subject: 'Some subject'
+        }
+      }).ready(function (error) {
+        t.is(error.message, 'missing private key and/or public key')
+      })
+    })
+
+    t.test('only public key (Must return an error)', function (t) {
+      t.plan(1)
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          public: publicKey
+        },
+        sign: {
+          algorithm: 'ES256',
+          audience: 'Some audience',
+          issuer: 'Some issuer',
+          subject: 'Some subject'
+        }
+      }).ready(function (error) {
+        t.is(error.message, 'missing private key and/or public key')
+      })
     })
   })
 
@@ -1233,7 +1274,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test' })
@@ -1302,6 +1343,22 @@ test('errors', function (t) {
           const error = JSON.parse(response.payload)
           t.is(error.message, 'Format is Authorization: Bearer [token]')
           t.is(response.statusCode, 400)
+        })
+      })
+
+      t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
+        t.plan(2)
+
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: 'Bearer Bad Format'
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'jwt must be provided')
+          t.is(response.statusCode, 500)
         })
       })
     })
