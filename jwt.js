@@ -9,6 +9,8 @@ const {
   Unauthorized
 } = require('http-errors')
 
+const badRequestErrorMessage = 'Format is Authorization: Bearer [token]'
+
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
     return cb(null, secret)
@@ -20,7 +22,11 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('missing secret'))
   }
 
-  let secret = options.secret
+  if (options.options) {
+    return next(new Error('options prefix is deprecated'))
+  }
+
+  const secret = options.secret
   let secretOrPrivateKey
   let secretOrPublicKey
 
@@ -39,19 +45,22 @@ function fastifyJwt (fastify, options, next) {
   if (typeof secretCallbackSign !== 'function') { secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign) }
   if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
 
-  let defaultOptions = options.options || {}
+  const decodeOptions = options.decode || {}
+  const signOptions = options.sign || {}
+  const verifyOptions = options.verify || {}
+
   if (
-    defaultOptions &&
-    defaultOptions.algorithm &&
-    defaultOptions.algorithm.includes('RS') &&
+    signOptions &&
+    signOptions.algorithm &&
+    signOptions.algorithm.includes('RS') &&
     typeof secret === 'string'
   ) {
     return next(new Error(`RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
   }
   if (
-    defaultOptions &&
-    defaultOptions.algorithm &&
-    defaultOptions.algorithm.includes('ES') &&
+    signOptions &&
+    signOptions.algorithm &&
+    signOptions.algorithm.includes('ES') &&
     typeof secret === 'string'
   ) {
     return next(new Error(`ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
@@ -59,72 +68,84 @@ function fastifyJwt (fastify, options, next) {
 
   fastify.decorate('jwt', {
     decode: decode,
+    options: {
+      decode: decodeOptions,
+      sign: signOptions,
+      verify: verifyOptions
+    },
+    secret: secret,
     sign: sign,
-    verify: verify,
-    secret: secret
+    verify: verify
   })
-
-  fastify.decorateReply('jwtSign', replySign)
-
   fastify.decorateRequest('jwtVerify', requestVerify)
+  fastify.decorateReply('jwtSign', replySign)
 
   next()
 
-  function sign (payload, signOptions, callback) {
-    assert(payload, 'missing payload')
-
-    signOptions = signOptions || {}
-    if (typeof signOptions === 'function') {
-      callback = signOptions
-      signOptions = {}
-    }
-    signOptions = Object.assign({}, defaultOptions)
-    delete signOptions['algorithms']
-
-    if (typeof callback === 'function') {
-      jwt.sign(payload, secretOrPrivateKey, signOptions, callback)
-    } else {
-      return jwt.sign(payload, secretOrPrivateKey, signOptions)
-    }
-  }
-
-  function verify (token, verifyOptions, callback) {
-    assert(token, 'missing token')
-    assert(secret, 'missing secret')
-
-    verifyOptions = verifyOptions || {}
-    if ((typeof verifyOptions === 'function') && !callback) {
-      callback = verifyOptions
-      verifyOptions = {}
-    }
-    verifyOptions = Object.assign({}, defaultOptions)
-
-    if (typeof callback === 'function') {
-      jwt.verify(token, secretOrPublicKey, verifyOptions, callback)
-    } else {
-      return jwt.verify(token, secretOrPublicKey, verifyOptions)
-    }
-  }
-
   function decode (token, options) {
     assert(token, 'missing token')
-    options = options || {}
+
+    if (!options) {
+      options = Object.assign({}, decodeOptions)
+    }
+
     return jwt.decode(token, options)
   }
 
-  function replySign (payload, signOptions, next) {
-    if (typeof signOptions === 'function') {
-      next = signOptions
-      signOptions = {}
-    } // support no options
-    signOptions = Object.assign({}, defaultOptions)
-    delete signOptions['algorithms']
+  function sign (payload, options, callback) {
+    assert(payload, 'missing payload')
 
-    let reply = this
+    if (typeof options === 'function') {
+      callback = options
+      options = Object.assign({}, signOptions)
+    }
+
+    if (!options) {
+      options = Object.assign({}, signOptions)
+    }
+
+    if (typeof callback === 'function') {
+      jwt.sign(payload, secretOrPrivateKey, options, callback)
+    } else {
+      return jwt.sign(payload, secretOrPrivateKey, options)
+    }
+  }
+
+  function verify (token, options, callback) {
+    assert(token, 'missing token')
+    assert(secretOrPublicKey, 'missing secret')
+
+    if ((typeof options === 'function') && !callback) {
+      callback = options
+      options = Object.assign({}, verifyOptions)
+    }
+
+    if (!options) {
+      options = Object.assign({}, verifyOptions)
+    }
+
+    if (typeof callback === 'function') {
+      jwt.verify(token, secretOrPublicKey, options, callback)
+    } else {
+      return jwt.verify(token, secretOrPublicKey, options)
+    }
+  }
+
+  function replySign (payload, options, next) {
+    if (typeof options === 'function') {
+      next = options
+      options = Object.assign({}, signOptions)
+    } // support no options
+
+    if (!options) {
+      options = Object.assign({}, signOptions)
+    }
+
+    const reply = this
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        reply.jwtSign(payload, signOptions, function (err, val) {
+        reply.jwtSign(payload, options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
@@ -139,23 +160,26 @@ function fastifyJwt (fastify, options, next) {
         secretCallbackSign(reply.request, payload, callback)
       },
       function sign (secretOrPrivateKey, callback) {
-        jwt.sign(payload, secretOrPrivateKey, signOptions, callback)
+        jwt.sign(payload, secretOrPrivateKey, options, callback)
       }
     ], next)
   }
 
-  function requestVerify (verifyOptions, next) {
-    if (typeof verifyOptions === 'function') {
-      next = verifyOptions
-      verifyOptions = {}
+  function requestVerify (options, next) {
+    if (typeof options === 'function' && !next) {
+      next = options
+      options = Object.assign({}, verifyOptions)
     } // support no options
-    verifyOptions = Object.assign({}, defaultOptions)
 
-    let request = this
+    if (!options) {
+      options = Object.assign({}, verifyOptions)
+    }
+
+    const request = this
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        request.jwtVerify(verifyOptions, function (err, val) {
+        request.jwtVerify(options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
@@ -169,21 +193,23 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          return next(new BadRequest('Format is Authorization: Bearer [token]'))
+          return next(new BadRequest(badRequestErrorMessage))
         }
+      } else {
+        return next(new BadRequest(badRequestErrorMessage))
       }
     } else {
       return next(new Unauthorized('No Authorization was found in request.headers'))
     }
 
-    let decodedToken = jwt.decode(token, options)
+    let decodedToken = jwt.decode(token, decodeOptions)
 
     steed.waterfall([
       function getSecret (callback) {
         secretCallbackVerify(request, decodedToken, callback)
       },
       function verify (secretOrPublicKey, callback) {
-        jwt.verify(token, secretOrPublicKey, verifyOptions, callback)
+        jwt.verify(token, secretOrPublicKey, options, callback)
       }
     ], function (err, result) {
       if (err) next(err)
