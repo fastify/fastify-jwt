@@ -1274,7 +1274,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test' })
@@ -1291,6 +1291,16 @@ test('errors', function (t) {
 
   fastify.get('/verify', function (request, reply) {
     request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyFail', function (request, reply) {
+    request.jwtVerify({ issuer: 'foo' })
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
@@ -1346,7 +1356,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
+      t.test('Bearer authorization format error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1357,8 +1367,35 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'jwt must be provided')
-          t.is(response.statusCode, 500)
+          t.is(error.message, 'Format is Authorization: Bearer [token]')
+          t.is(response.statusCode, 400)
+        })
+      })
+
+      t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
+        t.plan(3)
+
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: {
+            payload: { foo: 'bar' }
+          }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verifyFail',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const error = JSON.parse(verifyResponse.payload)
+            t.is(error.message, 'jwt issuer invalid. expected: foo')
+            t.is(verifyResponse.statusCode, 500)
+          })
         })
       })
     })

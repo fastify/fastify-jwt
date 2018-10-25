@@ -189,6 +189,8 @@ function fastifyJwt (fastify, options, next) {
         if (!/^Bearer$/i.test(scheme)) {
           return next(new BadRequest('Format is Authorization: Bearer [token]'))
         }
+      } else {
+        return next(new BadRequest('Format is Authorization: Bearer [token]'))
       }
     } else {
       return next(new Unauthorized('No Authorization was found in request.headers'))
