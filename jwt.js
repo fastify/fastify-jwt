@@ -9,6 +9,8 @@ const {
   Unauthorized
 } = require('http-errors')
 
+const badRequestErrorMessage = 'Format is Authorization: Bearer [token]'
+
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
     return cb(null, secret)
@@ -18,6 +20,10 @@ function wrapStaticSecretInCallback (secret) {
 function fastifyJwt (fastify, options, next) {
   if (!options.secret) {
     return next(new Error('missing secret'))
+  }
+
+  if (options.options) {
+    return next(new Error('options prefix is deprecated'))
   }
 
   const secret = options.secret
@@ -160,8 +166,6 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function requestVerify (options, next) {
-    const badRequestError = new BadRequest('Format is Authorization: Bearer [token]')
-
     if (typeof options === 'function' && !next) {
       next = options
       options = Object.assign({}, verifyOptions)
@@ -189,10 +193,10 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          return next(badRequestError)
+          return next(new BadRequest(badRequestErrorMessage))
         }
       } else {
-        return next(badRequestError)
+        return next(new BadRequest(badRequestErrorMessage))
       }
     } else {
       return next(new Unauthorized('No Authorization was found in request.headers'))

@@ -22,7 +22,7 @@ const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/
 const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
 
 test('register', function (t) {
-  t.plan(8)
+  t.plan(9)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(7)
@@ -59,6 +59,20 @@ test('register', function (t) {
       }
     }).ready(function (error) {
       t.is(error, null)
+    })
+  })
+
+  t.test('deprecated use of options prefix', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: {
+        private: privateKey,
+        public: publicKey
+      },
+      options: { algorithme: 'RS256' }
+    }).ready(function (error) {
+      t.is(error.message, 'options prefix is deprecated')
     })
   })
 
