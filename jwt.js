@@ -160,6 +160,8 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function requestVerify (options, next) {
+    const badRequestError = new BadRequest('Format is Authorization: Bearer [token]')
+
     if (typeof options === 'function' && !next) {
       next = options
       options = Object.assign({}, verifyOptions)
@@ -187,10 +189,10 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          return next(new BadRequest('Format is Authorization: Bearer [token]'))
+          return next(badRequestError)
         }
       } else {
-        return next(new BadRequest('Format is Authorization: Bearer [token]'))
+        return next(badRequestError)
       }
     } else {
       return next(new Unauthorized('No Authorization was found in request.headers'))
