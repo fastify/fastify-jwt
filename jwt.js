@@ -10,6 +10,7 @@ const {
 } = require('http-errors')
 
 const badRequestErrorMessage = 'Format is Authorization: Bearer [token]'
+const badRequestErrorMessageNoPrefix = 'Format is Authorization: [token]'
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -187,16 +188,20 @@ function fastifyJwt (fastify, options, next) {
 
     let token
     if (request.headers && request.headers.authorization) {
-      let parts = request.headers.authorization.split(' ')
-      if (parts.length === 2) {
-        let scheme = parts[0]
-        token = parts[1]
+      if (verifyOptions.bearerPrefix === false) {
+        token = request.headers.authorization
+      } else {
+        let parts = request.headers.authorization.split(' ')
+        if (parts.length === 2) {
+          let scheme = parts[0]
+          token = parts[1]
 
-        if (!/^Bearer$/i.test(scheme)) {
+          if (!/^Bearer$/i.test(scheme)) {
+            return next(new BadRequest(badRequestErrorMessage))
+          }
+        } else {
           return next(new BadRequest(badRequestErrorMessage))
         }
-      } else {
-        return next(new BadRequest(badRequestErrorMessage))
       }
     } else {
       return next(new Unauthorized('No Authorization was found in request.headers'))
