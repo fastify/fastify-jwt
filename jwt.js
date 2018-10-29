@@ -10,7 +10,6 @@ const {
 } = require('http-errors')
 
 const badRequestErrorMessage = 'Format is Authorization: Bearer [token]'
-const badRequestErrorMessageNoPrefix = 'Format is Authorization: [token]'
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
