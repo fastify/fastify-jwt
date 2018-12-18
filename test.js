@@ -1288,7 +1288,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test' })
@@ -1383,6 +1383,26 @@ test('errors', function (t) {
           const error = JSON.parse(response.payload)
           t.is(error.message, 'Format is Authorization: Bearer [token]')
           t.is(response.statusCode, 400)
+        })
+      })
+
+      t.test('Expired token error', function (t) {
+        t.plan(2)
+
+        const expiredToken = fastify.jwt.sign({
+          exp: Math.floor(Date.now() / 1000) - 60,
+          foo: 'bar'
+        })
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${expiredToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Authorization token expired')
+          t.is(response.statusCode, 401)
         })
       })
 

@@ -209,7 +209,12 @@ function fastifyJwt (fastify, options, next) {
         secretCallbackVerify(request, decodedToken, callback)
       },
       function verify (secretOrPublicKey, callback) {
-        jwt.verify(token, secretOrPublicKey, options, callback)
+        jwt.verify(token, secretOrPublicKey, options, (err, result) => {
+          if (err instanceof jwt.TokenExpiredError) {
+            return callback(new Unauthorized('Authorization token expired'))
+          }
+          callback(err, result)
+        })
       }
     ], function (err, result) {
       if (err) next(err)
