@@ -76,14 +76,14 @@ module.exports = fp(async function(fastify, opts) {
 })
 ```
 
-Then use the `beforeHandler` of a route to protect it & access the user information inside:
+Then use the `preHandler` of a route to protect it & access the user information inside:
 
 ```js
 module.exports = async function(fastify, opts) {
   fastify.get(
     "/",
     {
-      beforeHandler: [fastify.authenticate]
+      preHandler: [fastify.authenticate]
     },
     async function(request, reply) {
       return request.user
