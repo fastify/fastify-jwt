@@ -29,7 +29,7 @@ fastify.listen(3000, err => {
 })
 ```
 
-For verifying & accessing the decoded token inside your services, you can use a global `preValidation` hook to define the verification process like so:
+For verifying & accessing the decoded token inside your services, you can use a global `onRequest` hook to define the verification process like so:
 
 ```js
 const fastify = require('fastify')
@@ -37,7 +37,7 @@ fastify.register(require('fastify-jwt'), {
   secret: 'supersecret'
 })
 
-fastify.addHook("preValidation", async (request, reply) => {
+fastify.addHook("onRequest", async (request, reply) => {
   try {
     await request.jwtVerify()
   } catch (err) {
@@ -76,14 +76,14 @@ module.exports = fp(async function(fastify, opts) {
 })
 ```
 
-Then use the `preValidation` of a route to protect it & access the user information inside:
+Then use the `onRequest` of a route to protect it & access the user information inside:
 
 ```js
 module.exports = async function(fastify, opts) {
   fastify.get(
     "/",
     {
-      preValidation: [fastify.authenticate]
+      onRequest: [fastify.authenticate]
     },
     async function(request, reply) {
       return request.user
