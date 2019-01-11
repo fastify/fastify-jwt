@@ -4,6 +4,7 @@ const { readFileSync } = require('fs')
 const path = require('path')
 const test = require('tap').test
 const Fastify = require('fastify')
+const rawJwt = require('jsonwebtoken')
 
 const jwt = require('./jwt')
 
@@ -1288,7 +1289,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test' })
@@ -1406,6 +1407,23 @@ test('errors', function (t) {
         })
       })
 
+      t.test('Invalid signature error', function (t) {
+        t.plan(2)
+
+        const invalidSignatureToken = rawJwt.sign({ foo: 'bar' }, Buffer.alloc(64), {})
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${invalidSignatureToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Authorization token is invalid: invalid signature')
+          t.is(response.statusCode, 401)
+        })
+      })
+
       t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
         t.plan(3)
 
@@ -1427,8 +1445,8 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.is(error.message, 'jwt issuer invalid. expected: foo')
-            t.is(verifyResponse.statusCode, 500)
+            t.is(error.message, 'Authorization token is invalid: jwt issuer invalid. expected: foo')
+            t.is(verifyResponse.statusCode, 401)
           })
         })
       })

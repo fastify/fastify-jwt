@@ -213,6 +213,9 @@ function fastifyJwt (fastify, options, next) {
           if (err instanceof jwt.TokenExpiredError) {
             return callback(new Unauthorized('Authorization token expired'))
           }
+          if (err instanceof jwt.JsonWebTokenError) {
+            return callback(new Unauthorized('Authorization token is invalid: ' + err.message))
+          }
           callback(err, result)
         })
       }
