@@ -21,7 +21,7 @@ declare module "fastify"
         Body = DefaultBody
         >
     {
-        jwtVerify(): Promise<any>;
+        jwtVerify(callback?: (err, decode) => void): Promise<any>;
     }
 }
 
