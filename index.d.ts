@@ -6,7 +6,7 @@ declare module "fastify"
 {
     interface Jwt
     {
-        sign: (data: { [key: string]: any }) => { token: string };
+        sign: (data: { [key: string]: any }) => string;
     }
     interface FastifyInstance<HttpServer = Server, HttpRequest = IncomingMessage, HttpResponse = ServerResponse>
     {
