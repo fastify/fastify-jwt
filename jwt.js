@@ -192,7 +192,7 @@ function fastifyJwt (fastify, options, next) {
         let scheme = parts[0]
         token = parts[1]
 
-        if (scheme !== 'Bearer') {
+        if (scheme.toLowerCase() !== 'bearer') {
           return next(new BadRequest(badRequestErrorMessage))
         }
       } else {
