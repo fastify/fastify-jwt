@@ -17,8 +17,9 @@ app.addHook("preHandler", async (request, reply) =>
     }
 });
 
-app.post('/signup', (req, reply) =>
+app.post('/signup', async (req, reply) =>
 {
     const token = app.jwt.sign({ user: "userName" });
+    let data = await app.jwt.verify(token);
     reply.send({ token });
 });

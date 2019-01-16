@@ -1,12 +1,31 @@
 import * as fastify from "fastify";
-
-import { Server, IncomingMessage, ServerResponse } from "http"
+import { IncomingMessage, Server, ServerResponse } from "http";
+import { DecodeOptions, Secret, SignOptions, VerifyCallback, VerifyOptions } from "jsonwebtoken";
 
 declare module "fastify"
 {
     interface Jwt
     {
-        sign: (data: { [key: string]: any }) => string;
+        decode: (token: string, options?: DecodeOptions) => null | { [key: string]: any } | string;
+        options: {
+            /**
+             * decodeOptions
+             */
+            decode: DecodeOptions,
+
+            /**
+             * signOptions
+             */
+            sign: SignOptions,
+
+            /**
+             * verifyOptions
+             */
+            verify: VerifyOptions,
+        };
+        secret: Secret;
+        sign: (playload: string | Buffer | object, options?: SignOptions, callback?: VerifyCallback) => string;
+        verify: (token: string, options?: VerifyOptions, callback?: VerifyCallback) => Promise<object | string>;
     }
     interface FastifyInstance<HttpServer = Server, HttpRequest = IncomingMessage, HttpResponse = ServerResponse>
     {
@@ -21,10 +40,10 @@ declare module "fastify"
         Body = DefaultBody
         >
     {
-        jwtVerify(callback?: (err, decode) => void): Promise<any>;
+        jwtVerify(callback?: VerifyCallback): Promise<any>;
     }
 }
 
-declare const fastifyJWT: fastify.Plugin<Server, IncomingMessage, ServerResponse, { secret: string }>;
+declare const fastifyJWT: fastify.Plugin<Server, IncomingMessage, ServerResponse, { secret: Secret }>;
 
 export = fastifyJWT;
