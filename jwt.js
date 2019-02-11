@@ -190,7 +190,7 @@ function fastifyJwt (fastify, options, next) {
       let parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         let scheme = parts[0]
-        token = parts[1]
+        let token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
           return next(new BadRequest(badRequestErrorMessage))
