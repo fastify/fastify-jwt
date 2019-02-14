@@ -3,6 +3,7 @@
   "version": "0.9.1",
   "description": "JWT utils for Fastify",
   "main": "jwt.js",
+  "types": "index.d.ts",
   "engines": {
     "node": ">6"
   },
