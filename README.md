@@ -341,6 +341,8 @@ These methods are very similar to their standard jsonwebtoken counterparts.
 #### Example
 ```js
 const fastify = require('fastify')()
+const jwt = require('fastify-jwt')
+const request = require('request')
 
 fastify.register(jwt, {
   secret: function (request, reply, callback) {
@@ -380,20 +382,20 @@ fastify.listen(3000, function (err) {
     json: true
   }, function (err, response, body) {
     if (err) fastify.log.error(err)
-    fastify.log.info(`JWT token is ${body}`)
+    fastify.log.info(`JWT token is ${body.token}`)
 
     // verify JWT
     request({
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        authorization: 'Bearer ' + sign.token
+        authorization: 'Bearer ' + body.token
       },
       uri: 'http://localhost:' + fastify.server.address().port + '/verify',
       json: true
     }, function (err, response, body) {
       if (err) fastify.log.error(err)
-      fastify.log.info(`JWT verified. Foo is ${body.bar}`)
+      fastify.log.info(`JWT verified. Foo is ${body.foo}`)
     })
   })
 })
