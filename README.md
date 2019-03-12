@@ -37,7 +37,7 @@ fastify.register(require('fastify-jwt'), {
   secret: 'supersecret'
 })
 
-fastify.addHook("onRequest", async (request, reply) => {
+fastify.addHook("preHandler", async (request, reply) => {
   try {
     await request.jwtVerify()
   } catch (err) {
@@ -83,7 +83,7 @@ module.exports = async function(fastify, opts) {
   fastify.get(
     "/",
     {
-      onRequest: [fastify.authenticate]
+      preHandler: [fastify.authenticate]
     },
     async function(request, reply) {
       return request.user
