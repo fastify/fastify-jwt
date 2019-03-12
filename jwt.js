@@ -30,7 +30,7 @@ function fastifyJwt (fastify, options, next) {
   let secretOrPrivateKey
   let secretOrPublicKey
 
-  if (typeof secret === 'object' && !secret instanceof Buffer) {
+  if (typeof secret === 'object' && !Buffer.isBuffer(secret)) {
     if (!secret.private || !secret.public) {
       return next(new Error('missing private key and/or public key'))
     }
