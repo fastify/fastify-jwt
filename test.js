@@ -23,7 +23,7 @@ const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/
 const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
 
 test('register', function (t) {
-  t.plan(9)
+  t.plan(11)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(7)
@@ -58,6 +58,16 @@ test('register', function (t) {
         private: privateKey,
         public: publicKey
       }
+    }).ready(function (error) {
+      t.is(error, null)
+    })
+  })
+
+  t.test('secret as a Buffer', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: Buffer.from('some secret', 'base64')
     }).ready(function (error) {
       t.is(error, null)
     })
@@ -220,6 +230,43 @@ test('register', function (t) {
       const fastify = Fastify()
       fastify.register(jwt, {
         secret: 'test',
+        sign: {
+          algorithm: 'ES256',
+          audience: 'Some audience',
+          issuer: 'Some issuer',
+          subject: 'Some subject'
+        }
+      }).ready(function (error) {
+        t.is(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+      })
+    })
+  })
+
+  t.test('RS/ES algorithm in sign options and secret as a Buffer', function (t) {
+    t.plan(2)
+
+    t.test('RS algorithm (Must return an error)', function (t) {
+      t.plan(1)
+
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: Buffer.from('some secret', 'base64'),
+        sign: {
+          algorithm: 'RS256',
+          audience: 'Some audience',
+          issuer: 'Some issuer',
+          subject: 'Some subject'
+        }
+      }).ready(function (error) {
+        t.is(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+      })
+    })
+
+    t.test('ES algorithm (Must return an error)', function (t) {
+      t.plan(1)
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: Buffer.from('some secret', 'base64'),
         sign: {
           algorithm: 'ES256',
           audience: 'Some audience',
