@@ -30,7 +30,7 @@ function fastifyJwt (fastify, options, next) {
   let secretOrPrivateKey
   let secretOrPublicKey
 
-  if (typeof secret === 'object') {
+  if (typeof secret === 'object' && !Buffer.isBuffer(secret)) {
     if (!secret.private || !secret.public) {
       return next(new Error('missing private key and/or public key'))
     }
@@ -53,7 +53,8 @@ function fastifyJwt (fastify, options, next) {
     signOptions &&
     signOptions.algorithm &&
     signOptions.algorithm.includes('RS') &&
-    typeof secret === 'string'
+    (typeof secret === 'string' ||
+    secret instanceof Buffer)
   ) {
     return next(new Error(`RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
   }
@@ -61,7 +62,8 @@ function fastifyJwt (fastify, options, next) {
     signOptions &&
     signOptions.algorithm &&
     signOptions.algorithm.includes('ES') &&
-    typeof secret === 'string'
+    (typeof secret === 'string' ||
+    secret instanceof Buffer)
   ) {
     return next(new Error(`ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
   }
