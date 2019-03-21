@@ -1336,7 +1336,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(7)
+  t.plan(8)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test' })
@@ -1369,6 +1369,16 @@ test('errors', function (t) {
       .catch(function (error) {
         return reply.send(error)
       })
+  })
+
+  fastify.get('/verifyCallbackCount', function (request, reply) {
+    let count = 0
+    request.jwtVerify(function () {
+      count += 1
+      setImmediate(function () {
+        reply.send({ count })
+      })
+    })
   })
 
   fastify
@@ -1495,6 +1505,21 @@ test('errors', function (t) {
             t.is(error.message, 'Authorization token is invalid: jwt issuer invalid. expected: foo')
             t.is(verifyResponse.statusCode, 401)
           })
+        })
+      })
+
+      t.test('jwtVerify callback invoked once on error', function (t) {
+        t.plan(1)
+
+        fastify.inject({
+          method: 'get',
+          url: '/verifyCallbackCount',
+          headers: {
+            authorization: `Bearer invalid`
+          }
+        }).then(function (response) {
+          const result = JSON.parse(response.payload)
+          t.is(result.count, 1)
         })
       })
     })
