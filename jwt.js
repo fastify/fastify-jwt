@@ -222,9 +222,12 @@ function fastifyJwt (fastify, options, next) {
         })
       }
     ], function (err, result) {
-      if (err) next(err)
-      request.user = result
-      next(null, result)
+      if (err) {
+        next(err)
+      } else {
+        request.user = result
+        next(null, result)
+      }
     })
   }
 }
