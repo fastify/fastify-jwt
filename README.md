@@ -142,6 +142,74 @@ fastify.register(jwt, {
 })
 ```
 
+#### Example using cookie
+
+Storing JWT in Cookie mean that your app maybe vunerable to XSS attack and must be protected with CSRF token,
+consider that as a best practice. but storing JWT on cookies makes your REST API arent Stateless anymore, choose what fit for you.
+You can use [crsf](https://www.npmjs.com/package/csrf) or other library that may suit your need.
+
+```js
+// using redis as a sessions store
+const fastify = require('fastify')()
+const jwt = require('fastify-jwt')
+const Redis = require('ioredis')
+
+const redis = new Redis()
+const abcache = require('abstract-cache')({
+  useAwait: false,
+  driver: {
+    name: 'abstract-cache-redis', // Must be installed via `npm install`
+    options: {client: redis}
+  }
+})
+
+fastify.register(jwt, {
+  secret: {
+    private: {
+      key: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`),
+      passphrase: 'super secret passphrase'
+    },
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
+  },
+  sign: { algorithm: 'ES256' }
+})
+
+fastify
+  .register(require('fastify-redis'), {client: redis})
+  .register(require('fastify-cookie'))
+  .register(require('fastify-caching'), {cache: abcache})
+  .register(require('fastify-server-session'), {
+    secretKey: 'your secret key',
+    sessionMaxAge: 900000 // 15 minutes in milliseconds
+  })
+
+fastify.get('/cookies', async (request, reply) => {
+  const token = this.jwt.sign({
+    name: 'foo',
+    role: ['admin', 'spy'],
+    // you may registering your csrf here
+  })
+
+   reply
+      .setCookie('token', token, {
+        domain: '.domain',
+        path: '/'
+      })
+      .code(200)
+      .send('Cookies are send!')
+})
+
+fastify.get('/verifyCookies', async (request, reply) => {
+  const token = req.cookies.token
+  try {
+    const verify = await fastify.jwt.verify(token)
+    reply.code(200).send(verify) // contains your decoded data too
+  } catch (err) {
+    reply.code(401).send(err)
+  }
+})
+```
+
 Optionaly you can define global default options that will be used by `fastify-jwt` API if you don't override them.
 
 #### Example
