@@ -1,6 +1,6 @@
 # fastify-jwt
 
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)  [![Build Status](https://travis-ci.org/fastify/fastify-jwt.svg?branch=master)](https://travis-ci.org/fastify/fastify-jwt) [![Greenkeeper badge](https://badges.greenkeeper.io/fastify/fastify-jwt.svg)](https://greenkeeper.io/)
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/) [![Build Status](https://dev.azure.com/fastify/fastify/_apis/build/status/fastify.fastify-jwt?branchName=master)](https://dev.azure.com/fastify/fastify/_build/latest?definitionId=5&branchName=master) [![Greenkeeper badge](https://badges.greenkeeper.io/fastify/fastify-jwt.svg)](https://greenkeeper.io/)
 
 JWT utils for Fastify, internally uses [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken).
 
