@@ -250,7 +250,7 @@ fastify
   .register(require('fastify-cookie'))
   .register(require('fastify-caching'), { cache: abcache })
   .register(require('fastify-server-session'), {
-    secretKey: 'your secret key',
+    secretKey: 'some-secret-password-at-least-32-characters-long',
     sessionMaxAge: 900000 // 15 minutes in milliseconds
   })
 
