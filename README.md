@@ -273,7 +273,7 @@ fastify.get('/cookies', async (request, reply) => {
 fastify.get('/verifyCookies', async (request, reply) => {
   try {
     const verified = await fastify.jwt.verify(request.cookies.token)
-    reply.code(200).send(verified)
+    reply.code(200).send(verified) // same as above, contain decoded tokens
   } catch (err) {
     reply.code(401).send(err)
   }
