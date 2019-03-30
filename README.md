@@ -225,7 +225,8 @@ const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 const Redis = require('ioredis')
 
-const redis = new Redis()
+// docker run -p 6379:6379 --name redis-test redis
+const redis = new Redis({ port: 6379, host: '127.0.0.1' })
 const abcache = require('abstract-cache')({
   useAwait: false,
   driver: {
