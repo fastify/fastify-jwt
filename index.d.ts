@@ -1,45 +1,29 @@
 import * as fastify from 'fastify';
-import { IncomingMessage, Server, ServerResponse } from 'http';
-import { DecodeOptions, Secret, SignOptions, VerifyCallback, VerifyOptions } from 'jsonwebtoken';
+import * as http from 'http';
+import * as jwt from 'jsonwebtoken';
 
 declare module 'fastify' {
-  interface Jwt {
-    decode: (token: string, options?: DecodeOptions) => null | { [key: string]: any } | string;
+  interface JWT {
     options: {
-      /**
-       * decodeOptions
-       */
-      decode: DecodeOptions;
-
-      /**
-       * signOptions
-       */
-      sign: SignOptions;
-
-      /**
-       * verifyOptions
-       */
-      verify: VerifyOptions;
+      decode: jwt.DecodeOptions;
+      sign: jwt.SignOptions;
+      verify: jwt.VerifyOptions;
     };
-    secret: Secret;
-    sign: (playload: string | Buffer | object, options?: SignOptions, callback?: VerifyCallback) => string;
-    verify: (token: string, options?: VerifyOptions, callback?: VerifyCallback) => Promise<object | string>;
-  }
-  interface FastifyInstance<HttpServer = Server, HttpRequest = IncomingMessage, HttpResponse = ServerResponse> {
-    jwt: Jwt;
+    secret: jwt.Secret;
+    sign: (payload: string | Buffer | object, options?: jwt.SignOptions, callback?: jwt.VerifyCallback) => string;
+    verify: (token: string, options?: jwt.VerifyOptions, callback?: jwt.VerifyCallback) => Promise<object | string>;
+    decode: (token: string, options?: jwt.DecodeOptions) => null | { [key: string]: any } | string;
   }
 
-  interface FastifyRequest<
-    HttpRequest,
-    Query = DefaultQuery,
-    Params = DefaultParams,
-    Headers = DefaultHeaders,
-    Body = DefaultBody
-  > {
-    jwtVerify(callback?: VerifyCallback): Promise<any>;
+  interface FastifyInstance {
+    jwt: JWT;
+  }
+
+  interface FastifyRequest<HttpRequest> {
+    jwtVerify(callback?: jwt.VerifyCallback): Promise<any>;
   }
 }
 
-declare const fastifyJWT: fastify.Plugin<Server, IncomingMessage, ServerResponse, { secret: Secret }>;
+declare const fastifyJWT: fastify.Plugin<any, any, any, { secret: jwt.Secret }>;
 
 export = fastifyJWT;
