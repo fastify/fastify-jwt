@@ -24,6 +24,13 @@ declare module 'fastify' {
   }
 }
 
-declare const fastifyJWT: fastify.Plugin<any, any, any, { secret: jwt.Secret }>;
+declare interface FastifyJWTOptions {
+  secret: jwt.Secret;
+  decode?: jwt.DecodeOptions;
+  sign?: jwt.SignOptions;
+  verify?: jwt.VerifyOptions;
+}
+
+declare const fastifyJWT: fastify.Plugin<any, any, any, FastifyJWTOptions>;
 
 export = fastifyJWT;
