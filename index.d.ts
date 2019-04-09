@@ -65,6 +65,6 @@ declare interface FastifyJWTOptions {
   verify?: jwt.VerifyOptions;
 }
 
-declare const fastifyJWT: fastify.Plugin<any, any, any, FastifyJWTOptions>;
+declare const fastifyJWT: fastify.Plugin<http.Server, http.ClientRequest, http.ServerResponse, FastifyJWTOptions>;
 
 export = fastifyJWT;
