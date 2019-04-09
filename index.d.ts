@@ -25,15 +25,15 @@ declare module 'fastify' {
     sign(payload: JWTTypes.PayloadType | Buffer, callback: JWTTypes.SignCallback): void;
     sign(payload: JWTTypes.PayloadType | Buffer, options: jwt.SignOptions, callback: JWTTypes.SignCallback): void;
 
-    verify<Decoded extends JWTTypes.PayloadType = any>(token: string, options?: jwt.VerifyOptions): Decoded;
-    verify<Decoded extends JWTTypes.PayloadType = any>(token: string, callback: JWTTypes.VerifyCallback<Decoded>): void;
-    verify<Decoded extends JWTTypes.PayloadType = any>(
+    verify<Decoded extends JWTTypes.PayloadType>(token: string, options?: jwt.VerifyOptions): Decoded;
+    verify<Decoded extends JWTTypes.PayloadType>(token: string, callback: JWTTypes.VerifyCallback<Decoded>): void;
+    verify<Decoded extends JWTTypes.PayloadType>(
       token: string,
       options: jwt.VerifyOptions,
       callback: JWTTypes.VerifyCallback<Decoded>,
     ): void;
 
-    decode<Decoded extends JWTTypes.PayloadType = any>(token: string, options?: jwt.DecodeOptions): null | Decoded;
+    decode<Decoded extends JWTTypes.PayloadType>(token: string, options?: jwt.DecodeOptions): null | Decoded;
   }
 
   interface FastifyInstance {
@@ -47,9 +47,9 @@ declare module 'fastify' {
   }
 
   interface FastifyRequest<HttpRequest> {
-    jwtVerify<Decoded extends JWTTypes.PayloadType = any>(options?: jwt.VerifyOptions): Promise<Decoded>;
-    jwtVerify<Decoded extends JWTTypes.PayloadType = any>(callback: JWTTypes.VerifyCallback<Decoded>): void;
-    jwtVerify<Decoded extends JWTTypes.PayloadType = any>(
+    jwtVerify<Decoded extends JWTTypes.PayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>;
+    jwtVerify<Decoded extends JWTTypes.PayloadType>(callback: JWTTypes.VerifyCallback<Decoded>): void;
+    jwtVerify<Decoded extends JWTTypes.PayloadType>(
       options: jwt.VerifyOptions,
       callback: JWTTypes.VerifyCallback<Decoded>,
     ): void;
