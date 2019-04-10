@@ -3,7 +3,18 @@ import fastifyJwt = require('./index');
 
 const app = fastify();
 
-app.register(fastifyJwt, { secret: "supersecret" });
+app.register(fastifyJwt, {
+    secret: "supersecret",
+    sign: {
+        expiresIn: '1h'
+    },
+    verify: {
+        maxAge: '1h'
+    },
+    decode: {
+        complete: true
+    }
+});
 
 app.addHook("preHandler", async (request, reply) =>
 {
