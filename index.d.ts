@@ -59,7 +59,7 @@ declare module 'fastify' {
 }
 
 declare interface FastifyJWTOptions {
-  secret: jwt.Secret;
+  secret: jwt.Secret | { public: jwt.Secret; private: jwt.Secret };
   decode?: jwt.DecodeOptions;
   sign?: jwt.SignOptions;
   verify?: jwt.VerifyOptions;

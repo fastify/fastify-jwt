@@ -4,7 +4,7 @@ import fastifyJwt = require('./index');
 const app = fastify();
 
 app.register(fastifyJwt, {
-    secret: "supersecret",
+    secret: process.env.usePublicPrivateKeys ? "supersecret" : { public: 'publicKey', private: 'privateKey' },
     sign: {
         expiresIn: '1h'
     },
