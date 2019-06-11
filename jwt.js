@@ -9,7 +9,12 @@ const {
   Unauthorized
 } = require('http-errors')
 
-const badRequestErrorMessage = 'Format is Authorization: Bearer [token]'
+const messages = {
+  badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
+  authorizationTokenExpiredMessage: 'Authorization token expired',
+  authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`
+}
 
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
@@ -48,6 +53,7 @@ function fastifyJwt (fastify, options, next) {
   const decodeOptions = options.decode || {}
   const signOptions = options.sign || {}
   const verifyOptions = options.verify || {}
+  const messagesOptions = Object.assign(messages, options.messages)
 
   if (
     signOptions &&
@@ -73,7 +79,8 @@ function fastifyJwt (fastify, options, next) {
     options: {
       decode: decodeOptions,
       sign: signOptions,
-      verify: verifyOptions
+      verify: verifyOptions,
+      messages: messagesOptions
     },
     secret: secret,
     sign: sign,
@@ -195,13 +202,13 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          return next(new BadRequest(badRequestErrorMessage))
+          return next(new BadRequest(messagesOptions.badRequestErrorMessage))
         }
       } else {
-        return next(new BadRequest(badRequestErrorMessage))
+        return next(new BadRequest(messagesOptions.badRequestErrorMessage))
       }
     } else {
-      return next(new Unauthorized('No Authorization was found in request.headers'))
+      return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 
     let decodedToken = jwt.decode(token, decodeOptions)
@@ -213,10 +220,10 @@ function fastifyJwt (fastify, options, next) {
       function verify (secretOrPublicKey, callback) {
         jwt.verify(token, secretOrPublicKey, options, (err, result) => {
           if (err instanceof jwt.TokenExpiredError) {
-            return callback(new Unauthorized('Authorization token expired'))
+            return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
           }
           if (err instanceof jwt.JsonWebTokenError) {
-            return callback(new Unauthorized('Authorization token is invalid: ' + err.message))
+            return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(err) : messagesOptions.authorizationTokenInvalid))
           }
           callback(err, result)
         })
