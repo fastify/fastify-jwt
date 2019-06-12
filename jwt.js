@@ -53,7 +53,7 @@ function fastifyJwt (fastify, options, next) {
   const decodeOptions = options.decode || {}
   const signOptions = options.sign || {}
   const verifyOptions = options.verify || {}
-  const messagesOptions = Object.assign(messages, options.messages)
+  const messagesOptions = Object.assign({}, messages, options.messages)
 
   if (
     signOptions &&
