@@ -345,8 +345,10 @@ const myCustomMessages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
   noAuthorizationInHeaderMessage: 'Autorization header is missing!',
   authorizationTokenExpiredMessage: 'Authorization token expired',
-  // for the below message you can pass a function as shown or a string
-  authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`
+  // for the below message you can pass a sync function that must return a string as shown or a string
+  authorizationTokenInvalid: (err) => {
+    return `Authorization token is invalid: ${err.message}`
+  }
 }
 
 fastify.register(require('fastify-jwt'), {
