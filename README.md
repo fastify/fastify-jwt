@@ -312,7 +312,7 @@ fastify.log.info(`Decoded JWT: ${decoded}`)
 ```
 
 ### fastify.jwt.options
-For your convenience, the `decode`, `sign` and `verify` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify }` containing your options.
+For your convenience, the `decode`, `sign`, `verify` and `messages` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify, messages }` containing your options.
 
 #### Example
 ```js
@@ -403,6 +403,31 @@ fastify.listen(3000, err => {
 * `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
 * `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
 * `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
+
+#### messages options
+
+For your onvenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
+
+#### Example
+
+```js
+const fastify = require('fastify')
+
+const myCustomMessages = {
+  badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  noAuthorizationInHeaderMessage: 'Autorization header is missing!',
+  authorizationTokenExpiredMessage: 'Authorization token expired',
+  // for the below message you can pass a sync function that must return a string as shown or a string
+  authorizationTokenInvalid: (err) => {
+    return `Authorization token is invalid: ${err.message}`
+  }
+}
+
+fastify.register(require('fastify-jwt'), {
+  secret: 'supersecret',
+  messages: myCustomMessages
+})
+```
 
 ### fastify.jwt.secret
 For your convenience, the `secret` you specify during `.register` is made available via `fastify.jwt.secret`. `request.jwtVerify()` and `reply.jwtSign()` will wrap non-function secrets in a callback function. `request.jwtVerify()` and `reply.jwtSign()` use an asynchronous waterfall method to retrieve your secret. It's recommended that your use these methods if your `secret` method is asynchronous.

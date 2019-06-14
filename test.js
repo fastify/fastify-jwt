@@ -1524,3 +1524,90 @@ test('errors', function (t) {
       })
     })
 })
+
+test('custom response messages', function (t) {
+  t.plan(4)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token' } })
+
+  fastify.get('/verify', function (request, reply) {
+    request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify
+    .ready()
+    .then(function () {
+      t.test('custom no authorization header error', function (t) {
+        t.plan(2)
+
+        fastify.inject({
+          method: 'get',
+          url: '/verify'
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'auth header missing')
+          t.is(response.statusCode, 401)
+        })
+      })
+
+      t.test('fallback authorization header format error', function (t) {
+        t.plan(2)
+
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: 'Invalid Format'
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Format is Authorization: Bearer [token]')
+          t.is(response.statusCode, 400)
+        })
+      })
+
+      t.test('custom expired token error', function (t) {
+        t.plan(2)
+
+        const expiredToken = fastify.jwt.sign({
+          exp: Math.floor(Date.now() / 1000) - 60,
+          foo: 'bar'
+        })
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${expiredToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'token expired')
+          t.is(response.statusCode, 401)
+        })
+      })
+
+      t.test('custom invalid signature error', function (t) {
+        t.plan(2)
+
+        const invalidSignatureToken = rawJwt.sign({ foo: 'bar' }, Buffer.alloc(64), {})
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${invalidSignatureToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'invalid token')
+          t.is(response.statusCode, 401)
+        })
+      })
+    })
+})
