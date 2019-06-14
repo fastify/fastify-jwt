@@ -141,7 +141,6 @@ fastify.register(jwt, {
   sign: { algorithm: 'ES256' }
 })
 ```
-
 Optionaly you can define global default options that will be used by `fastify-jwt` API if you don't override them.
 
 #### Example
@@ -206,6 +205,79 @@ fastify.get('/decode', async (request, reply) => {
    *   },
    * }
    */
+})
+
+fastify.listen(3000, err => {
+  if (err) throw err
+})
+```
+
+#### Example using cookie
+
+Storing JWT in Cookie mean that your app maybe vunerable to XSS attack and must be protected with CSRF token,
+consider that as a best practice. but storing JWT on cookies makes your REST API arent Stateless anymore, choose what fit for you.
+You can use [crsf](https://www.npmjs.com/package/csrf) or other library that may suit your need.
+
+```js
+const { readFileSync } = require('fs')
+const path = require('path')
+const fastify = require('fastify')()
+const jwt = require('fastify-jwt')
+const Redis = require('ioredis')
+
+// docker run -p 6379:6379 --name redis-test redis
+const redis = new Redis({ port: 6379, host: '127.0.0.1' })
+const abcache = require('abstract-cache')({
+  useAwait: false,
+  driver: {
+    name: 'abstract-cache-redis', // Must be installed via `npm install`
+    options: { client: redis }
+  }
+})
+
+fastify.register(jwt, {
+  secret: {
+    private: {
+      key: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`),
+      passphrase: 'super secret passphrase'
+    },
+    public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
+  },
+  sign: { algorithm: 'ES256' }
+})
+
+fastify
+  .register(require('fastify-redis'), { client: redis })
+  .register(require('fastify-cookie'))
+  .register(require('fastify-caching'), { cache: abcache })
+  .register(require('fastify-server-session'), {
+    secretKey: 'some-secret-password-at-least-32-characters-long',
+    sessionMaxAge: 900000 // 15 minutes in milliseconds
+  })
+
+fastify.get('/cookies', async (request, reply) => {
+  const token = await reply.jwtSign({
+    name: 'foo',
+    role: ['admin', 'spy']
+    // you may registering your csrf here
+  })
+
+  reply
+    .setCookie('token', token, {
+      domain: '.domain',
+      path: '/'
+    })
+    .code(200)
+    .send('Cookies are send!')
+})
+
+fastify.get('/verifyCookies', async (request, reply) => {
+  try {
+    const verified = await fastify.jwt.verify(request.cookies.token)
+    reply.code(200).send(verified) // same as above, contain decoded tokens
+  } catch (err) {
+    reply.code(401).send(err)
+  }
 })
 
 fastify.listen(3000, err => {
