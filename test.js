@@ -1121,7 +1121,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           t.test('synchronous', function (t) {
             t.plan(2)
 
-            let localOptions = Object.assign({}, fastify.jwt.options.sign)
+            const localOptions = Object.assign({}, fastify.jwt.options.sign)
             localOptions.issuer = 'other'
 
             const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
@@ -1134,7 +1134,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           t.test('with callbacks', function (t) {
             t.plan(4)
 
-            let localOptions = Object.assign({}, fastify.jwt.options.sign)
+            const localOptions = Object.assign({}, fastify.jwt.options.sign)
             localOptions.issuer = 'other'
 
             fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
