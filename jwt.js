@@ -196,9 +196,9 @@ function fastifyJwt (fastify, options, next) {
 
     let token
     if (request.headers && request.headers.authorization) {
-      let parts = request.headers.authorization.split(' ')
+      const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
-        let scheme = parts[0]
+        const scheme = parts[0]
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
@@ -211,7 +211,7 @@ function fastifyJwt (fastify, options, next) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 
-    let decodedToken = jwt.decode(token, decodeOptions)
+    const decodedToken = jwt.decode(token, decodeOptions)
 
     steed.waterfall([
       function getSecret (callback) {
