@@ -62,7 +62,7 @@ function fastifyJwt (fastify, options, next) {
     (typeof secret === 'string' ||
     secret instanceof Buffer)
   ) {
-    return next(new Error(`RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
+    return next(new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
   if (
     signOptions &&
@@ -71,7 +71,7 @@ function fastifyJwt (fastify, options, next) {
     (typeof secret === 'string' ||
     secret instanceof Buffer)
   ) {
-    return next(new Error(`ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret`))
+    return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
 
   fastify.decorate('jwt', {
