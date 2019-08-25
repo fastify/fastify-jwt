@@ -1515,7 +1515,7 @@ test('errors', function (t) {
           method: 'get',
           url: '/verifyCallbackCount',
           headers: {
-            authorization: `Bearer invalid`
+            authorization: 'Bearer invalid'
           }
         }).then(function (response) {
           const result = JSON.parse(response.payload)

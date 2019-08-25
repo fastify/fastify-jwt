@@ -8,6 +8,8 @@
     "node": ">6"
   },
   "scripts": {
+    "lint": "standard",
+    "lint:fix": "standard --fix",
     "test": "standard && tap test.js && tsc --project ./tsconfig.json"
   },
   "repository": {
