@@ -63,6 +63,12 @@ declare interface FastifyJWTOptions {
   decode?: jwt.DecodeOptions;
   sign?: jwt.SignOptions;
   verify?: jwt.VerifyOptions;
+  messages?: {
+    badRequestErrorMessage?: string;
+    noAuthorizationInHeaderMessage?: string;
+    authorizationTokenExpiredMessage?: string;
+    authorizationTokenInvalid?: ((err: Error) => string) | string;
+  }
 }
 
 declare const fastifyJWT: fastify.Plugin<http.Server, http.IncomingMessage, http.ServerResponse, FastifyJWTOptions>;
