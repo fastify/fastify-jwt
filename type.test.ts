@@ -13,7 +13,13 @@ app.register(fastifyJwt, {
     },
     decode: {
         complete: true
-    }
+    },
+    messages: {
+        badRequestErrorMessage: 'Bad Request',
+        noAuthorizationInHeaderMessage: 'No Header',
+        authorizationTokenExpiredMessage: 'Token Expired',
+        authorizationTokenInvalid: (err) => `${err.message}`
+   }
 });
 
 app.addHook("preHandler", async (request, reply) =>
