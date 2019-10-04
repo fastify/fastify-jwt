@@ -41,7 +41,7 @@ fastify.addHook("onRequest", async (request, reply) => {
   try {
     await request.jwtVerify()
   } catch (err) {
-    reply.send(err)
+    reply.send(err.message)
   }
 })
 ```
@@ -70,7 +70,7 @@ module.exports = fp(async function(fastify, opts) {
     try {
       await request.jwtVerify()
     } catch (err) {
-      reply.send(err)
+      reply.send(err.message)
     }
   })
 })
