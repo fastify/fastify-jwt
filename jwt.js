@@ -236,9 +236,7 @@ function fastifyJwt (fastify, options, next) {
       },
       function checkIfIsUntrusted (result, callback) {
         Promise.resolve(untrusted(request, result))
-          .then(isUntrusted => {
-            return isUntrusted ? callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)) : callback(result)
-          })
+          .then(isUntrusted => isUntrusted ? callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)) : callback(result))
           .catch(callback)
       }
     ], function (err, result) {
