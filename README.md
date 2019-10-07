@@ -141,7 +141,9 @@ fastify.register(jwt, {
   sign: { algorithm: 'ES256' }
 })
 ```
-Optionaly you can define global default options that will be used by `fastify-jwt` API if you don't override them.
+Optionally you can define global default options that will be used by `fastify-jwt` API if you don't override them.
+
+Additionally, it is also possible to reject tokens selectively (i.e: black-listing) by providing the option `untrusted` with the following signature: `(request, decodedToken) => true|false|Promise<true|false>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information and its result should be `true` or `Promise<true>` if the token should be rejected and `false` or `Promise<false>` if the token should be accepted.
 
 #### Example
 ```js
@@ -283,6 +285,33 @@ fastify.get('/verifyCookies', async (request, reply) => {
 fastify.listen(3000, err => {
   if (err) throw err
 })
+```
+
+#### Example black-listing tokens
+```js
+const fastify = require('fastify')()
+
+fastify.register(require('fastify-jwt'), {
+	secret: 'foobar',
+	untrusted: checkIfTokenIsBanned
+})
+
+fastify.addHook('onRequest', (request) => request.jwtVerify())
+
+fastify.get('/', (request, reply) => {
+	reply.send({ code: 'OK', message: 'it works!' })
+})
+
+fastify.listen(3000, (err) => {
+	if (err) {
+		throw err
+	}
+})
+
+// ideally this function would do a query against some sort of storage to determine its outcome  
+async function checkIfTokenIsBanned(request, decodedToken) {
+	return Promise.resolve(false)
+}
 ```
 
 ### fastify.jwt.sign(payload [,options] [,callback])

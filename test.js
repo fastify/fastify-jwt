@@ -1336,10 +1336,10 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(8)
+  t.plan(10)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test' })
+  fastify.register(jwt, { secret: 'test', untrusted: (request, { jti }) => jti === 'untrusted' })
 
   fastify.post('/sign', function (request, reply) {
     reply.jwtSign(request.body.payload)
@@ -1379,6 +1379,16 @@ test('errors', function (t) {
         reply.send({ count })
       })
     })
+  })
+
+  fastify.get('/verifyFailUntrustedToken', function (request, reply) {
+    request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
   })
 
   fastify
@@ -1481,6 +1491,52 @@ test('errors', function (t) {
         })
       })
 
+      t.test('Untrusted token error', function (t) {
+        t.plan(2)
+
+        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        fastify.inject({
+          method: 'get',
+          url: '/verifyFailUntrustedToken',
+          headers: {
+            authorization: `Bearer ${untrustedToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Untrusted authorization token')
+          t.is(response.statusCode, 401)
+        })
+      })
+
+      t.test('Untrusted token error - async verification', function (t) {
+        t.plan(2)
+
+        const f = Fastify()
+        f.register(jwt, { secret: 'test', untrusted: (request, { jti }) => Promise.resolve(jti === 'untrusted') })
+        f.get('/', (request, reply) => {
+          request.jwtVerify()
+            .then(function (decodedToken) {
+              return reply.send(decodedToken)
+            })
+            .catch(function (error) {
+              return reply.send(error)
+            })
+        })
+
+        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        f.inject({
+          method: 'get',
+          url: '/',
+          headers: {
+            authorization: `Bearer ${untrustedToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'Untrusted authorization token')
+          t.is(response.statusCode, 401)
+        })
+      })
+
       t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
         t.plan(3)
 
@@ -1526,10 +1582,10 @@ test('errors', function (t) {
 })
 
 test('custom response messages', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token' } })
+  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token' }, untrusted: (request, { jti }) => jti === 'untrusted' })
 
   fastify.get('/verify', function (request, reply) {
     request.jwtVerify()
@@ -1606,6 +1662,23 @@ test('custom response messages', function (t) {
         }).then(function (response) {
           const error = JSON.parse(response.payload)
           t.is(error.message, 'invalid token')
+          t.is(response.statusCode, 401)
+        })
+      })
+
+      t.test('custom untrusted token error', function (t) {
+        t.plan(2)
+
+        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${untrustedToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'untrusted token')
           t.is(response.statusCode, 401)
         })
       })
