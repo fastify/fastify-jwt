@@ -23,10 +23,6 @@ function wrapStaticSecretInCallback (secret) {
   }
 }
 
-function trustEveryToken () {
-  return Promise.resolve(false)
-}
-
 function fastifyJwt (fastify, options, next) {
   if (!options.secret) {
     return next(new Error('missing secret'))
@@ -37,7 +33,7 @@ function fastifyJwt (fastify, options, next) {
   }
 
   const secret = options.secret
-  const untrusted = options.untrusted || trustEveryToken
+  const trusted = options.trusted
   let secretOrPrivateKey
   let secretOrPublicKey
 
@@ -234,10 +230,14 @@ function fastifyJwt (fastify, options, next) {
           callback(err, result)
         })
       },
-      function checkIfIsUntrusted (result, callback) {
-        Promise.resolve(untrusted(request, result))
-          .then(isUntrusted => isUntrusted ? callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)) : callback(result))
-          .catch(callback)
+      function checkIfIsTrusted (result, callback) {
+        if (!trusted) {
+          callback(null, result)
+        } else {
+          Promise.resolve(trusted(request, result))
+            .then(trusted => trusted ? callback(null, result) : callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)))
+            .catch(callback)
+        }
       }
     ], function (err, result) {
       if (err) {

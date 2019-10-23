@@ -1339,7 +1339,7 @@ test('errors', function (t) {
   t.plan(10)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', untrusted: (request, { jti }) => jti === 'untrusted' })
+  fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
 
   fastify.post('/sign', function (request, reply) {
     reply.jwtSign(request.body.payload)
@@ -1512,7 +1512,7 @@ test('errors', function (t) {
         t.plan(2)
 
         const f = Fastify()
-        f.register(jwt, { secret: 'test', untrusted: (request, { jti }) => Promise.resolve(jti === 'untrusted') })
+        f.register(jwt, { secret: 'test', trusted: (request, { jti }) => Promise.resolve(jti !== 'untrusted') })
         f.get('/', (request, reply) => {
           request.jwtVerify()
             .then(function (decodedToken) {
@@ -1585,7 +1585,7 @@ test('custom response messages', function (t) {
   t.plan(5)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token' }, untrusted: (request, { jti }) => jti === 'untrusted' })
+  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token' }, trusted: (request, { jti }) => jti !== 'untrusted' })
 
   fastify.get('/verify', function (request, reply) {
     request.jwtVerify()
