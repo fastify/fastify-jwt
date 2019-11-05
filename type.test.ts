@@ -21,7 +21,7 @@ app.register(fastifyJwt, {
         authorizationTokenInvalid: (err) => `${err.message}`,
         authorizationTokenUntrusted: 'Token untrusted'
    },
-   untrusted: () => false,
+   trusted: () => true,
 });
 
 app.addHook("preHandler", async (request, reply) =>
