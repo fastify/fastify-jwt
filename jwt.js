@@ -234,9 +234,16 @@ function fastifyJwt (fastify, options, next) {
         if (!trusted) {
           callback(null, result)
         } else {
-          Promise.resolve(trusted(request, result))
-            .then(trusted => trusted ? callback(null, result) : callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)))
-            .catch(callback)
+          const maybePromise = trusted(request, result)
+
+          if (maybePromise && maybePromise.then) {
+            maybePromise
+              .then(trusted => trusted ? callback(null, result) : callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)))
+          } else if (maybePromise) {
+            callback(null, maybePromise)
+          } else {
+            callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted))
+          }
         }
       }
     ], function (err, result) {
