@@ -143,7 +143,7 @@ fastify.register(jwt, {
 ```
 Optionally you can define global default options that will be used by `fastify-jwt` API if you don't override them.
 
-Additionally, it is also possible to reject tokens selectively (i.e: black-listing) by providing the option `trusted` with the following signature: `(request, decodedToken) => true|false|Promise<true|false>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information and its result should be `true` or `Promise<true>` if the token should be rejected and `false` or `Promise<false>` if the token should be accepted.
+Additionally, it is also possible to reject tokens selectively (i.e: black-listing) by providing the option `trusted` with the following signature: `(request, decodedToken) => true|false|Promise<true|false>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information and its result should be `true` or `Promise<true>` if the token should be accepted and `false` or `Promise<false>` if the token should be rejected.
 
 #### Example
 ```js
