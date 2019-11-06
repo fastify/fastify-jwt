@@ -293,7 +293,7 @@ const fastify = require('fastify')()
 
 fastify.register(require('fastify-jwt'), { 
   secret: 'foobar',
-  trusted: checkIfTokenIsTrusted
+  trusted: validateToken 
 })
 
 fastify.addHook('onRequest', (request) => request.jwtVerify())
@@ -309,8 +309,10 @@ fastify.listen(3000, (err) => {
 })
 
 // ideally this function would do a query against some sort of storage to determine its outcome  
-async function checkIfTokenIsTrusted(request, decodedToken) {
-  return true
+async function validateToken(request, decodedToken) {
+  const blacklist = ['token1', 'token2']
+
+  return blacklist.includes(decodedToken.jti)
 }
 ```
 
