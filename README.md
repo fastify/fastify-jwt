@@ -287,30 +287,30 @@ fastify.listen(3000, err => {
 })
 ```
 
-#### Example black-listing tokens
+#### Example trusted tokens
 ```js
 const fastify = require('fastify')()
 
-fastify.register(require('fastify-jwt'), {
-	secret: 'foobar',
-	trusted: checkIfTokenIsTrusted
+fastify.register(require('fastify-jwt'), { 
+  secret: 'foobar',
+  trusted: checkIfTokenIsTrusted
 })
 
 fastify.addHook('onRequest', (request) => request.jwtVerify())
 
 fastify.get('/', (request, reply) => {
-	reply.send({ code: 'OK', message: 'it works!' })
+  reply.send({ code: 'OK', message: 'it works!' })
 })
 
 fastify.listen(3000, (err) => {
-	if (err) {
-		throw err
-	}
+  if (err) {
+    throw err
+  }
 })
 
 // ideally this function would do a query against some sort of storage to determine its outcome  
 async function checkIfTokenIsTrusted(request, decodedToken) {
-	return true
+  return true
 }
 ```
 
