@@ -68,7 +68,9 @@ declare interface FastifyJWTOptions {
     noAuthorizationInHeaderMessage?: string;
     authorizationTokenExpiredMessage?: string;
     authorizationTokenInvalid?: ((err: Error) => string) | string;
+    authorizationTokenUntrusted?: string;
   }
+  trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean>
 }
 
 declare const fastifyJWT: fastify.Plugin<http.Server, http.IncomingMessage, http.ServerResponse, FastifyJWTOptions>;

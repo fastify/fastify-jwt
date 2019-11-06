@@ -13,7 +13,8 @@ const messages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
   noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
   authorizationTokenExpiredMessage: 'Authorization token expired',
-  authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`
+  authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`,
+  authorizationTokenUntrusted: 'Untrusted authorization token'
 }
 
 function wrapStaticSecretInCallback (secret) {
@@ -32,6 +33,7 @@ function fastifyJwt (fastify, options, next) {
   }
 
   const secret = options.secret
+  const trusted = options.trusted
   let secretOrPrivateKey
   let secretOrPublicKey
 
@@ -227,6 +229,22 @@ function fastifyJwt (fastify, options, next) {
           }
           callback(err, result)
         })
+      },
+      function checkIfIsTrusted (result, callback) {
+        if (!trusted) {
+          callback(null, result)
+        } else {
+          const maybePromise = trusted(request, result)
+
+          if (maybePromise && maybePromise.then) {
+            maybePromise
+              .then(trusted => trusted ? callback(null, result) : callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)))
+          } else if (maybePromise) {
+            callback(null, maybePromise)
+          } else {
+            callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted))
+          }
+        }
       }
     ], function (err, result) {
       if (err) {
