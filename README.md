@@ -94,6 +94,10 @@ module.exports = async function(fastify, opts) {
 
 Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-auth) plugin for composing more complex strategies.
 
+### Auth0 tokens verification
+
+If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fastify-auth0-verify](https://github.com/nearform/fastify-auth0-verify), which is based on top of this module.
+
 ## API Spec
 
 ### fastify-jwt
