@@ -55,6 +55,7 @@ declare module 'fastify' {
       options: jwt.VerifyOptions,
       callback: JWTTypes.VerifyCallback<Decoded>,
     ): void;
+    user: JWTTypes.SignPayloadType;
   }
 }
 
