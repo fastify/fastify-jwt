@@ -40,5 +40,6 @@ app.post('/signup', async (req, reply) =>
 {
     const token = app.jwt.sign({ user: "userName" });
     let data = await app.jwt.verify(token);
+    const user = req.user;
     reply.send({ token });
 });
