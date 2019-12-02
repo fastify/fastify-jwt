@@ -107,7 +107,7 @@ In this object `{ private, public }` the `private` key is a string, buffer or ob
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
-Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `reply`, and `callback` parameters.
+Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `token`, and `callback` parameters.
 #### Example
 ```js
 const { readFileSync } = require('fs')
@@ -118,7 +118,7 @@ const jwt = require('fastify-jwt')
 fastify.register(jwt, { secret: 'supersecret' })
 // secret as a function
 fastify.register(jwt, {
-  secret: function (request, reply, callback) {
+  secret: function (request, token, callback) {
     // do something
     callback(null, 'supersecret')
   }
