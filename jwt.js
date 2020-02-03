@@ -12,6 +12,7 @@ const {
 const messages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
   noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
+  noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
   authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`,
   authorizationTokenUntrusted: 'Untrusted authorization token'
@@ -197,7 +198,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let token
-    if (request.headers && request.headers.authorization) {
+    if (options.cookie && request.cookies[options.cookieName]) {
+      token = request.cookies[options.cookieName]
+    } else if (options.cookie && !request.cookies[options.cookieName]) {
+      return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
+    }
+
+    if (!options && request.headers && request.headers.authorization) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
@@ -209,7 +216,7 @@ function fastifyJwt (fastify, options, next) {
       } else {
         return next(new BadRequest(messagesOptions.badRequestErrorMessage))
       }
-    } else {
+    } else if (!options && !request.headers.authorization) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 
