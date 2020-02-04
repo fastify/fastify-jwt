@@ -204,7 +204,7 @@ function fastifyJwt (fastify, options, next) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
     }
 
-    if (!options && request.headers && request.headers.authorization) {
+    if (request.headers && request.headers.authorization) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
@@ -216,7 +216,7 @@ function fastifyJwt (fastify, options, next) {
       } else {
         return next(new BadRequest(messagesOptions.badRequestErrorMessage))
       }
-    } else if (!options && !request.headers.authorization) {
+    } else if (!options.cookie) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 
