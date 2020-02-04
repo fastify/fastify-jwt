@@ -53,6 +53,8 @@ function fastifyJwt (fastify, options, next) {
   if (typeof secretCallbackSign !== 'function') { secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign) }
   if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
 
+  const cookie = options.cookie
+
   const decodeOptions = options.decode || {}
   const signOptions = options.sign || {}
   const verifyOptions = options.verify || {}
@@ -85,6 +87,7 @@ function fastifyJwt (fastify, options, next) {
       verify: verifyOptions,
       messages: messagesOptions
     },
+    cookie: cookie,
     secret: secret,
     sign: sign,
     verify: verify
@@ -198,9 +201,9 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let token
-    if (options.cookie && request.cookies[options.cookieName]) {
-      token = request.cookies[options.cookieName]
-    } else if (options.cookie && !request.cookies[options.cookieName]) {
+    if (cookie && request.cookies[cookie.cookieName]) {
+      token = request.cookies[cookie.cookieName]
+    } else if (cookie && !request.cookies[cookie.cookieName]) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
     }
 
@@ -216,7 +219,7 @@ function fastifyJwt (fastify, options, next) {
       } else {
         return next(new BadRequest(messagesOptions.badRequestErrorMessage))
       }
-    } else if (!options.cookie) {
+    } else if (!cookie) {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 

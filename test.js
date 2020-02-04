@@ -1585,7 +1585,7 @@ test('token in cookie', function (t) {
   t.plan(2)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test' })
+  fastify.register(jwt, { secret: 'test', cookie: { cookieName: 'jwt' } })
   fastify.register(require('fastify-cookie'))
 
   fastify.post('/sign', function (request, reply) {
@@ -1596,10 +1596,7 @@ test('token in cookie', function (t) {
   })
 
   fastify.get('/verify', function (request, reply) {
-    request.jwtVerify({
-      cookie: true,
-      cookieName: 'jwt'
-    })
+    request.jwtVerify()
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
