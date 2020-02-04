@@ -1581,6 +1581,78 @@ test('errors', function (t) {
     })
 })
 
+test('token in cookie', function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test' })
+  fastify.register(require('fastify-cookie'))
+
+  fastify.post('/sign', function (request, reply) {
+    reply.jwtSign(request.body)
+      .then(function (token) {
+        return reply.send({ token })
+      })
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    request.jwtVerify({
+      cookie: true,
+      cookieName: 'jwt'
+    })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify
+    .ready()
+    .then(function () {
+      t.test('token present in cookie', function (t) {
+        t.plan(2)
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: { foo: 'bar' }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verify',
+            cookies: {
+              jwt: token
+            }
+          }).then(function (verifyResponse) {
+            const decodedToken = JSON.parse(verifyResponse.payload)
+            t.is(decodedToken.foo, 'bar')
+          }).catch(function (error) {
+            t.fail(error)
+          })
+        }).catch(function (error) {
+          t.fail(error)
+        })
+      })
+
+      t.test('token absent in cookie', function (t) {
+        t.plan(2)
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          cookies: { }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.is(error.message, 'No Authorization was found in request.cookies')
+          t.is(response.statusCode, 401)
+        })
+      })
+    })
+})
+
 test('custom response messages', function (t) {
   t.plan(5)
 
