@@ -11,6 +11,7 @@ const {
 
 const messages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  badCookieRequestErrorMessage: 'Cookie could not be parsed in request',
   noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
   noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
@@ -201,12 +202,6 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let token
-    if (cookie && request.cookies[cookie.cookieName]) {
-      token = request.cookies[cookie.cookieName]
-    } else if (cookie && !request.cookies[cookie.cookieName]) {
-      return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
-    }
-
     if (request.headers && request.headers.authorization) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
@@ -219,7 +214,17 @@ function fastifyJwt (fastify, options, next) {
       } else {
         return next(new BadRequest(messagesOptions.badRequestErrorMessage))
       }
-    } else if (!cookie) {
+    } else if (cookie) {
+      if (request.cookies) {
+        if (request.cookies[cookie.cookieName]) {
+          token = request.cookies[cookie.cookieName]
+        } else {
+          return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
+        }
+      } else {
+        return next(new BadRequest(messagesOptions.badCookieRequestErrorMessage))
+      }
+    } else {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
     }
 
