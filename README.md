@@ -222,7 +222,7 @@ fastify.listen(3000, err => {
 
 In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your webapp with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [fastify-csrf](https://www.npmjs.com/package/fastify-csrf).
 
-**Note:** This plugin will look for a decorate request with the `cookies` property. `fastify-cookie` supports this feature, and therefore you should use it when using the cookie feature. The plugin will fallback to looking for the token in the authorization header if either of the following happens (even if the cookie option is enabled):
+**Note:** This plugin will look for a decorated request with the `cookies` property. `fastify-cookie` supports this feature, and therefore you should use it when using the cookie feature. The plugin will fallback to looking for the token in the authorization header if either of the following happens (even if the cookie option is enabled):
 
 - The request has both the authorization and cookie header
 - Cookie is empty, authorization header is present
@@ -447,7 +447,7 @@ fastify.register(require('fastify-jwt'), {
 For your convenience, the `secret` you specify during `.register` is made available via `fastify.jwt.secret`. `request.jwtVerify()` and `reply.jwtSign()` will wrap non-function secrets in a callback function. `request.jwtVerify()` and `reply.jwtSign()` use an asynchronous waterfall method to retrieve your secret. It's recommended that your use these methods if your `secret` method is asynchronous.
 
 ### fastify.jwt.cookie
-For your convenience, `request.jwtVerify()` will look for the token in the cookies property of the decorated request. you must specify `cookieName`. Refere to the [cookie example](https://github.com/fastify/fastify-jwt#example-using-cookie) to see sample usage and important caveats.
+For your convenience, `request.jwtVerify()` will look for the token in the cookies property of the decorated request. You must specify `cookieName`. Refer to the [cookie example](https://github.com/fastify/fastify-jwt#example-using-cookie) to see sample usage and important caveats.
 
 ### reply.jwtSign(payload, [options,] callback)
 ### request.jwtVerify([options,] callback)

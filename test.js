@@ -1748,7 +1748,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
   })
 })
 
-test('token in cookie, with no cookie parsing', function (t) {
+test('token in cookie, without fastify-cookie parsing', function (t) {
   t.plan(2)
 
   const fastify = Fastify()
