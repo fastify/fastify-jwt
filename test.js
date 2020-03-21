@@ -1600,9 +1600,6 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
-      .catch(function (error) {
-        return reply.send(error)
-      })
   })
 
   t.test('token present in cookie', function (t) {
@@ -1615,7 +1612,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1633,7 +1630,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
     fastify.inject({
       method: 'get',
       url: '/verify',
-      cookies: { }
+      cookies: {}
     }).then(function (verifyResponse) {
       const error = JSON.parse(verifyResponse.payload)
       t.is(error.message, 'No Authorization was found in request.cookies')
@@ -1651,7 +1648,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1677,7 +1674,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1703,7 +1700,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1730,7 +1727,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1766,9 +1763,6 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
-      .catch(function (error) {
-        return reply.send(error)
-      })
   })
 
   t.test('token present in cookie, but unparsed', function (t) {
@@ -1781,7 +1775,7 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
@@ -1805,7 +1799,7 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
       const token = JSON.parse(signResponse.payload).token
       t.ok(token)
 
-      fastify.inject({
+      return fastify.inject({
         method: 'get',
         url: '/verify',
         cookies: {
