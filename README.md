@@ -220,9 +220,9 @@ fastify.listen(3000, err => {
 
 #### Example using cookie
 
-In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your webapp with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [fastify-csrf](https://www.npmjs.com/package/fastify-csrf).
+In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your webapp with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [`fastify-csrf`](https://www.npmjs.com/package/fastify-csrf).
 
-**Note:** This plugin will look for a decorated request with the `cookies` property. `fastify-cookie` supports this feature, and therefore you should use it when using the cookie feature. The plugin will fallback to looking for the token in the authorization header if either of the following happens (even if the cookie option is enabled):
+**Note:** This plugin will look for a decorated request with the `cookies` property. [`fastify-cookie`](https://www.npmjs.com/package/fastify-cookie) supports this feature, and therefore you should use it when using the cookie feature. The plugin will fallback to looking for the token in the authorization header if either of the following happens (even if the cookie option is enabled):
 
 - The request has both the authorization and cookie header
 - Cookie is empty, authorization header is present
