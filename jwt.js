@@ -11,7 +11,9 @@ const {
 
 const messages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  badCookieRequestErrorMessage: 'Cookie could not be parsed in request',
   noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
+  noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
   authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`,
   authorizationTokenUntrusted: 'Untrusted authorization token'
@@ -52,6 +54,8 @@ function fastifyJwt (fastify, options, next) {
   if (typeof secretCallbackSign !== 'function') { secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign) }
   if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
 
+  const cookie = options.cookie
+
   const decodeOptions = options.decode || {}
   const signOptions = options.sign || {}
   const verifyOptions = options.verify || {}
@@ -84,6 +88,7 @@ function fastifyJwt (fastify, options, next) {
       verify: verifyOptions,
       messages: messagesOptions
     },
+    cookie: cookie,
     secret: secret,
     sign: sign,
     verify: verify
@@ -208,6 +213,16 @@ function fastifyJwt (fastify, options, next) {
         }
       } else {
         return next(new BadRequest(messagesOptions.badRequestErrorMessage))
+      }
+    } else if (cookie) {
+      if (request.cookies) {
+        if (request.cookies[cookie.cookieName]) {
+          token = request.cookies[cookie.cookieName]
+        } else {
+          return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
+        }
+      } else {
+        return next(new BadRequest(messagesOptions.badCookieRequestErrorMessage))
       }
     } else {
       return next(new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage))
