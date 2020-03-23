@@ -64,6 +64,9 @@ declare interface FastifyJWTOptions {
   decode?: jwt.DecodeOptions;
   sign?: jwt.SignOptions;
   verify?: jwt.VerifyOptions;
+  cookie?: { 
+    cookieName: string;
+  };
   messages?: {
     badRequestErrorMessage?: string;
     noAuthorizationInHeaderMessage?: string;

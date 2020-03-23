@@ -8,6 +8,9 @@ app.register(fastifyJwt, {
     sign: {
         expiresIn: '1h'
     },
+    cookie: {
+        cookieName: 'jwt'
+    },
     verify: {
         maxAge: '1h'
     },
