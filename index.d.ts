@@ -74,7 +74,7 @@ declare interface FastifyJWTOptions {
     authorizationTokenInvalid?: ((err: Error) => string) | string;
     authorizationTokenUntrusted?: string;
   }
-  trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean>
+  trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
 }
 
 declare const fastifyJWT: fastify.Plugin<http.Server, http.IncomingMessage, http.ServerResponse, FastifyJWTOptions>;
