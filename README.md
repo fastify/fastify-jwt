@@ -13,7 +13,7 @@ npm i fastify-jwt --save
 Register as a plugin. This will decorate your `fastify` instance with the standard [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) methods `decode`, `sign`, and `verify`; refer to their documentation to find how to use the utilities. It will also register `request.jwtVerify` and `reply.jwtSign`. You must pass a `secret` when registering the plugin.
 
 ```js
-const fastify = require('fastify')
+const fastify = require('fastify')()
 fastify.register(require('fastify-jwt'), {
   secret: 'supersecret'
 })
@@ -32,7 +32,7 @@ fastify.listen(3000, err => {
 For verifying & accessing the decoded token inside your services, you can use a global `onRequest` hook to define the verification process like so:
 
 ```js
-const fastify = require('fastify')
+const fastify = require('fastify')()
 fastify.register(require('fastify-jwt'), {
   secret: 'supersecret'
 })
