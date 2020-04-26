@@ -5,8 +5,9 @@
     "noEmit": true,
     "strict": true,
     "noImplicitAny": false,
+    "esModuleInterop": true,
   },
   "files": [
-    "./type.test.ts"
+    "jwt.test-d.ts"
   ]
 }

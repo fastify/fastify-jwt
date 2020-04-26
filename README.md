@@ -532,6 +532,17 @@ ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
 ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
 none | No digital signature or MAC value included
 
+
+## TypeScript
+
+This plugin has two available exports, the default plugin function `fastifyJwt` and the plugin options object `FastifyJWTOptions`.
+
+Import them like so:
+
+```ts
+import fastifyJwt, { FastifyJWTOptions } from 'fastify-jwt'
+```
+
 ## Acknowledgements
 
 This project is kindly sponsored by:
