@@ -1,5 +1,4 @@
 import * as fastify from 'fastify';
-import * as http from 'http';
 import * as jwt from 'jsonwebtoken';
 
 declare module 'fastify' {
@@ -42,13 +41,13 @@ declare module 'fastify' {
     jwt: JWT;
   }
 
-  interface FastifyReply<HttpResponse> {
+  interface FastifyReplyInterface {
     jwtSign(payload: JWTTypes.SignPayloadType, options?: jwt.SignOptions): Promise<string>;
     jwtSign(payload: JWTTypes.SignPayloadType, callback: JWTTypes.SignCallback): void;
     jwtSign(payload: JWTTypes.SignPayloadType, options: jwt.SignOptions, callback: JWTTypes.SignCallback): void;
   }
 
-  interface FastifyRequest<HttpRequest> {
+  interface FastifyRequestInterface {
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>;
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(callback: JWTTypes.VerifyCallback<Decoded>): void;
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(
@@ -59,24 +58,27 @@ declare module 'fastify' {
   }
 }
 
-declare interface FastifyJWTOptions {
-  secret: jwt.Secret | { public: jwt.Secret; private: jwt.Secret };
-  decode?: jwt.DecodeOptions;
-  sign?: jwt.SignOptions;
-  verify?: jwt.VerifyOptions;
-  cookie?: { 
-    cookieName: string;
-  };
-  messages?: {
-    badRequestErrorMessage?: string;
-    noAuthorizationInHeaderMessage?: string;
-    authorizationTokenExpiredMessage?: string;
-    authorizationTokenInvalid?: ((err: Error) => string) | string;
-    authorizationTokenUntrusted?: string;
+declare namespace fastifyJWT {
+  export interface FastifyJWTOptions {
+    secret: jwt.Secret | { public: jwt.Secret; private: jwt.Secret };
+    decode?: jwt.DecodeOptions;
+    sign?: jwt.SignOptions;
+    verify?: jwt.VerifyOptions;
+    cookie?: { 
+      cookieName: string;
+    };
+    messages?: {
+      badRequestErrorMessage?: string;
+      noAuthorizationInHeaderMessage?: string;
+      authorizationTokenExpiredMessage?: string;
+      authorizationTokenInvalid?: ((err: Error) => string) | string;
+      authorizationTokenUntrusted?: string;
+    }
+    trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
   }
-  trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
+
 }
 
-declare const fastifyJWT: fastify.Plugin<http.Server, http.IncomingMessage, http.ServerResponse, FastifyJWTOptions>;
+declare const fastifyJWT: fastify.FastifyPlugin<fastifyJWT.FastifyJWTOptions>;
 
 export = fastifyJWT;

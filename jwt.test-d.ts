@@ -1,5 +1,6 @@
-import fastify = require('fastify');
-import fastifyJwt = require('./index');
+import fastify from 'fastify';
+import fastifyJwt from './jwt'
+import { expectAssignable } from 'tsd'
 
 const app = fastify();
 
@@ -27,8 +28,19 @@ app.register(fastifyJwt, {
    trusted: () => true,
 });
 
+// expect jwt and its subsequent methods have merged with the fastify instance
+expectAssignable<object>(app.jwt)
+expectAssignable<Function>(app.jwt.sign)
+expectAssignable<Function>(app.jwt.verify)
+expectAssignable<Function>(app.jwt.decode)
+
 app.addHook("preHandler", async (request, reply) =>
 {
+    // assert request and reply specific interface merges
+    expectAssignable<Function>(request.jwtVerify)
+    expectAssignable<object | string | Buffer>(request.user)
+    expectAssignable<Function>(reply.jwtSign)
+
     try
     {
         await request.jwtVerify();
