@@ -5,7 +5,7 @@
   "main": "jwt.js",
   "types": "jwt.d.ts",
   "engines": {
-    "node": ">10"
+    "node": ">=10"
   },
   "scripts": {
     "lint": "standard",
