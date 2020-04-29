@@ -1,18 +1,21 @@
 name: CI
 on: [push, pull_request]
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    name: ${{ matrix.node-version }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        node: ['14', '12', '10']
-      name: Node ${{ matrix.node }}
-      steps:
-        - uses: actions/checkout@v2
-        - name: Setup node
-          uses: actions/setup-node@v1
-          with:
-            node-version: ${{ matrix.node }}
-        - run: npm install
-        - run: npm run test
+        os: [macOS-latest, windows-latest, ubuntu-latest]
+        node-version: [10, 12, 14]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install
+        run: npm i
+      - name: Tests
+        run: npm test
