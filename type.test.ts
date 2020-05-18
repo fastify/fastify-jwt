@@ -12,7 +12,8 @@ app.register(fastifyJwt, {
         cookieName: 'jwt'
     },
     verify: {
-        maxAge: '1h'
+        maxAge: '1h',
+        extractToken: (request) => 'token'
     },
     decode: {
         complete: true
@@ -23,24 +24,20 @@ app.register(fastifyJwt, {
         authorizationTokenExpiredMessage: 'Token Expired',
         authorizationTokenInvalid: (err) => `${err.message}`,
         authorizationTokenUntrusted: 'Token untrusted'
-   },
-   trusted: () => true,
+    },
+    trusted: () => true,
 });
 
-app.addHook("preHandler", async (request, reply) =>
-{
-    try
-    {
+app.addHook("preHandler", async (request, reply) => {
+    try {
         await request.jwtVerify();
     }
-    catch (err)
-    {
+    catch (err) {
         reply.send(err);
     }
 });
 
-app.post('/signup', async (req, reply) =>
-{
+app.post('/signup', async (req, reply) => {
     const token = app.jwt.sign({ user: "userName" });
     let data = await app.jwt.verify(token);
     const user = req.user;
