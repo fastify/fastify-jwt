@@ -59,7 +59,7 @@ test('register', function (t) {
         public: publicKey
       }
     }).ready(function (error) {
-      t.is(error, null)
+      t.is(error, undefined)
     })
   })
 
@@ -69,7 +69,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: Buffer.from('some secret', 'base64')
     }).ready(function (error) {
-      t.is(error, null)
+      t.is(error, undefined)
     })
   })
 
@@ -145,7 +145,7 @@ test('register', function (t) {
         audience: 'Some audience'
       }
     }).ready(function (error) {
-      t.is(error, null)
+      t.is(error, undefined)
     })
   })
 
@@ -174,7 +174,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error, null)
+        t.is(error, undefined)
       })
     })
 
@@ -200,7 +200,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error, null)
+        t.is(error, undefined)
       })
     })
   })
