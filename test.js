@@ -1919,3 +1919,65 @@ test('custom response messages', function (t) {
       })
     })
 })
+
+test('extract custom token', function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', verify: { extractToken: (request) => request.headers.customauthheader } })
+
+  fastify.post('/sign', function (request, reply) {
+    return reply.jwtSign(request.body)
+      .then(function (token) {
+        return { token }
+      })
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    return request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+  })
+
+  t.test('token can be extracted correctly', function (t) {
+    t.plan(2)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify',
+        headers: {
+          customauthheader: token
+        }
+      }).then(function (verifyResponse) {
+        t.is(verifyResponse.statusCode, 200)
+      })
+    })
+  })
+
+  t.test('token can not be extracted', function (t) {
+    t.plan(2)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify'
+      }).then(function (verifyResponse) {
+        t.is(verifyResponse.statusCode, 400)
+      })
+    })
+  })
+})
