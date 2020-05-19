@@ -5,6 +5,10 @@
 
 JWT utils for Fastify, internally uses [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken).
 
+`fastify-jwt` supports Fastify@3.
+`fastify-jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
+supports both Fastify@2.
+
 ## Install
 ```
 npm i fastify-jwt --save
