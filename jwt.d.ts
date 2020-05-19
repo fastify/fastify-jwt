@@ -7,7 +7,7 @@ declare module 'fastify' {
     type VerifyPayloadType = object | string;
     type DecodePayloadType = object | string;
 
-    interface SignCallback extends jwt.SignCallback {}
+    interface SignCallback extends jwt.SignCallback { }
 
     interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
       (err: jwt.VerifyErrors, decoded: Decoded): void;
@@ -63,8 +63,8 @@ declare namespace fastifyJWT {
     secret: jwt.Secret | { public: jwt.Secret; private: jwt.Secret };
     decode?: jwt.DecodeOptions;
     sign?: jwt.SignOptions;
-    verify?: jwt.VerifyOptions;
-    cookie?: { 
+    verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void; };
+    cookie?: {
       cookieName: string;
     };
     messages?: {
@@ -74,7 +74,7 @@ declare namespace fastifyJWT {
       authorizationTokenInvalid?: ((err: Error) => string) | string;
       authorizationTokenUntrusted?: string;
     }
-    trusted?: (request: fastify.FastifyRequest, decodedToken: {[k: string]: any}) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
+    trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
   }
 
 }

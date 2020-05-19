@@ -13,7 +13,8 @@ app.register(fastifyJwt, {
         cookieName: 'jwt'
     },
     verify: {
-        maxAge: '1h'
+        maxAge: '1h',
+        extractToken: (request) => 'token'
     },
     decode: {
         complete: true
@@ -24,8 +25,8 @@ app.register(fastifyJwt, {
         authorizationTokenExpiredMessage: 'Token Expired',
         authorizationTokenInvalid: (err) => `${err.message}`,
         authorizationTokenUntrusted: 'Token untrusted'
-   },
-   trusted: () => true,
+    },
+    trusted: () => true,
 });
 
 // expect jwt and its subsequent methods have merged with the fastify instance
@@ -34,25 +35,21 @@ expectAssignable<Function>(app.jwt.sign)
 expectAssignable<Function>(app.jwt.verify)
 expectAssignable<Function>(app.jwt.decode)
 
-app.addHook("preHandler", async (request, reply) =>
-{
+app.addHook("preHandler", async (request, reply) => {
     // assert request and reply specific interface merges
     expectAssignable<Function>(request.jwtVerify)
     expectAssignable<object | string | Buffer>(request.user)
     expectAssignable<Function>(reply.jwtSign)
 
-    try
-    {
+    try {
         await request.jwtVerify();
     }
-    catch (err)
-    {
+    catch (err) {
         reply.send(err);
     }
 });
 
-app.post('/signup', async (req, reply) =>
-{
+app.post('/signup', async (req, reply) => {
     const token = app.jwt.sign({ user: "userName" });
     let data = await app.jwt.verify(token);
     const user = req.user;
