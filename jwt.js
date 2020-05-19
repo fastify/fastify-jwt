@@ -66,7 +66,7 @@ function fastifyJwt (fastify, options, next) {
     signOptions.algorithm &&
     signOptions.algorithm.includes('RS') &&
     (typeof secret === 'string' ||
-    secret instanceof Buffer)
+      secret instanceof Buffer)
   ) {
     return next(new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
@@ -75,7 +75,7 @@ function fastifyJwt (fastify, options, next) {
     signOptions.algorithm &&
     signOptions.algorithm.includes('ES') &&
     (typeof secret === 'string' ||
-    secret instanceof Buffer)
+      secret instanceof Buffer)
   ) {
     return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
@@ -202,7 +202,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let token
-    if (request.headers && request.headers.authorization) {
+    const extractToken = options.extractToken
+    if (extractToken) {
+      token = extractToken(request)
+      if (!token) {
+        return next(new BadRequest(messagesOptions.badRequestErrorMessage))
+      }
+    } else if (request.headers && request.headers.authorization) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
