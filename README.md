@@ -426,7 +426,7 @@ fastify.listen(3000, err => {
 
 #### messages options
 
-For your onvenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
+For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
 
 #### Example
 
