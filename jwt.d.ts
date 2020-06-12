@@ -41,13 +41,13 @@ declare module 'fastify' {
     jwt: JWT;
   }
 
-  interface FastifyReplyInterface {
+  interface FastifyReply {
     jwtSign(payload: JWTTypes.SignPayloadType, options?: jwt.SignOptions): Promise<string>;
     jwtSign(payload: JWTTypes.SignPayloadType, callback: JWTTypes.SignCallback): void;
     jwtSign(payload: JWTTypes.SignPayloadType, options: jwt.SignOptions, callback: JWTTypes.SignCallback): void;
   }
 
-  interface FastifyRequestInterface {
+  interface FastifyRequest {
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>;
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(callback: JWTTypes.VerifyCallback<Decoded>): void;
     jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(
