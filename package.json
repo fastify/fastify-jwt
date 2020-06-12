@@ -37,7 +37,7 @@
     "steed": "^1.1.3"
   },
   "devDependencies": {
-    "fastify": "^3.0.0-rc.3",
+    "fastify": "^3.0.0-rc.4",
     "fastify-cookie": "^4.0.1",
     "standard": "^14.0.2",
     "tap": "^14.10.7",
