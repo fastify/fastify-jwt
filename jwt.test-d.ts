@@ -26,7 +26,7 @@ app.register(fastifyJwt, {
         authorizationTokenInvalid: (err) => `${err.message}`,
         authorizationTokenUntrusted: 'Token untrusted'
     },
-    trusted: () => true,
+    trusted: () => false || 'yay',
 });
 
 // expect jwt and its subsequent methods have merged with the fastify instance
