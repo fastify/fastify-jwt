@@ -1,19 +1,20 @@
 import * as fastify from 'fastify';
 import * as jwt from 'jsonwebtoken';
 
-declare module 'fastify' {
-  namespace JWTTypes {
-    type SignPayloadType = object | string | Buffer;
-    type VerifyPayloadType = object | string;
-    type DecodePayloadType = object | string;
 
-    interface SignCallback extends jwt.SignCallback { }
+declare namespace JWTTypes {
+  type SignPayloadType = object | string | Buffer;
+  type VerifyPayloadType = object | string;
+  type DecodePayloadType = object | string;
 
-    interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
-      (err: jwt.VerifyErrors, decoded: Decoded): void;
-    }
+  interface SignCallback extends jwt.SignCallback { }
+
+  interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
+    (err: jwt.VerifyErrors, decoded: Decoded): void;
   }
+}
 
+declare module 'fastify' {
   interface JWT {
     options: {
       decode: jwt.DecodeOptions;
@@ -74,7 +75,7 @@ declare namespace fastifyJWT {
       authorizationTokenInvalid?: ((err: Error) => string) | string;
       authorizationTokenUntrusted?: string;
     }
-    trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | fastify.JWTTypes.SignPayloadType | Promise<fastify.JWTTypes.SignPayloadType>
+    trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | JWTTypes.SignPayloadType | Promise<JWTTypes.SignPayloadType>
   }
 
 }

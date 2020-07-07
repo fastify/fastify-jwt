@@ -1,10 +1,10 @@
 import fastify from 'fastify';
-import fastifyJwt from './jwt'
+import fastifyJwt, { FastifyJWTOptions } from './jwt'
 import { expectAssignable } from 'tsd'
 
 const app = fastify();
 
-app.register(fastifyJwt, {
+const jwtOptions: FastifyJWTOptions = {
     secret: process.env.usePublicPrivateKeys ? "supersecret" : { public: 'publicKey', private: 'privateKey' },
     sign: {
         expiresIn: '1h'
@@ -26,8 +26,12 @@ app.register(fastifyJwt, {
         authorizationTokenInvalid: (err) => `${err.message}`,
         authorizationTokenUntrusted: 'Token untrusted'
     },
-    trusted: () => true,
-});
+    trusted: () => false || '' || Buffer.from('foo')
+}
+
+app.register(fastifyJwt, jwtOptions);
+
+app.register(fastifyJwt, {...jwtOptions, trusted: () => Promise.resolve(false || '' || Buffer.from('foo')) })
 
 // expect jwt and its subsequent methods have merged with the fastify instance
 expectAssignable<object>(app.jwt)
