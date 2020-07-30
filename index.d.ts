@@ -59,8 +59,10 @@ declare module 'fastify' {
   }
 }
 
+type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fastify.FastifyReply<unknown>, cb: (e: Error | null, secret: string | undefined) => void) => void);
+
 declare interface FastifyJWTOptions {
-  secret: jwt.Secret | { public: jwt.Secret; private: jwt.Secret };
+  secret: Secret | { public: Secret; private: Secret };
   decode?: jwt.DecodeOptions;
   sign?: jwt.SignOptions;
   verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void; };
