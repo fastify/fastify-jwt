@@ -5,7 +5,22 @@ import { expectAssignable } from 'tsd'
 const app = fastify();
 
 const jwtOptions: FastifyJWTOptions = {
-    secret: process.env.usePublicPrivateKeys ? "supersecret" : { public: 'publicKey', private: 'privateKey' },
+    secret: {
+        secret: 'supersecret',
+        publicPrivateKey: {
+            public: 'publicKey',
+            private: 'privateKey'
+        },
+        secretFn: (_req, _rep, cb) => { cb(null, 'supersecret') },
+        publicPrivateKeyFn: {
+            public: (_req, _rep, cb) => { cb(null, 'publicKey') },
+            private: 'privateKey'
+        },
+        publicPrivateKeyFn2: {
+            public: 'publicKey',
+            private: (_req, _rep, cb) => { cb(null, 'privateKey') },
+        }
+    }[process.env.secretOption!],
     sign: {
         expiresIn: '1h'
     },
