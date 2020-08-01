@@ -42,10 +42,5 @@
     "standard": "^14.0.2",
     "tap": "^12.6.5",
     "typescript": "^3.2.2"
-  },
-  "greenkeeper": {
-    "ignore": [
-      "tap"
-    ]
   }
 }
