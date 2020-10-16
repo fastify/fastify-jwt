@@ -51,14 +51,16 @@ test('register', function (t) {
   })
 
   t.test('Expose jwt methods namespaced', function (t) {
-    t.plan(7)
+    t.plan(14)
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test', namespace: 'security', jwtVerify: 'securityVerify', jwtSign: 'securitySign' })
-
+    fastify.register(jwt, { secret: 'hello', namespace: 'secure', jwtVerify: 'secureVerify', jwtSign: 'secureSign' })
     fastify.get('/methods', function (request, reply) {
       t.ok(request.securityVerify)
       t.ok(reply.securitySign)
+      t.ok(request.secureVerify)
+      t.ok(reply.secureSign)
     })
 
     fastify.ready(function () {
@@ -67,6 +69,12 @@ test('register', function (t) {
       t.ok(fastify.jwt.security.secret)
       t.ok(fastify.jwt.security.sign)
       t.ok(fastify.jwt.security.verify)
+
+      t.ok(fastify.jwt.secure.decode)
+      t.ok(fastify.jwt.secure.options)
+      t.ok(fastify.jwt.secure.secret)
+      t.ok(fastify.jwt.secure.sign)
+      t.ok(fastify.jwt.secure.verify)
     })
 
     fastify.inject({
@@ -2000,6 +2008,49 @@ test('custom response messages', function (t) {
         })
       })
     })
+})
+
+test('extract custom token with custom named functions', function (t) {
+  t.plan(1)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', verify: { extractToken: (request) => request.headers.customauthheader }, jwtSign: 'customSign', jwtVerify: 'customVerify' })
+
+  fastify.post('/sign', function (request, reply) {
+    return reply.customSign(request.body)
+      .then(function (token) {
+        return { token }
+      })
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    return request.customVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+  })
+
+  t.test('token can be extracted correctly', function (t) {
+    t.plan(2)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify',
+        headers: {
+          customauthheader: token
+        }
+      }).then(function (verifyResponse) {
+        t.is(verifyResponse.statusCode, 200)
+      })
+    })
+  })
 })
 
 test('extract custom token', function (t) {

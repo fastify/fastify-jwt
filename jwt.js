@@ -177,7 +177,7 @@ function fastifyJwt (fastify, options, next) {
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        reply.jwtSign(payload, options, function (err, val) {
+        reply[jwtSign](payload, options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
@@ -211,7 +211,7 @@ function fastifyJwt (fastify, options, next) {
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        request.jwtVerify(options, function (err, val) {
+        request[jwtVerify](options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
