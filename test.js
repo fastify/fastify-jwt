@@ -23,7 +23,7 @@ const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/
 const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
 
 test('register', function (t) {
-  t.plan(11)
+  t.plan(12)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(7)
@@ -42,6 +42,31 @@ test('register', function (t) {
       t.ok(fastify.jwt.secret)
       t.ok(fastify.jwt.sign)
       t.ok(fastify.jwt.verify)
+    })
+
+    fastify.inject({
+      method: 'get',
+      url: '/methods'
+    })
+  })
+
+  t.test('Expose jwt methods namespaced', function (t) {
+    t.plan(7)
+
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test', namespace: 'security', jwtVerify: 'securityVerify', jwtSign: 'securitySign' })
+
+    fastify.get('/methods', function (request, reply) {
+      t.ok(request.securityVerify)
+      t.ok(reply.securitySign)
+    })
+
+    fastify.ready(function () {
+      t.ok(fastify.security.decode)
+      t.ok(fastify.security.options)
+      t.ok(fastify.security.secret)
+      t.ok(fastify.security.sign)
+      t.ok(fastify.security.verify)
     })
 
     fastify.inject({

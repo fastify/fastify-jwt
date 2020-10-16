@@ -79,8 +79,8 @@ function fastifyJwt (fastify, options, next) {
   ) {
     return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
-
-  fastify.decorate('jwt', {
+  var namespace = options.namespace || 'jwt'
+  fastify.decorate(namespace, {
     decode: decode,
     options: {
       decode: decodeOptions,
@@ -93,9 +93,12 @@ function fastifyJwt (fastify, options, next) {
     sign: sign,
     verify: verify
   })
+
+  var jwtVerify = options.jwtVerify || 'jwtVerify'
+  var jwtSign = options.jwtSign || 'jwtSign'
   fastify.decorateRequest('user', null)
-  fastify.decorateRequest('jwtVerify', requestVerify)
-  fastify.decorateReply('jwtSign', replySign)
+  fastify.decorateRequest(jwtVerify, requestVerify)
+  fastify.decorateReply(jwtSign, replySign)
 
   next()
 
