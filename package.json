@@ -31,7 +31,7 @@
   "homepage": "https://github.com/fastify/fastify-jwt#readme",
   "dependencies": {
     "@types/jsonwebtoken": "^8.5.0",
-    "fastify-plugin": "^2.3.2",
+    "fastify-plugin": "^3.0.0",
     "http-errors": "^1.8.0",
     "jsonwebtoken": "^8.5.1",
     "steed": "^1.1.3"
