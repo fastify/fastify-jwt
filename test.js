@@ -1256,6 +1256,63 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
   })
 })
 
+test('sign and verify with trusted token', function (t) {
+  t.plan(2)
+  t.test('Trusted token verification', function (t) {
+    t.plan(1)
+
+    const f = Fastify()
+    f.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
+    f.get('/', (request, reply) => {
+      request.jwtVerify()
+        .then(function (decodedToken) {
+          return reply.send(decodedToken)
+        })
+        .catch(function (error) {
+          return reply.send(error)
+        })
+    })
+
+    const trustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'trusted' })
+    f.inject({
+      method: 'get',
+      url: '/',
+      headers: {
+        authorization: `Bearer ${trustedToken}`
+      }
+    }).then(function (response) {
+      t.is(response.statusCode, 200)
+    })
+  })
+
+  t.test('Trusted token - async verification', function (t) {
+    t.plan(1)
+
+    const f = Fastify()
+    f.register(jwt, { secret: 'test', trusted: (request, { jti }) => Promise.resolve(jti !== 'untrusted') })
+    f.get('/', (request, reply) => {
+      request.jwtVerify()
+        .then(function (decodedToken) {
+          return reply.send(decodedToken)
+        })
+        .catch(function (error) {
+          return reply.send(error)
+        })
+    })
+
+    const trustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'trusted' })
+    f.inject({
+      method: 'get',
+      url: '/',
+      headers: {
+        authorization: `Bearer ${trustedToken}`
+      }
+    }).then(function (response) {
+      t.is(response.statusCode, 200)
+    })
+  })
+})
+
 test('decode', function (t) {
   t.plan(2)
 
