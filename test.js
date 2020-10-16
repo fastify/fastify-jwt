@@ -62,11 +62,11 @@ test('register', function (t) {
     })
 
     fastify.ready(function () {
-      t.ok(fastify.security.decode)
-      t.ok(fastify.security.options)
-      t.ok(fastify.security.secret)
-      t.ok(fastify.security.sign)
-      t.ok(fastify.security.verify)
+      t.ok(fastify.jwt.security.decode)
+      t.ok(fastify.jwt.security.options)
+      t.ok(fastify.jwt.security.secret)
+      t.ok(fastify.jwt.security.sign)
+      t.ok(fastify.jwt.security.verify)
     })
 
     fastify.inject({

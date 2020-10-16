@@ -79,8 +79,7 @@ function fastifyJwt (fastify, options, next) {
   ) {
     return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
-  var namespace = options.namespace || 'jwt'
-  fastify.decorate(namespace, {
+  var jwtConfig = {
     decode: decode,
     options: {
       decode: decodeOptions,
@@ -92,11 +91,24 @@ function fastifyJwt (fastify, options, next) {
     secret: secret,
     sign: sign,
     verify: verify
-  })
+  }
+  if (options.namespace) {
+    if (!fastify.jwt) {
+      fastify.decorate('jwt', {})
+    }
+
+    if (fastify.jwt[options.namespace]) {
+      throw new Error(`JWT namespace already used ${options.namespace}`)
+    }
+    fastify.jwt[options.namespace] = jwtConfig
+  } else {
+    fastify.decorate('jwt', jwtConfig)
+  }
 
   var jwtVerify = options.jwtVerify || 'jwtVerify'
   var jwtSign = options.jwtSign || 'jwtSign'
   fastify.decorateRequest('user', null)
+
   fastify.decorateRequest(jwtVerify, requestVerify)
   fastify.decorateReply(jwtSign, replySign)
 

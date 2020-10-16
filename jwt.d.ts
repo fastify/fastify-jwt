@@ -27,7 +27,9 @@ export type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fast
 export type VerifyPayloadType = object | string
 
 export type DecodePayloadType = object | string
-
+export interface FastifyJWTNestedObject {
+  [name: string]: JWT;
+}
 export interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
   (err: jwt.VerifyErrors, decoded: Decoded): void
 }
@@ -75,7 +77,7 @@ export default fastifyJWT
 
 declare module 'fastify' {
   interface FastifyInstance {
-    jwt: JWT
+    jwt: JWT & FastifyJWTNestedObject;
   }
 
   interface FastifyReply {
