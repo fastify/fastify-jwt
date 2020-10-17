@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "standard",
     "lint:fix": "standard --fix",
-    "test": "standard && tap test.js && tsd"
+    "test": "standard && tap --100 test.js && tsd"
   },
   "repository": {
     "type": "git",
