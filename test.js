@@ -2010,46 +2010,38 @@ test('custom response messages', function (t) {
     })
 })
 
-test('extract custom token with custom named functions', function (t) {
+test('extract custom token with custom named functions', async function (t) {
   t.plan(1)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', verify: { extractToken: (request) => request.headers.customauthheader }, jwtSign: 'customSign', jwtVerify: 'customVerify' })
 
-  fastify.post('/sign', function (request, reply) {
+  fastify.post('/sign', async function (request, reply) {
     return reply.customSign(request.body)
-      .then(function (token) {
-        return { token }
-      })
   })
 
-  fastify.get('/verify', function (request, reply) {
+  fastify.get('/verify', async function (request, reply) {
     return request.customVerify()
-      .then(function (decodedToken) {
-        return reply.send(decodedToken)
-      })
   })
 
-  t.test('token can be extracted correctly', function (t) {
+  t.test('token can be extracted correctly', async function (t) {
     t.plan(2)
-    fastify.inject({
+    const signResponse = await fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
-    }).then(function (signResponse) {
-      const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
-
-      return fastify.inject({
-        method: 'get',
-        url: '/verify',
-        headers: {
-          customauthheader: token
-        }
-      }).then(function (verifyResponse) {
-        t.is(verifyResponse.statusCode, 200)
-      })
     })
+    const token = signResponse.payload
+    t.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        customauthheader: token
+      }
+    })
+    t.is(verifyResponse.statusCode, 200)
   })
 })
 
@@ -2113,4 +2105,14 @@ test('extract custom token', function (t) {
       })
     })
   })
+})
+
+test('Unable to add the namespace twice', function (t) {
+  t.plan(1)
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', namespace: 'security', jwtVerify: 'securityVerify', jwtSign: 'securitySign' })
+  fastify.register(jwt, { secret: 'hello', namespace: 'security', jwtVerify: 'secureVerify', jwtSign: 'secureSign' })
+    .ready(function (err) {
+      t.is(err.message, 'JWT namespace already used security')
+    })
 })
