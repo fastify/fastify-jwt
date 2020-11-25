@@ -549,6 +549,28 @@ Import them like so:
 import fastifyJwt, { FastifyJWTOptions } from 'fastify-jwt'
 ```
 
+
+Define custom Payload Type
+> [typescript declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html)
+
+```ts
+declare "fastify-jwt" {
+  interface FastifyJWT {
+    payload: { name: string }
+  }
+}
+
+fastify.get('/', async (request, replay) => {
+  request.user.name // string
+
+  const token = await replay.jwtSign({
+    name: 123
+    // ^ Type 'number' is not assignable to type 'string'.
+  });
+})
+
+```
+
 ## Acknowledgements
 
 This project is kindly sponsored by:
