@@ -98,7 +98,7 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (fastify.jwt[options.namespace]) {
-      return next(new Error(`JWT namespace already used ${options.namespace}`))
+      return next(new Error(`JWT namespace already used "${options.namespace}"`))
     }
     fastify.jwt[options.namespace] = jwtConfig
   } else {
