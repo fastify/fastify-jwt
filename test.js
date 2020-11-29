@@ -2113,6 +2113,6 @@ test('Unable to add the namespace twice', function (t) {
   fastify.register(jwt, { secret: 'test', namespace: 'security', jwtVerify: 'securityVerify', jwtSign: 'securitySign' })
   fastify.register(jwt, { secret: 'hello', namespace: 'security', jwtVerify: 'secureVerify', jwtSign: 'secureSign' })
     .ready(function (err) {
-      t.is(err.message, 'JWT namespace already used security')
+      t.is(err.message, 'JWT namespace already used "security"')
     })
 })
