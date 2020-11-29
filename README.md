@@ -331,7 +331,7 @@ fastify.log.info(`Decoded JWT: ${decoded}`)
 ```
 
 ### fastify.jwt.options
-For your convenience, the `decode`, `sign`, `verify` and `messages` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify, messages }` containing your options.
+For your convenience, the `decode`, `sign`, `verify`, `messages`, `namespace`, `jwtVerify` and `jwtSign` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify, messages, namespace, jwtVerfiy, JwtSign }` containing your options.
 
 #### Example
 ```js
@@ -447,6 +447,23 @@ fastify.register(require('fastify-jwt'), {
   secret: 'supersecret',
   messages: myCustomMessages
 })
+```
+
+#### namespace options
+
+You can also define a namespace to make use of multiple JWT validators on the same routes. You can comebine this with custom names for jwtVerify and JwtSign.
+
+##### Example with namespace
+
+```js
+  const fastify = require('fastify')
+  
+  fastify.register(jwt, {
+    secret: 'test',
+    namespace: 'security',
+    jwtVerify: 'securityVerify',
+    jwtSign: 'securitySign'
+  })
 ```
 
 ### fastify.jwt.secret
