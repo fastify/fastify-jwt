@@ -105,7 +105,7 @@ function fastifyJwt (fastify, options, next) {
     fastify.decorate('jwt', jwtConfig)
   }
 
-  var jwtVerify = options.jwtVerify || 'jwtVerify'
+  const jwtVerify = options.jwtVerify || 'jwtVerify'
   var jwtSign = options.jwtSign || 'jwtSign'
   fastify.decorateRequest('user', null)
 
