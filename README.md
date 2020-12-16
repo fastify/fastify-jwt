@@ -298,9 +298,9 @@ fastify.listen(3000, (err) => {
 
 // ideally this function would do a query against some sort of storage to determine its outcome  
 async function validateToken(request, decodedToken) {
-  const blacklist = ['token1', 'token2']
+  const denylist = ['token1', 'token2']
 
-  return blacklist.includes(decodedToken.jti)
+  return !denylist.includes(decodedToken.jti)
 }
 ```
 
