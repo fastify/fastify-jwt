@@ -300,7 +300,7 @@ fastify.listen(3000, (err) => {
 async function validateToken(request, decodedToken) {
   const blacklist = ['token1', 'token2']
 
-  return blacklist.includes(decodedToken.jti)
+  return !blacklist.includes(decodedToken.jti)
 }
 ```
 
