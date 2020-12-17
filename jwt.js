@@ -93,6 +93,7 @@ function fastifyJwt (fastify, options, next) {
     sign: sign,
     verify: verify
   })
+  fastify.decorateRequest('user', null)
   fastify.decorateRequest('jwtVerify', requestVerify)
   fastify.decorateReply('jwtSign', replySign)
 
