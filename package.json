@@ -39,6 +39,7 @@
   "devDependencies": {
     "fastify": "^3.2.1",
     "fastify-cookie": "^5.0.0",
+    "pre-commit": "^1.2.2",
     "standard": "^16.0.0",
     "tap": "^14.10.8",
     "tsd": "^0.14.0",
