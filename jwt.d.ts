@@ -1,87 +1,93 @@
-import * as fastify from 'fastify';
-import * as jwt from 'jsonwebtoken';
+import * as fastify from 'fastify'
+import * as jwt from 'jsonwebtoken'
 
-
-declare namespace JWTTypes {
-  type SignPayloadType = object | string | Buffer;
-  type VerifyPayloadType = object | string;
-  type DecodePayloadType = object | string;
-
-  interface SignCallback extends jwt.SignCallback { }
-
-  interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
-    (err: jwt.VerifyErrors, decoded: Decoded): void;
-  }
+/**
+ * for declaration merging
+ * @example
+ * ```
+ * declare module 'fastify-jwt' {
+ *   interface Payload {
+ *     type: { name: string; email: string }
+ *   }
+ * }
+ * ```
+ */
+export interface FastifyJWT {
+  // payload: ...
 }
 
-declare module 'fastify' {
-  interface JWT {
-    options: {
-      decode: jwt.DecodeOptions;
-      sign: jwt.SignOptions;
-      verify: jwt.VerifyOptions;
-    };
-    secret: jwt.Secret;
+export type SignPayloadType = FastifyJWT extends { payload: infer T }
+  ? T extends string | object | Buffer
+    ? T
+    : string | object | Buffer
+  : string | object | Buffer
 
-    sign(payload: JWTTypes.SignPayloadType, options?: jwt.SignOptions): string;
-    sign(payload: JWTTypes.SignPayloadType, callback: JWTTypes.SignCallback): void;
-    sign(payload: JWTTypes.SignPayloadType, options: jwt.SignOptions, callback: JWTTypes.SignCallback): void;
+export type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fastify.FastifyReply, cb: (e: Error | null, secret: string | undefined) => void) => void)
 
-    verify<Decoded extends JWTTypes.VerifyPayloadType>(token: string, options?: jwt.VerifyOptions): Decoded;
-    verify<Decoded extends JWTTypes.VerifyPayloadType>(token: string, callback: JWTTypes.VerifyCallback<Decoded>): void;
-    verify<Decoded extends JWTTypes.VerifyPayloadType>(
-      token: string,
-      options: jwt.VerifyOptions,
-      callback: JWTTypes.VerifyCallback<Decoded>,
-    ): void;
+export type VerifyPayloadType = object | string
 
-    decode<Decoded extends JWTTypes.DecodePayloadType>(token: string, options?: jwt.DecodeOptions): null | Decoded;
+export type DecodePayloadType = object | string
+
+export interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.VerifyCallback {
+  (err: jwt.VerifyErrors, decoded: Decoded): void
+}
+
+export interface FastifyJWTOptions {
+  secret: Secret | { public: Secret; private: Secret }
+  decode?: jwt.DecodeOptions
+  sign?: jwt.SignOptions
+  verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void }
+  cookie?: {
+    cookieName: string
   }
+  messages?: {
+    badRequestErrorMessage?: string
+    noAuthorizationInHeaderMessage?: string
+    authorizationTokenExpiredMessage?: string
+    authorizationTokenInvalid?: ((err: Error) => string) | string
+    authorizationTokenUntrusted?: string
+  }
+  trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
+}
 
+export interface JWT {
+  options: {
+    decode: jwt.DecodeOptions
+    sign: jwt.SignOptions
+    verify: jwt.VerifyOptions
+  }
+  secret: jwt.Secret
+
+  sign(payload: SignPayloadType, options?: jwt.SignOptions): string
+  sign(payload: SignPayloadType, callback: jwt.SignCallback): void
+  sign(payload: SignPayloadType, options: jwt.SignOptions, callback: jwt.SignCallback): void
+
+  verify<Decoded extends VerifyPayloadType>(token: string, options?: jwt.VerifyOptions): Decoded
+  verify<Decoded extends VerifyPayloadType>(token: string, callback: VerifyCallback<Decoded>): void
+  verify<Decoded extends VerifyPayloadType>(token: string, options: jwt.VerifyOptions, callback: VerifyCallback<Decoded>): void
+
+  decode<Decoded extends DecodePayloadType>(token: string, options?: jwt.DecodeOptions): null | Decoded
+}
+
+export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
+
+export default fastifyJWT
+
+declare module 'fastify' {
   interface FastifyInstance {
-    jwt: JWT;
+    jwt: JWT
   }
 
   interface FastifyReply {
-    jwtSign(payload: JWTTypes.SignPayloadType, options?: jwt.SignOptions): Promise<string>;
-    jwtSign(payload: JWTTypes.SignPayloadType, callback: JWTTypes.SignCallback): void;
-    jwtSign(payload: JWTTypes.SignPayloadType, options: jwt.SignOptions, callback: JWTTypes.SignCallback): void;
+    jwtSign(payload: SignPayloadType, options?: jwt.SignOptions): Promise<string>
+    jwtSign(payload: SignPayloadType, callback: jwt.SignCallback): void
+    jwtSign(payload: SignPayloadType, options: jwt.SignOptions, callback: jwt.SignCallback): void
   }
 
   interface FastifyRequest {
-    jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>;
-    jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(callback: JWTTypes.VerifyCallback<Decoded>): void;
-    jwtVerify<Decoded extends JWTTypes.VerifyPayloadType>(
-      options: jwt.VerifyOptions,
-      callback: JWTTypes.VerifyCallback<Decoded>,
-    ): void;
-    user: JWTTypes.SignPayloadType;
+    jwtVerify<Decoded extends VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>
+    jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifyCallback<Decoded>): void
+    jwtVerify<Decoded extends VerifyPayloadType>(options: jwt.VerifyOptions, callback: VerifyCallback<Decoded>): void
+    user: SignPayloadType
   }
 }
-
-type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fastify.FastifyReply, cb: (e: Error | null, secret: string | undefined) => void) => void);
-
-declare namespace fastifyJWT {
-  export interface FastifyJWTOptions {
-    secret: Secret | { public: Secret; private: Secret };
-    decode?: jwt.DecodeOptions;
-    sign?: jwt.SignOptions;
-    verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void; };
-    cookie?: {
-      cookieName: string;
-    };
-    messages?: {
-      badRequestErrorMessage?: string;
-      noAuthorizationInHeaderMessage?: string;
-      authorizationTokenExpiredMessage?: string;
-      authorizationTokenInvalid?: ((err: Error) => string) | string;
-      authorizationTokenUntrusted?: string;
-    }
-    trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | JWTTypes.SignPayloadType | Promise<JWTTypes.SignPayloadType>
-  }
-
-}
-
-declare const fastifyJWT: fastify.FastifyPlugin<fastifyJWT.FastifyJWTOptions>;
-
-export = fastifyJWT;

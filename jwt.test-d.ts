@@ -5,43 +5,43 @@ import { expectAssignable } from 'tsd'
 const app = fastify();
 
 const jwtOptions: FastifyJWTOptions = {
-    secret: {
-        secret: 'supersecret',
-        publicPrivateKey: {
-            public: 'publicKey',
-            private: 'privateKey'
-        },
-        secretFn: (_req, _rep, cb) => { cb(null, 'supersecret') },
-        publicPrivateKeyFn: {
-            public: (_req, _rep, cb) => { cb(null, 'publicKey') },
-            private: 'privateKey'
-        },
-        publicPrivateKeyFn2: {
-            public: 'publicKey',
-            private: (_req, _rep, cb) => { cb(null, 'privateKey') },
-        }
-    }[process.env.secretOption!],
-    sign: {
-        expiresIn: '1h'
+  secret: {
+    secret: 'supersecret',
+    publicPrivateKey: {
+      public: 'publicKey',
+      private: 'privateKey'
     },
-    cookie: {
-        cookieName: 'jwt'
+    secretFn: (_req, _rep, cb) => { cb(null, 'supersecret') },
+    publicPrivateKeyFn: {
+      public: (_req, _rep, cb) => { cb(null, 'publicKey') },
+      private: 'privateKey'
     },
-    verify: {
-        maxAge: '1h',
-        extractToken: (request) => 'token'
-    },
-    decode: {
-        complete: true
-    },
-    messages: {
-        badRequestErrorMessage: 'Bad Request',
-        noAuthorizationInHeaderMessage: 'No Header',
-        authorizationTokenExpiredMessage: 'Token Expired',
-        authorizationTokenInvalid: (err) => `${err.message}`,
-        authorizationTokenUntrusted: 'Token untrusted'
-    },
-    trusted: () => false || '' || Buffer.from('foo')
+    publicPrivateKeyFn2: {
+      public: 'publicKey',
+      private: (_req, _rep, cb) => { cb(null, 'privateKey') },
+    }
+  }[process.env.secretOption!],
+  sign: {
+    expiresIn: '1h'
+  },
+  cookie: {
+    cookieName: 'jwt'
+  },
+  verify: {
+    maxAge: '1h',
+    extractToken: (request) => 'token'
+  },
+  decode: {
+    complete: true
+  },
+  messages: {
+    badRequestErrorMessage: 'Bad Request',
+    noAuthorizationInHeaderMessage: 'No Header',
+    authorizationTokenExpiredMessage: 'Token Expired',
+    authorizationTokenInvalid: (err) => `${err.message}`,
+    authorizationTokenUntrusted: 'Token untrusted'
+  },
+  trusted: () => false || '' || Buffer.from('foo')
 }
 
 app.register(fastifyJwt, jwtOptions);
@@ -55,22 +55,31 @@ expectAssignable<Function>(app.jwt.verify)
 expectAssignable<Function>(app.jwt.decode)
 
 app.addHook("preHandler", async (request, reply) => {
-    // assert request and reply specific interface merges
-    expectAssignable<Function>(request.jwtVerify)
-    expectAssignable<object | string | Buffer>(request.user)
-    expectAssignable<Function>(reply.jwtSign)
+  // assert request and reply specific interface merges
+  expectAssignable<Function>(request.jwtVerify)
+  expectAssignable<object | string | Buffer>(request.user)
+  expectAssignable<Function>(reply.jwtSign)
 
-    try {
-        await request.jwtVerify();
-    }
-    catch (err) {
-        reply.send(err);
-    }
+  try {
+    await request.jwtVerify();
+  }
+  catch (err) {
+    reply.send(err);
+  }
 });
 
 app.post('/signup', async (req, reply) => {
-    const token = app.jwt.sign({ user: "userName" });
-    let data = await app.jwt.verify(token);
-    const user = req.user;
-    reply.send({ token });
+  const token = app.jwt.sign({ user: "userName" });
+  let data = await app.jwt.verify(token);
+  const user = req.user;
+  reply.send({ token });
 });
+
+// define custom payload
+// declare module './jwt' {
+//   interface FastifyJWT {
+//     payload: {
+//       user: string
+//     }
+//   }
+// }
