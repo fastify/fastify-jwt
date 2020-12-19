@@ -451,7 +451,7 @@ fastify.register(require('fastify-jwt'), {
 
 #### namespace options
 
-You can also define a namespace to make use of multiple JWT validators on the same routes. You can comebine this with custom names for jwtVerify and JwtSign.
+You can also define a namespace to make use of multiple JWT validators on the same routes. You can combine this with custom names for `jwtVerify` and `jwtSign`.
 
 ##### Example with namespace
 
