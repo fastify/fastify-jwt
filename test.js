@@ -2038,3 +2038,81 @@ test('extract custom token', function (t) {
     })
   })
 })
+
+test('format user', function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', formatUser: (payload) => ({ baz: payload.foo }) })
+
+  fastify.post('/sign', function (request, reply) {
+    return reply.jwtSign(request.body)
+      .then(function (token) {
+        return { token }
+      })
+  })
+
+  fastify.get('/check-decoded-token', function (request, reply) {
+    return request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+  })
+
+  fastify.get('/check-user', function (request, reply) {
+    return request.jwtVerify()
+      .then(function () {
+        return reply.send(request.user)
+      })
+  })
+
+  t.test('result of jwtVerify is the result of formatUser', function (t) {
+    t.plan(3)
+
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/check-decoded-token',
+        headers: {
+          authorization: `Bearer ${token}`
+        }
+      }).then(function (response) {
+        const user = JSON.parse(response.payload)
+        t.is(user.foo, undefined)
+        t.is(user.baz, 'bar')
+      })
+    })
+  })
+
+  t.test('user is set to the result of formatUser', function (t) {
+    t.plan(3)
+
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/check-user',
+        headers: {
+          authorization: `Bearer ${token}`
+        }
+      }).then(function (response) {
+        const user = JSON.parse(response.payload)
+        t.is(user.foo, undefined)
+        t.is(user.baz, 'bar')
+      })
+    })
+  })
+})
