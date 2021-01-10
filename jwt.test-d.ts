@@ -41,7 +41,8 @@ const jwtOptions: FastifyJWTOptions = {
     authorizationTokenInvalid: (err) => `${err.message}`,
     authorizationTokenUntrusted: 'Token untrusted'
   },
-  trusted: () => false || '' || Buffer.from('foo')
+  trusted: () => false || '' || Buffer.from('foo'),
+  formatUser: payload => ({ name: 'userName' })
 }
 
 app.register(fastifyJwt, jwtOptions);
@@ -80,6 +81,18 @@ app.post('/signup', async (req, reply) => {
 //   interface FastifyJWT {
 //     payload: {
 //       user: string
+//     }
+//   }
+// }
+
+// Custom payload with formatUser
+// declare module './jwt' {
+//   interface FastifyJWT {
+//     payload: {
+//       user: string
+//     }
+//     user: {
+//       name: string
 //     }
 //   }
 // }
