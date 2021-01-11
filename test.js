@@ -2038,3 +2038,71 @@ test('extract custom token', function (t) {
     })
   })
 })
+
+test('format user', function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', formatUser: (payload) => ({ baz: payload.foo }) })
+
+  fastify.post('/sign', async function (request, reply) {
+    const token = await reply.jwtSign(request.body)
+    return { token }
+  })
+
+  fastify.get('/check-decoded-token', async function (request, reply) {
+    const decodedToken = await request.jwtVerify()
+    return reply.send(decodedToken)
+  })
+
+  fastify.get('/check-user', async function (request, reply) {
+    await request.jwtVerify()
+    return reply.send(request.user)
+  })
+
+  t.test('result of jwtVerify is the result of formatUser', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+    const user = JSON.parse(response.payload)
+    t.is(user.foo, undefined)
+    t.is(user.baz, 'bar')
+  })
+
+  t.test('user is set to the result of formatUser', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/check-user',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+    const user = JSON.parse(response.payload)
+    t.is(user.foo, undefined)
+    t.is(user.baz, 'bar')
+  })
+})

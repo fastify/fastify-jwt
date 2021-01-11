@@ -304,6 +304,28 @@ async function validateToken(request, decodedToken) {
 }
 ```
 
+#### Example with formatted user
+You may customize the `request.user` object setting a custom sync function as parameter:
+
+```js
+const fastify = require('fastify')();
+fastify.register(require('fastify-jwt'), {
+  formatUser: function (user) {
+    return {
+      departmentName: user.department_name
+      name: user.name
+    }
+  },
+  secret: 'supersecret'
+});
+
+fastify.addHook('onRequest', (request, reply) =>  request.jwtVerify());
+
+fastify.get("/", async (request, reply) => {
+  return `Hello, ${request.user.name} from ${request.user.departmentName}.`;
+});
+```
+
 ### fastify.jwt.sign(payload [,options] [,callback])
 The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
 

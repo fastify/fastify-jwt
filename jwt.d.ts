@@ -6,14 +6,25 @@ import * as jwt from 'jsonwebtoken'
  * @example
  * ```
  * declare module 'fastify-jwt' {
- *   interface Payload {
- *     type: { name: string; email: string }
+ *   interface FastifyJWT {
+ *     payload: { name: string; email: string }
+ *   }
+ * }
+ * ```
+ * @example
+ * ```
+ * // With `formatUser`.
+ * declare module 'fastify-jwt' {
+ *   interface FastifyJWT {
+ *     payload: { Name: string; e_mail: string }
+ *     user: { name: string; email: string }
  *   }
  * }
  * ```
  */
 export interface FastifyJWT {
   // payload: ...
+  // user: ...
 }
 
 export type SignPayloadType = FastifyJWT extends { payload: infer T }
@@ -21,6 +32,10 @@ export type SignPayloadType = FastifyJWT extends { payload: infer T }
     ? T
     : string | object | Buffer
   : string | object | Buffer
+
+export type UserType = FastifyJWT extends { user: infer T }
+  ? T
+  : SignPayloadType
 
 export type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fastify.FastifyReply, cb: (e: Error | null, secret: string | undefined) => void) => void)
 
@@ -48,6 +63,7 @@ export interface FastifyJWTOptions {
     authorizationTokenUntrusted?: string
   }
   trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
+  formatUser?: (payload: SignPayloadType) => UserType
 }
 
 export interface JWT {
@@ -88,6 +104,6 @@ declare module 'fastify' {
     jwtVerify<Decoded extends VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>
     jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifyCallback<Decoded>): void
     jwtVerify<Decoded extends VerifyPayloadType>(options: jwt.VerifyOptions, callback: VerifyCallback<Decoded>): void
-    user: SignPayloadType
+    user: UserType
   }
 }

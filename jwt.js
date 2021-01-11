@@ -55,6 +55,7 @@ function fastifyJwt (fastify, options, next) {
   if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
 
   const cookie = options.cookie
+  const formatUser = options.formatUser
 
   const decodeOptions = options.decode || {}
   const signOptions = options.sign || {}
@@ -272,8 +273,9 @@ function fastifyJwt (fastify, options, next) {
       if (err) {
         next(err)
       } else {
-        request.user = result
-        next(null, result)
+        const user = formatUser ? formatUser(result) : result
+        request.user = user
+        next(null, user)
       }
     })
   }
