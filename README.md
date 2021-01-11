@@ -305,6 +305,8 @@ async function validateToken(request, decodedToken) {
 ```
 
 #### Example with formatted user
+You may customize the `request.user` object setting a custom sync function as parameter:
+
 ```js
 const fastify = require('fastify')();
 fastify.register(require('fastify-jwt'), {
