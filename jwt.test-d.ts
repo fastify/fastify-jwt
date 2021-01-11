@@ -42,7 +42,14 @@ const jwtOptions: FastifyJWTOptions = {
     authorizationTokenUntrusted: 'Token untrusted'
   },
   trusted: () => false || '' || Buffer.from('foo'),
-  formatUser: payload => ({ name: 'userName' })
+  formatUser: payload => {
+    const objectPayload = typeof payload === 'string'
+      ? JSON.parse(payload)
+      : Buffer.isBuffer(payload)
+        ? JSON.parse(payload.toString())
+        : payload;
+    return { name: objectPayload.userName }
+  }
 }
 
 app.register(fastifyJwt, jwtOptions);
