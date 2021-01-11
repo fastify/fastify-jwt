@@ -308,10 +308,12 @@ async function validateToken(request, decodedToken) {
 ```js
 const fastify = require('fastify')();
 fastify.register(require('fastify-jwt'), {
-  formatUser: user => ({
-    departmentName: user.department_name
-    name: user.name
-  }),
+  formatUser: function (user) {
+    return {
+      departmentName: user.department_name
+      name: user.name
+    }
+  },
   secret: 'supersecret'
 });
 
