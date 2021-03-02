@@ -576,7 +576,7 @@ Define custom Payload Type
 > [typescript declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html)
 
 ```ts
-declare "fastify-jwt" {
+declare module "fastify-jwt" {
   interface FastifyJWT {
     payload: { name: string }
   }
