@@ -1,6 +1,6 @@
 # fastify-jwt
 
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/) 
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
 ![CI](https://github.com/fastify/fastify-jwt/workflows/CI/badge.svg)
 
 JWT utils for Fastify, internally uses [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken).
@@ -238,7 +238,7 @@ const jwt = require('fastify-jwt')
 
 fastify.register(jwt, {
   secret: 'foobar'
-  cookie: { 
+  cookie: {
     cookieName: 'token'
   }
 })
@@ -279,9 +279,9 @@ fastify.listen(3000, err => {
 ```js
 const fastify = require('fastify')()
 
-fastify.register(require('fastify-jwt'), { 
+fastify.register(require('fastify-jwt'), {
   secret: 'foobar',
-  trusted: validateToken 
+  trusted: validateToken
 })
 
 fastify.addHook('onRequest', (request) => request.jwtVerify())
@@ -296,7 +296,7 @@ fastify.listen(3000, (err) => {
   }
 })
 
-// ideally this function would do a query against some sort of storage to determine its outcome  
+// ideally this function would do a query against some sort of storage to determine its outcome
 async function validateToken(request, decodedToken) {
   const denylist = ['token1', 'token2']
 
@@ -541,6 +541,39 @@ fastify.listen(3000, function (err) {
     })
   })
 })
+```
+
+### Verifying with JWKS
+
+The following example integrates the [get-jwks](https://github.com/nearform/get-jwks) package to fetch a JWKS and verify a JWT against a valid public JWK.
+
+#### Example
+```js
+const Fastify = require('fastify')
+const fjwt = require('fastify-jwt')
+const buildGetJwks = require('get-jwks')
+
+const fastify = Fastify()
+const getJwks = buildGetJwks()
+
+fastify.register(fjwt, {
+  decode: { complete: true },
+  secret: (request, token, callback) => {
+    const { header: { kid, alg }, payload: { iss } } = token
+    getJwks.getPublicKey({ kid, domain: iss, alg })
+      .then(publicKey => callback(null, publicKey), callback)
+  }
+})
+
+fastify.addHook('onRequest', async (request, reply) => {
+  try {
+    await request.jwtVerify()
+  } catch (err) {
+    reply.send(err)
+  }
+})
+
+fastify.listen(3000)
 ```
 
 ### Algorithms supported
