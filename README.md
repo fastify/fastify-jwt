@@ -543,9 +543,9 @@ fastify.listen(3000, function (err) {
 })
 ```
 
-### Varifying with JWKS
+### Verifying with JWKS
 
-The following example integrates the [get-jwks](https://github.com/nearform/get-jwks) package to fetch a JWKS and varify a JWT against a valid public JWK.
+The following example integrates the [get-jwks](https://github.com/nearform/get-jwks) package to fetch a JWKS and verify a JWT against a valid public JWK.
 
 #### Example
 ```js
