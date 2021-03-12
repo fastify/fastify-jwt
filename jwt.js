@@ -39,7 +39,13 @@ function fastifyJwt (fastify, options, next) {
   let secretOrPrivateKey
   let secretOrPublicKey
 
-  if (typeof secret === 'object' && !Buffer.isBuffer(secret)) {
+  if (typeof secret === 'function' && secret.then === 'function') {
+    secret().then(result => {
+      secretOrPrivateKey = secretOrPublicKey = result
+    }).catch(() => {
+      return next(new Error('secret promise was rejected'))
+    })
+  } else if (typeof secret === 'object' && !Buffer.isBuffer(secret)) {
     if (!secret.private || !secret.public) {
       return next(new Error('missing private key and/or public key'))
     }

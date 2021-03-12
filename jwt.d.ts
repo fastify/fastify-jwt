@@ -48,7 +48,7 @@ export interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.V
 }
 
 export interface FastifyJWTOptions {
-  secret: Secret | { public: Secret; private: Secret }
+  secret: Secret | { public: Secret; private: Secret } | Promise<jwt.Secret>
   decode?: jwt.DecodeOptions
   sign?: jwt.SignOptions
   verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void }

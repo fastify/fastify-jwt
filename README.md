@@ -106,7 +106,7 @@ If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fasti
 ## API Spec
 
 ### fastify-jwt
-`fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
+`fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function or a promise that returns a String, or an object `{ private, public }`.
 
 In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
@@ -126,6 +126,18 @@ fastify.register(jwt, {
   secret: function (request, token, callback) {
     // do something
     callback(null, 'supersecret')
+  }
+})
+// secret as a promise
+fastify.register(jwt, {
+  secret: async function (request, reply) {
+    // do something async
+    const myPromise = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve('supersecret');
+      }, 300);
+    });
+    return myPromise
   }
 })
 // secret as an object of RSA keys (without passphrase)
