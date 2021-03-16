@@ -51,8 +51,12 @@ function fastifyJwt (fastify, options, next) {
 
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
-  if (typeof secretCallbackSign !== 'function') { secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign) }
-  if (typeof secretCallbackVerify !== 'function') { secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify) }
+  if (typeof secretCallbackSign !== 'function') {
+    secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
+  }
+  if (typeof secretCallbackVerify !== 'function') {
+    secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
+  }
 
   const cookie = options.cookie
   const formatUser = options.formatUser
@@ -175,7 +179,11 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        secretCallbackSign(reply.request, payload, callback)
+        const signResult = secretCallbackSign(reply.request, payload, callback)
+
+        if (signResult && typeof signResult.then === 'function') {
+          signResult.then(result => callback(null, result), callback)
+        }
       },
       function sign (secretOrPrivateKey, callback) {
         jwt.sign(payload, secretOrPrivateKey, options, callback)
@@ -240,7 +248,11 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        secretCallbackVerify(request, decodedToken, callback)
+        const verifyResult = secretCallbackVerify(request, decodedToken, callback)
+
+        if (verifyResult && typeof verifyResult.then === 'function') {
+          verifyResult.then(result => callback(null, result), callback)
+        }
       },
       function verify (secretOrPublicKey, callback) {
         jwt.verify(token, secretOrPublicKey, options, (err, result) => {

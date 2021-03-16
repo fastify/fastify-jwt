@@ -23,7 +23,7 @@ const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/
 const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
 
 test('register', function (t) {
-  t.plan(11)
+  t.plan(13)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(7)
@@ -279,12 +279,12 @@ test('register', function (t) {
     })
   })
 
-  t.test('secret as a function', function (t) {
+  t.test('secret as a function with callback', function (t) {
     t.plan(2)
 
     const fastify = Fastify()
     fastify.register(jwt, {
-      secret: function (request, reply, callback) {
+      secret: function (request, token, callback) {
         callback(null, 'some-secret')
       }
     })
@@ -325,6 +325,106 @@ test('register', function (t) {
           })
         }).catch(function (error) {
           t.fail(error)
+        })
+      })
+  })
+
+  t.test('secret as a function returning a promise', function (t) {
+    t.plan(2)
+
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (request, token) {
+        return Promise.resolve('some-secret')
+      }
+    })
+
+    fastify.post('/sign', function (request, reply) {
+      reply.jwtSign(request.body)
+        .then(function (token) {
+          return reply.send({ token })
+        })
+    })
+
+    fastify.get('/verify', function (request, reply) {
+      return request.jwtVerify()
+    })
+
+    fastify
+      .ready()
+      .then(function () {
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: { foo: 'bar' }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const decodedToken = JSON.parse(verifyResponse.payload)
+            t.is(decodedToken.foo, 'bar')
+          }).catch(function (error) {
+            t.error(error)
+          })
+        }).catch(function (error) {
+          t.error(error)
+        })
+      })
+  })
+
+  t.test('secret as an async function', function (t) {
+    t.plan(2)
+
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function (request, token) {
+        return 'some-secret'
+      }
+    })
+
+    fastify.post('/sign', function (request, reply) {
+      reply.jwtSign(request.body)
+        .then(function (token) {
+          return reply.send({ token })
+        })
+    })
+
+    fastify.get('/verify', function (request, reply) {
+      return request.jwtVerify()
+    })
+
+    fastify
+      .ready()
+      .then(function () {
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: { foo: 'bar' }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const decodedToken = JSON.parse(verifyResponse.payload)
+            t.is(decodedToken.foo, 'bar')
+          }).catch(function (error) {
+            t.error(error)
+          })
+        }).catch(function (error) {
+          t.error(error)
         })
       })
   })
