@@ -37,7 +37,11 @@ export type UserType = FastifyJWT extends { user: infer T }
   ? T
   : SignPayloadType
 
-export type Secret = jwt.Secret | ((request: fastify.FastifyRequest, reply: fastify.FastifyReply, cb: (e: Error | null, secret: string | undefined) => void) => void)
+export type TokenOrHeader = jwt.JwtHeader | { header: jwt.JwtHeader; payload: any }
+
+export type Secret = jwt.Secret 
+| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader, cb: (e: Error | null, secret: string | undefined) => void) => void)
+| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader) => Promise<string>)
 
 export type VerifyPayloadType = object | string
 

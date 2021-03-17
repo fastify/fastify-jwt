@@ -570,10 +570,9 @@ const getJwks = buildGetJwks()
 
 fastify.register(fjwt, {
   decode: { complete: true },
-  secret: (request, token, callback) => {
+  secret: (request, token) => {
     const { header: { kid, alg }, payload: { iss } } = token
-    getJwks.getPublicKey({ kid, domain: iss, alg })
-      .then(publicKey => callback(null, publicKey), callback)
+    return getJwks.getPublicKey({ kid, domain: iss, alg })
   }
 })
 

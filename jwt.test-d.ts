@@ -4,23 +4,27 @@ import { expectAssignable } from 'tsd'
 
 const app = fastify();
 
+const secretOptions = {
+  secret: 'supersecret',
+  publicPrivateKey: {
+    public: 'publicKey',
+    private: 'privateKey'
+  },
+  secretFnCallback: (_req, _token, cb) => { cb(null, 'supersecret') },
+  secretFnPromise: (_req, _token) => Promise.resolve('supersecret'),
+  secretFnAsync: async (_req, _token) => 'supersecret',
+  publicPrivateKeyFn: {
+    public: (_req, _rep, cb) => { cb(null, 'publicKey') },
+    private: 'privateKey'
+  },
+  publicPrivateKeyFn2: {
+    public: 'publicKey',
+    private: (_req, _rep, cb) => { cb(null, 'privateKey') },
+  }
+}
+
 const jwtOptions: FastifyJWTOptions = {
-  secret: {
-    secret: 'supersecret',
-    publicPrivateKey: {
-      public: 'publicKey',
-      private: 'privateKey'
-    },
-    secretFn: (_req, _rep, cb) => { cb(null, 'supersecret') },
-    publicPrivateKeyFn: {
-      public: (_req, _rep, cb) => { cb(null, 'publicKey') },
-      private: 'privateKey'
-    },
-    publicPrivateKeyFn2: {
-      public: 'publicKey',
-      private: (_req, _rep, cb) => { cb(null, 'privateKey') },
-    }
-  }[process.env.secretOption!],
+  secret: 'supersecret',
   sign: {
     expiresIn: '1h'
   },
@@ -53,6 +57,10 @@ const jwtOptions: FastifyJWTOptions = {
 }
 
 app.register(fastifyJwt, jwtOptions);
+
+Object.values(secretOptions).forEach((value) => {
+  app.register(fastifyJwt, {...jwtOptions, secret: value });
+})
 
 app.register(fastifyJwt, {...jwtOptions, trusted: () => Promise.resolve(false || '' || Buffer.from('foo')) })
 
