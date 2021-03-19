@@ -121,11 +121,23 @@ const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
 // secret as a string
 fastify.register(jwt, { secret: 'supersecret' })
-// secret as a function
+// secret as a function with callback
 fastify.register(jwt, {
   secret: function (request, token, callback) {
     // do something
     callback(null, 'supersecret')
+  }
+})
+// secret as a function returning a promise
+fastify.register(jwt, {
+  secret: function (request, token) {
+    return Promise.resolve('supersecret')
+  }
+})
+// secret as an async function
+fastify.register(jwt, {
+  secret: async function (request, token) {
+    return 'supersecret'
   }
 })
 // secret as an object of RSA keys (without passphrase)
@@ -558,10 +570,9 @@ const getJwks = buildGetJwks()
 
 fastify.register(fjwt, {
   decode: { complete: true },
-  secret: (request, token, callback) => {
+  secret: (request, token) => {
     const { header: { kid, alg }, payload: { iss } } = token
-    getJwks.getPublicKey({ kid, domain: iss, alg })
-      .then(publicKey => callback(null, publicKey), callback)
+    return getJwks.getPublicKey({ kid, domain: iss, alg })
   }
 })
 
