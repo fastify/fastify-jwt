@@ -1,7 +1,9 @@
 # fastify-jwt
 
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
 ![CI](https://github.com/fastify/fastify-jwt/workflows/CI/badge.svg)
+[![NPM version](https://img.shields.io/npm/v/fastify-jwt.svg?style=flat)](https://www.npmjs.com/package/fastify-jwt)
+[![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-jwt/badge.svg)](https://snyk.io/test/github/fastify/fastify-jwt)
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
 JWT utils for Fastify, internally uses [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken).
 
