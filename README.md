@@ -53,7 +53,7 @@ fastify.addHook("onRequest", async (request, reply) => {
 })
 ```
 
-Aftewards, just use `request.user` in order to retrieve the user information:
+Afterwards, just use `request.user` in order to retrieve the user information:
 
 ```js
 module.exports = async function(fastify, opts) {
@@ -108,7 +108,7 @@ If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fasti
 ## API Spec
 
 ### fastify-jwt
-`fastify-jwt` is a fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
+`fastify-jwt` is a Fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
 In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
@@ -164,9 +164,9 @@ fastify.register(jwt, {
   sign: { algorithm: 'ES256' }
 })
 ```
-Optionally you can define global default options that will be used by `fastify-jwt` API if you don't override them.
+Optionally you can define global default options that will be used by `fastify-jwt` API if you do not override them.
 
-Additionally, it is also possible to reject tokens selectively (i.e: black-listing) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>|SignPayloadType|Promise<SignPayloadType>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Its result should be `false` or `Promise<false>` if the token should be rejected or, otherwise, be `true` or `Promise<true>` if the token should be accepted and, considering that `request.user` will be used after that, the return should be `decodedToken` itself.
+Additionally, it is also possible to reject tokens selectively (i.e. blacklisting) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>|SignPayloadType|Promise<SignPayloadType>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Its result should be `false` or `Promise<false>` if the token should be rejected or, otherwise, be `true` or `Promise<true>` if the token should be accepted and, considering that `request.user` will be used after that, the return should be `decodedToken` itself.
 
 #### Example
 ```js
@@ -239,7 +239,7 @@ fastify.listen(3000, err => {
 
 #### Example using cookie
 
-In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your webapp with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [`fastify-csrf`](https://www.npmjs.com/package/fastify-csrf).
+In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your web app with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [`fastify-csrf`](https://www.npmjs.com/package/fastify-csrf).
 
 **Note:** This plugin will look for a decorated request with the `cookies` property. [`fastify-cookie`](https://www.npmjs.com/package/fastify-cookie) supports this feature, and therefore you should use it when using the cookie feature. The plugin will fallback to looking for the token in the authorization header if either of the following happens (even if the cookie option is enabled):
 
@@ -436,8 +436,8 @@ fastify.listen(3000, err => {
 
 #### sign options
 * `algorithm` (default: `HS256`)
-* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
 * `audience`
 * `issuer`
 * `jwtid`
@@ -450,13 +450,13 @@ fastify.listen(3000, err => {
 #### verify options
 
 * `algorithms`: List of strings with the names of the allowed algorithms. For instance, `["HS256", "HS384"]`.
-* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. Eg: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
+* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. E.g.: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
 * `issuer` (optional): string or array of strings of valid values for the `iss` field.
 * `ignoreExpiration`: if `true` do not validate the expiration of the token.
 * `ignoreNotBefore`...
 * `subject`: if you want to check subject (`sub`), provide a value here
 * `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
-* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). Eg: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
 * `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
 * `extractToken(request): token`: Callback function allowing to use custom logic to extract the JWT token from the request.
 
