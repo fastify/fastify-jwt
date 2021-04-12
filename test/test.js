@@ -1,26 +1,17 @@
 'use strict'
 
-const { readFileSync } = require('fs')
-const path = require('path')
 const test = require('tap').test
 const Fastify = require('fastify')
 const rawJwt = require('jsonwebtoken')
+const jwt = require('../jwt')
 
-const jwt = require('./jwt')
+const helper = require('./helper')
 
-const privateKey = readFileSync(`${path.join(__dirname, 'certs')}/private.key`, 'utf8')
-const publicKey = readFileSync(`${path.join(__dirname, 'certs')}/public.key`, 'utf8')
-
-// passphrase used to protect the private key: super secret passphrase
-const privateKeyProtected = readFileSync(`${path.join(__dirname, 'certs')}/private.pem`)
-const publicKeyProtected = readFileSync(`${path.join(__dirname, 'certs')}/public.pem`)
-
-const privateKeyECDSA = readFileSync(`${path.join(__dirname, 'certs')}/privateECDSA.key`, 'utf8')
-const publicKeyECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.key`, 'utf8')
-
-// passphrase used to protect the private key: super secret passphrase
-const privateKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/privateECDSA.pem`)
-const publicKeyProtectedECDSA = readFileSync(`${path.join(__dirname, 'certs')}/publicECDSA.pem`)
+const passphrase = 'super secret passphrase'
+const { privateKey, publicKey } = helper.generateKeyPair()
+const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helper.generateKeyPairProtected(passphrase)
+const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
+const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
 
 test('register', function (t) {
   t.plan(13)
