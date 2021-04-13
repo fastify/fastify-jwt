@@ -606,6 +606,9 @@ ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
 ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
 none | No digital signature or MAC value included
 
+### Certificates Generation
+
+[Here](./example/UsingCertificates.md) some example on how to generate certificates and use them, with or without passphrase.
 
 ## TypeScript
 
