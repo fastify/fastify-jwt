@@ -50,7 +50,7 @@ test('register', function (t) {
         public: publicKey
       }
     }).ready(function (error) {
-      t.is(error, undefined)
+      t.equal(error, undefined)
     })
   })
 
@@ -60,7 +60,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: Buffer.from('some secret', 'base64')
     }).ready(function (error) {
-      t.is(error, undefined)
+      t.equal(error, undefined)
     })
   })
 
@@ -74,7 +74,7 @@ test('register', function (t) {
       },
       options: { algorithme: 'RS256' }
     }).ready(function (error) {
-      t.is(error.message, 'options prefix is deprecated')
+      t.equal(error.message, 'options prefix is deprecated')
     })
   })
 
@@ -96,7 +96,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'missing private key and/or public key')
+        t.equal(error.message, 'missing private key and/or public key')
       })
     })
 
@@ -114,7 +114,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'missing private key and/or public key')
+        t.equal(error.message, 'missing private key and/or public key')
       })
     })
   })
@@ -136,7 +136,7 @@ test('register', function (t) {
         audience: 'Some audience'
       }
     }).ready(function (error) {
-      t.is(error, undefined)
+      t.equal(error, undefined)
     })
   })
 
@@ -165,7 +165,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error, undefined)
+        t.equal(error, undefined)
       })
     })
 
@@ -191,7 +191,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error, undefined)
+        t.equal(error, undefined)
       })
     })
   })
@@ -212,7 +212,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+        t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
       })
     })
 
@@ -228,7 +228,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+        t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
       })
     })
   })
@@ -249,7 +249,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+        t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
       })
     })
 
@@ -265,7 +265,7 @@ test('register', function (t) {
           subject: 'Some subject'
         }
       }).ready(function (error) {
-        t.is(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+        t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
       })
     })
   })
@@ -302,7 +302,7 @@ test('register', function (t) {
       }
     })
     const decodedToken = JSON.parse(verifyResponse.payload)
-    t.is(decodedToken.foo, 'bar')
+    t.equal(decodedToken.foo, 'bar')
   }
 
   t.test('secret as a function with callback', t => {
@@ -331,7 +331,7 @@ test('register', function (t) {
     fastify
       .register(jwt)
       .ready(function (error) {
-        t.is(error.message, 'missing secret')
+        t.equal(error.message, 'missing secret')
       })
   })
 })
@@ -354,7 +354,7 @@ test('sign and verify with HS-secret', function (t) {
           const token = fastify.jwt.sign({ foo: 'bar' })
           const decoded = fastify.jwt.verify(token)
 
-          t.is(decoded.foo, 'bar')
+          t.equal(decoded.foo, 'bar')
         })
 
         t.test('with callbacks', function (t) {
@@ -365,7 +365,7 @@ test('sign and verify with HS-secret', function (t) {
 
             fastify.jwt.verify(token, function (error, decoded) {
               t.error(error)
-              t.is(decoded.foo, 'bar')
+              t.equal(decoded.foo, 'bar')
             })
           })
         })
@@ -422,7 +422,7 @@ test('sign and verify with HS-secret', function (t) {
               }
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
-              t.is(decodedToken.foo, 'bar')
+              t.equal(decodedToken.foo, 'bar')
             }).catch(function (error) {
               t.fail(error)
             })
@@ -450,7 +450,7 @@ test('sign and verify with HS-secret', function (t) {
               }
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
-              t.is(decodedToken.foo, 'bar')
+              t.equal(decodedToken.foo, 'bar')
             }).catch(function (error) {
               t.fail(error)
             })
@@ -496,8 +496,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.is(decoded.foo, 'bar')
-            t.is(decoded.iss, 'test')
+            t.equal(decoded.foo, 'bar')
+            t.equal(decoded.iss, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -508,8 +508,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.is(decoded.foo, 'bar')
-                t.is(decoded.iss, 'test')
+                t.equal(decoded.foo, 'bar')
+                t.equal(decoded.iss, 'test')
               })
             })
           })
@@ -579,8 +579,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.iss, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -608,8 +608,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.iss, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -652,8 +652,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.is(decoded.foo, 'bar')
-            t.is(decoded.sub, 'test')
+            t.equal(decoded.foo, 'bar')
+            t.equal(decoded.sub, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -664,8 +664,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.is(decoded.foo, 'bar')
-                t.is(decoded.sub, 'test')
+                t.equal(decoded.foo, 'bar')
+                t.equal(decoded.sub, 'test')
               })
             })
           })
@@ -735,8 +735,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.sub, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -764,8 +764,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.sub, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -807,8 +807,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.is(decoded.aud, 'test')
-            t.is(decoded.foo, 'bar')
+            t.equal(decoded.aud, 'test')
+            t.equal(decoded.foo, 'bar')
           })
 
           t.test('with callbacks', function (t) {
@@ -819,8 +819,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.is(decoded.aud, 'test')
-                t.is(decoded.foo, 'bar')
+                t.equal(decoded.aud, 'test')
+                t.equal(decoded.foo, 'bar')
               })
             })
           })
@@ -890,8 +890,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.aud, 'test')
-                t.is(decodedToken.foo, 'bar')
+                t.equal(decodedToken.aud, 'test')
+                t.equal(decodedToken.foo, 'bar')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -919,8 +919,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.aud, 'test')
-                t.is(decodedToken.foo, 'bar')
+                t.equal(decodedToken.aud, 'test')
+                t.equal(decodedToken.foo, 'bar')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -962,8 +962,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.is(decoded.foo, 'bar')
-            t.is(decoded.sub, 'test')
+            t.equal(decoded.foo, 'bar')
+            t.equal(decoded.sub, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -974,8 +974,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.is(decoded.foo, 'bar')
-                t.is(decoded.sub, 'test')
+                t.equal(decoded.foo, 'bar')
+                t.equal(decoded.sub, 'test')
               })
             })
           })
@@ -1045,8 +1045,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.sub, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1074,8 +1074,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.sub, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1121,8 +1121,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
             const decoded = fastify.jwt.verify(token, { issuer: 'other' })
 
-            t.is(decoded.foo, 'bar')
-            t.is(decoded.iss, 'other')
+            t.equal(decoded.foo, 'bar')
+            t.equal(decoded.iss, 'other')
           })
 
           t.test('with callbacks', function (t) {
@@ -1136,8 +1136,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, { issuer: 'other' }, function (error, decoded) {
                 t.error(error)
-                t.is(decoded.foo, 'bar')
-                t.is(decoded.iss, 'other')
+                t.equal(decoded.foo, 'bar')
+                t.equal(decoded.iss, 'other')
               })
             })
           })
@@ -1207,8 +1207,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.iss, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1236,8 +1236,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.is(decodedToken.foo, 'bar')
-                t.is(decodedToken.iss, 'test')
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1275,7 +1275,7 @@ test('sign and verify with trusted token', function (t) {
         authorization: `Bearer ${trustedToken}`
       }
     }).then(function (response) {
-      t.is(response.statusCode, 200)
+      t.equal(response.statusCode, 200)
     })
   })
 
@@ -1302,7 +1302,7 @@ test('sign and verify with trusted token', function (t) {
         authorization: `Bearer ${trustedToken}`
       }
     }).then(function (response) {
-      t.is(response.statusCode, 200)
+      t.equal(response.statusCode, 200)
     })
   })
 })
@@ -1321,7 +1321,7 @@ test('decode', function (t) {
       fastify.ready(function () {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token)
-        t.is(decoded.foo, 'bar')
+        t.equal(decoded.foo, 'bar')
       })
     })
 
@@ -1335,9 +1335,9 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token, { complete: true })
 
-        t.is(decoded.header.alg, 'HS256')
-        t.is(decoded.header.typ, 'JWT')
-        t.is(decoded.payload.foo, 'bar')
+        t.equal(decoded.header.alg, 'HS256')
+        t.equal(decoded.header.typ, 'JWT')
+        t.equal(decoded.payload.foo, 'bar')
       })
     })
   })
@@ -1358,9 +1358,9 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token)
 
-        t.is(decoded.header.alg, 'HS256')
-        t.is(decoded.header.typ, 'JWT')
-        t.is(decoded.payload.foo, 'bar')
+        t.equal(decoded.header.alg, 'HS256')
+        t.equal(decoded.header.typ, 'JWT')
+        t.equal(decoded.payload.foo, 'bar')
       })
     })
 
@@ -1377,10 +1377,10 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token, { complete: false })
 
-        t.is(decoded.header, undefined)
-        t.is(decoded.payload, undefined)
-        t.is(decoded.signature, undefined)
-        t.is(decoded.foo, 'bar')
+        t.equal(decoded.header, undefined)
+        t.equal(decoded.payload, undefined)
+        t.equal(decoded.signature, undefined)
+        t.equal(decoded.foo, 'bar')
       })
     })
   })
@@ -1456,7 +1456,7 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'jwtSign requires a payload')
+          t.equal(error.message, 'jwtSign requires a payload')
         })
       })
 
@@ -1468,8 +1468,8 @@ test('errors', function (t) {
           url: '/verify'
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'No Authorization was found in request.headers')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'No Authorization was found in request.headers')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1484,8 +1484,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Format is Authorization: Bearer [token]')
-          t.is(response.statusCode, 400)
+          t.equal(error.message, 'Format is Authorization: Bearer [token]')
+          t.equal(response.statusCode, 400)
         })
       })
 
@@ -1500,8 +1500,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Format is Authorization: Bearer [token]')
-          t.is(response.statusCode, 400)
+          t.equal(error.message, 'Format is Authorization: Bearer [token]')
+          t.equal(response.statusCode, 400)
         })
       })
 
@@ -1520,8 +1520,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Authorization token expired')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'Authorization token expired')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1537,8 +1537,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Authorization token is invalid: invalid signature')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'Authorization token is invalid: invalid signature')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1554,8 +1554,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Untrusted authorization token')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'Untrusted authorization token')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1583,8 +1583,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Untrusted authorization token')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'Untrusted authorization token')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1609,8 +1609,8 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.is(error.message, 'Authorization token is invalid: jwt issuer invalid. expected: foo')
-            t.is(verifyResponse.statusCode, 401)
+            t.equal(error.message, 'Authorization token is invalid: jwt issuer invalid. expected: foo')
+            t.equal(verifyResponse.statusCode, 401)
           })
         })
       })
@@ -1626,7 +1626,7 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const result = JSON.parse(response.payload)
-          t.is(result.count, 1)
+          t.equal(result.count, 1)
         })
       })
     })
@@ -1677,7 +1677,7 @@ test('token in a signed cookie, with fastify-cookie parsing', function (t) {
     })
 
     const decodedToken = JSON.parse(response.payload)
-    t.is(decodedToken.foo, 'bar')
+    t.equal(decodedToken.foo, 'bar')
   })
 })
 
@@ -1720,7 +1720,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.is(decodedToken.foo, 'bar')
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
@@ -1733,8 +1733,8 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
       cookies: {}
     }).then(function (verifyResponse) {
       const error = JSON.parse(verifyResponse.payload)
-      t.is(error.message, 'No Authorization was found in request.cookies')
-      t.is(error.statusCode, 401)
+      t.equal(error.message, 'No Authorization was found in request.cookies')
+      t.equal(error.statusCode, 401)
     })
   })
 
@@ -1759,7 +1759,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.is(decodedToken.foo, 'bar')
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
@@ -1785,7 +1785,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.is(decodedToken.foo, 'bar')
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
@@ -1811,8 +1811,8 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.is(error.message, 'No Authorization was found in request.cookies')
-        t.is(error.statusCode, 401)
+        t.equal(error.message, 'No Authorization was found in request.cookies')
+        t.equal(error.statusCode, 401)
       })
     })
   })
@@ -1838,8 +1838,8 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.is(error.message, 'Format is Authorization: Bearer [token]')
-        t.is(error.statusCode, 400)
+        t.equal(error.message, 'Format is Authorization: Bearer [token]')
+        t.equal(error.statusCode, 400)
       })
     })
   })
@@ -1883,8 +1883,8 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.is(error.message, 'Cookie could not be parsed in request')
-        t.is(error.statusCode, 400)
+        t.equal(error.message, 'Cookie could not be parsed in request')
+        t.equal(error.statusCode, 400)
       })
     })
   })
@@ -1910,7 +1910,7 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.is(decodedToken.foo, 'bar')
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
@@ -1943,8 +1943,8 @@ test('custom response messages', function (t) {
           url: '/verify'
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'auth header missing')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'auth header missing')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1959,8 +1959,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'Format is Authorization: Bearer [token]')
-          t.is(response.statusCode, 400)
+          t.equal(error.message, 'Format is Authorization: Bearer [token]')
+          t.equal(response.statusCode, 400)
         })
       })
 
@@ -1979,8 +1979,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'token expired')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'token expired')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -1996,8 +1996,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'invalid token')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'invalid token')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -2013,8 +2013,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.is(error.message, 'untrusted token')
-          t.is(response.statusCode, 401)
+          t.equal(error.message, 'untrusted token')
+          t.equal(response.statusCode, 401)
         })
       })
     })
@@ -2057,7 +2057,7 @@ test('extract custom token', function (t) {
           customauthheader: token
         }
       }).then(function (verifyResponse) {
-        t.is(verifyResponse.statusCode, 200)
+        t.equal(verifyResponse.statusCode, 200)
       })
     })
   })
@@ -2076,7 +2076,7 @@ test('extract custom token', function (t) {
         method: 'get',
         url: '/verify'
       }).then(function (verifyResponse) {
-        t.is(verifyResponse.statusCode, 400)
+        t.equal(verifyResponse.statusCode, 400)
       })
     })
   })
@@ -2122,8 +2122,8 @@ test('format user', function (t) {
       }
     })
     const user = JSON.parse(response.payload)
-    t.is(user.foo, undefined)
-    t.is(user.baz, 'bar')
+    t.equal(user.foo, undefined)
+    t.equal(user.baz, 'bar')
   })
 
   t.test('user is set to the result of formatUser', async function (t) {
@@ -2145,7 +2145,7 @@ test('format user', function (t) {
       }
     })
     const user = JSON.parse(response.payload)
-    t.is(user.foo, undefined)
-    t.is(user.baz, 'bar')
+    t.equal(user.foo, undefined)
+    t.equal(user.baz, 'bar')
   })
 })
