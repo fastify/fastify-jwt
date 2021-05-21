@@ -246,6 +246,8 @@ In some situations you may want to store a token in a cookie. This allows you to
 - The request has both the authorization and cookie header
 - Cookie is empty, authorization header is present
 
+If you are signing your cookie, you can set the `signed` boolean to `true` which will make sure the JWT is verified using the unsigned value.
+
 ```js
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
@@ -253,7 +255,8 @@ const jwt = require('fastify-jwt')
 fastify.register(jwt, {
   secret: 'foobar'
   cookie: {
-    cookieName: 'token'
+    cookieName: 'token',
+    signed: false
   }
 })
 
