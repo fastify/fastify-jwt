@@ -1632,6 +1632,55 @@ test('errors', function (t) {
     })
 })
 
+test('token in a signed cookie, with fastify-cookie parsing', function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, {
+    secret: 'test',
+    cookie: { cookieName: 'jwt', signed: true }
+  })
+  fastify.register(require('fastify-cookie'), {
+    secret: 'cookieSecret'
+  })
+
+  fastify.post('/sign', function (request, reply) {
+    return reply.jwtSign(request.body)
+      .then(function (token) {
+        return reply.setCookie('jwt', token, { signed: true }).send({ token })
+      })
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    return request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+  })
+
+  fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { foo: 'bar' }
+  }).then(async function (signResponse) {
+    const cookieName = signResponse.cookies[0].name
+    const signedCookie = signResponse.cookies[0].value
+
+    t.equal(cookieName, 'jwt')
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      cookies: {
+        jwt: signedCookie
+      }
+    })
+
+    const decodedToken = JSON.parse(response.payload)
+    t.is(decodedToken.foo, 'bar')
+  })
+})
+
 test('token in cookie, with fastify-cookie parsing', function (t) {
   t.plan(6)
 

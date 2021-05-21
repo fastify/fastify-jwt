@@ -29,7 +29,8 @@ const jwtOptions: FastifyJWTOptions = {
     expiresIn: '1h'
   },
   cookie: {
-    cookieName: 'jwt'
+    cookieName: 'jwt',
+    signed: false
   },
   verify: {
     maxAge: '1h',

@@ -39,7 +39,7 @@ export type UserType = FastifyJWT extends { user: infer T }
 
 export type TokenOrHeader = jwt.JwtHeader | { header: jwt.JwtHeader; payload: any }
 
-export type Secret = jwt.Secret 
+export type Secret = jwt.Secret
 | ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader, cb: (e: Error | null, secret: string | undefined) => void) => void)
 | ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader) => Promise<string>)
 
@@ -57,7 +57,8 @@ export interface FastifyJWTOptions {
   sign?: jwt.SignOptions
   verify?: jwt.VerifyOptions & { extractToken?: (request: fastify.FastifyRequest) => string | void }
   cookie?: {
-    cookieName: string
+    cookieName: string,
+    signed: boolean
   }
   messages?: {
     badRequestErrorMessage?: string
