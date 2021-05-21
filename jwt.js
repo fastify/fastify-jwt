@@ -233,7 +233,9 @@ function fastifyJwt (fastify, options, next) {
     } else if (cookie) {
       if (request.cookies) {
         if (request.cookies[cookie.cookieName]) {
-          token = request.cookies[cookie.cookieName]
+          const tokenValue = request.cookies[cookie.cookieName]
+
+          token = cookie.signed ? request.unsignCookie(tokenValue).value : tokenValue
         } else {
           return next(new Unauthorized(messagesOptions.noAuthorizationInCookieMessage))
         }
