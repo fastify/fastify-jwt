@@ -488,9 +488,6 @@ fastify.register(require('fastify-jwt'), {
 })
 ```
 
-### fastify.jwt.secret
-For your convenience, the `secret` you specify during `.register` is made available via `fastify.jwt.secret`. `request.jwtVerify()` and `reply.jwtSign()` will wrap non-function secrets in a callback function. `request.jwtVerify()` and `reply.jwtSign()` use an asynchronous waterfall method to retrieve your secret. It's recommended that your use these methods if your `secret` method is asynchronous.
-
 ### fastify.jwt.cookie
 For your convenience, `request.jwtVerify()` will look for the token in the cookies property of the decorated request. You must specify `cookieName`. Refer to the [cookie example](https://github.com/fastify/fastify-jwt#example-using-cookie) to see sample usage and important caveats.
 
