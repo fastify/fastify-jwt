@@ -17,7 +17,7 @@ test('register', function (t) {
   t.plan(13)
 
   t.test('Expose jwt methods', function (t) {
-    t.plan(7)
+    t.plan(6)
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test' })
@@ -30,7 +30,6 @@ test('register', function (t) {
     fastify.ready(function () {
       t.ok(fastify.jwt.decode)
       t.ok(fastify.jwt.options)
-      t.ok(fastify.jwt.secret)
       t.ok(fastify.jwt.sign)
       t.ok(fastify.jwt.verify)
     })
