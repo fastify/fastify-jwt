@@ -94,7 +94,6 @@ function fastifyJwt (fastify, options, next) {
       messages: messagesOptions
     },
     cookie: cookie,
-    secret: secret,
     sign: sign,
     verify: verify
   })
