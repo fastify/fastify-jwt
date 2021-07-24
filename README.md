@@ -329,7 +329,7 @@ const fastify = require('fastify')();
 fastify.register(require('fastify-jwt'), {
   formatUser: function (user) {
     return {
-      departmentName: user.department_name
+      departmentName: user.department_name,
       name: user.name
     }
   },
