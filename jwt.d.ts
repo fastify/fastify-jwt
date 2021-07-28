@@ -77,7 +77,6 @@ export interface JWT {
     sign: jwt.SignOptions
     verify: jwt.VerifyOptions
   }
-  secret: jwt.Secret
   cookie?: {
     cookieName: string,
     signed: boolean
