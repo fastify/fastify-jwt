@@ -17,10 +17,16 @@ test('register', function (t) {
   t.plan(13)
 
   t.test('Expose jwt methods', function (t) {
-    t.plan(6)
+    t.plan(7)
 
     const fastify = Fastify()
-    fastify.register(jwt, { secret: 'test' })
+    fastify.register(jwt, {
+      secret: 'test',
+      cookie: {
+        cookieName: 'token',
+        signed: false
+      }
+    })
 
     fastify.get('/methods', function (request, reply) {
       t.ok(request.jwtVerify)
@@ -32,6 +38,7 @@ test('register', function (t) {
       t.ok(fastify.jwt.options)
       t.ok(fastify.jwt.sign)
       t.ok(fastify.jwt.verify)
+      t.ok(fastify.jwt.cookie)
     })
 
     fastify.inject({
