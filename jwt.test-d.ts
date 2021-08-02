@@ -70,6 +70,7 @@ expectAssignable<object>(app.jwt)
 expectAssignable<Function>(app.jwt.sign)
 expectAssignable<Function>(app.jwt.verify)
 expectAssignable<Function>(app.jwt.decode)
+expectAssignable<FastifyJWTOptions['cookie']>(app.jwt.cookie)
 
 app.addHook("preHandler", async (request, reply) => {
   // assert request and reply specific interface merges

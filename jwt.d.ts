@@ -77,7 +77,10 @@ export interface JWT {
     sign: jwt.SignOptions
     verify: jwt.VerifyOptions
   }
-  secret: jwt.Secret
+  cookie?: {
+    cookieName: string,
+    signed: boolean
+  }
 
   sign(payload: SignPayloadType, options?: jwt.SignOptions): string
   sign(payload: SignPayloadType, callback: jwt.SignCallback): void
