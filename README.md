@@ -433,6 +433,41 @@ fastify.listen(3000, err => {
 })
 ```
 
+#### namespace options
+
+To define multiple JWT validators on the same routes, you may use the `namespace` option.
+You can combine this with custom names for `jwtVerify` and `jwtSign`.
+
+When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `jwtVerify<namespace>` and `jwtSign<namespace>`.
+
+##### Example with namespace
+
+```js
+const fastify = require('fastify')
+
+fastify.register(jwt, {
+  secret: 'test',
+  namespace: 'security',
+  jwtVerify: 'securityVerify',
+  jwtSign: 'securitySign'
+})
+
+fastify.register(jwt, {
+  secret: 'fastify',
+  namespace: 'AirDrop'
+})
+
+// use them like this:
+fastify.post('/sign/:namespace', async function (request, reply) {
+  switch (request.params.namespace) {
+    case 'security':
+      return reply.securitySign(request.body)
+    default:
+      return reply.jwtSignAirDrop(request.body)
+  }
+})
+```
+
 #### decode options
 * `json`: force JSON.parse on the payload even if the header doesn't contain `"typ":"JWT"`.
 * `complete`: return an object with the decoded payload and header.
