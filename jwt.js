@@ -65,6 +65,7 @@ function fastifyJwt (fastify, options, next) {
   const signOptions = options.sign || {}
   const verifyOptions = options.verify || {}
   const messagesOptions = Object.assign({}, messages, options.messages)
+  const namespace = typeof options.namespace === 'string' ? options.namespace : undefined
 
   if (
     signOptions &&
@@ -85,7 +86,7 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
 
-  fastify.decorate('jwt', {
+  const jwtConfig = {
     decode: decode,
     options: {
       decode: decodeOptions,
@@ -96,10 +97,30 @@ function fastifyJwt (fastify, options, next) {
     cookie: cookie,
     sign: sign,
     verify: verify
-  })
-  fastify.decorateRequest('user', null)
-  fastify.decorateRequest('jwtVerify', requestVerify)
-  fastify.decorateReply('jwtSign', replySign)
+  }
+
+  let jwtVerifyName = 'jwtVerify'
+  let jwtSignName = 'jwtSign'
+  if (namespace) {
+    if (!fastify.jwt) {
+      fastify.decorateRequest('user', null)
+      fastify.decorate('jwt', Object.create(null))
+    }
+
+    if (fastify.jwt[namespace]) {
+      return next(new Error(`JWT namespace already used "${namespace}"`))
+    }
+    fastify.jwt[namespace] = jwtConfig
+
+    jwtVerifyName = options.jwtVerify || `${namespace}JwtVerify`
+    jwtSignName = options.jwtSign || `${namespace}JwtSign`
+  } else {
+    fastify.decorateRequest('user', null)
+    fastify.decorate('jwt', jwtConfig)
+  }
+
+  fastify.decorateRequest(jwtVerifyName, requestVerify)
+  fastify.decorateReply(jwtSignName, replySign)
 
   next()
 
@@ -166,7 +187,7 @@ function fastifyJwt (fastify, options, next) {
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        reply.jwtSign(payload, options, function (err, val) {
+        reply[jwtSignName](payload, options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
@@ -204,7 +225,7 @@ function fastifyJwt (fastify, options, next) {
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
-        request.jwtVerify(options, function (err, val) {
+        request[jwtVerifyName](options, function (err, val) {
           err ? reject(err) : resolve(val)
         })
       })
