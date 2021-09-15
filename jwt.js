@@ -103,10 +103,8 @@ function fastifyJwt (fastify, options, next) {
   let jwtSignName = 'jwtSign'
   if (namespace) {
     if (!fastify.jwt) {
-      fastify.decorate('jwt', Object.create(null))
       fastify.decorateRequest('user', null)
-      fastify.decorateRequest('jwt', Object.create(null))
-      fastify.decorateReply('jwt', Object.create(null))
+      fastify.decorate('jwt', Object.create(null))
     }
 
     if (fastify.jwt[namespace]) {
