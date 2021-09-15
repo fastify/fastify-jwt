@@ -112,8 +112,8 @@ function fastifyJwt (fastify, options, next) {
     }
     fastify.jwt[namespace] = jwtConfig
 
-    jwtVerifyName = options.jwtVerify || `jwtVerify${namespace}`
-    jwtSignName = options.jwtSign || `jwtSign${namespace}`
+    jwtVerifyName = options.jwtVerify || `${namespace}JwtVerify`
+    jwtSignName = options.jwtSign || `${namespace}JwtSign`
   } else {
     fastify.decorateRequest('user', null)
     fastify.decorate('jwt', jwtConfig)

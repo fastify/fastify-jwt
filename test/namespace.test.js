@@ -22,7 +22,7 @@ test('multiple namespace', async function (t) {
   fastify.post('/sign/:namespace', async function (request, reply) {
     switch (request.params.namespace) {
       case 'aaa':
-        return reply.jwtSignaaa(request.body)
+        return reply.aaaJwtSign(request.body)
       default:
         return reply.signCustom(request.body)
     }
@@ -31,7 +31,7 @@ test('multiple namespace', async function (t) {
   fastify.get('/verify/:namespace', async function (request, reply) {
     switch (request.params.namespace) {
       case 'aaa':
-        return request.jwtVerifyaaa()
+        return request.aaaJwtVerify()
       default:
         return request.verifyCustom()
     }

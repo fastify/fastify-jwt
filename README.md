@@ -438,7 +438,7 @@ fastify.listen(3000, err => {
 To define multiple JWT validators on the same routes, you may use the `namespace` option.
 You can combine this with custom names for `jwtVerify` and `jwtSign`.
 
-When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `jwtVerify<namespace>` and `jwtSign<namespace>`.
+When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `<namespace>JwtVerify` and `<namespace>JwtSign`.
 
 ##### Example with namespace
 
@@ -454,7 +454,7 @@ fastify.register(jwt, {
 
 fastify.register(jwt, {
   secret: 'fastify',
-  namespace: 'AirDrop'
+  namespace: 'airDrop'
 })
 
 // use them like this:
@@ -463,7 +463,7 @@ fastify.post('/sign/:namespace', async function (request, reply) {
     case 'security':
       return reply.securitySign(request.body)
     default:
-      return reply.jwtSignAirDrop(request.body)
+      return reply.airDropJwtSign(request.body)
   }
 })
 ```
