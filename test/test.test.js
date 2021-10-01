@@ -14,10 +14,10 @@ const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.genera
 const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
 
 test('register', function (t) {
-  t.plan(13)
+  t.plan(14)
 
   t.test('Expose jwt methods', function (t) {
-    t.plan(7)
+    t.plan(8)
 
     const fastify = Fastify()
     fastify.register(jwt, {
@@ -29,6 +29,40 @@ test('register', function (t) {
     })
 
     fastify.get('/methods', function (request, reply) {
+      t.notOk(request.jwtDecode)
+      t.ok(request.jwtVerify)
+      t.ok(reply.jwtSign)
+    })
+
+    fastify.ready(function () {
+      t.ok(fastify.jwt.decode)
+      t.ok(fastify.jwt.options)
+      t.ok(fastify.jwt.sign)
+      t.ok(fastify.jwt.verify)
+      t.ok(fastify.jwt.cookie)
+    })
+
+    fastify.inject({
+      method: 'get',
+      url: '/methods'
+    })
+  })
+
+  t.test('Expose jwt methods - 3.x.x conditional jwtDecode', function (t) {
+    t.plan(8)
+
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'test',
+      cookie: {
+        cookieName: 'token',
+        signed: false
+      },
+      jwtDecode: true
+    })
+
+    fastify.get('/methods', function (request, reply) {
+      t.ok(request.jwtDecode)
       t.ok(request.jwtVerify)
       t.ok(reply.jwtSign)
     })
@@ -2153,5 +2187,157 @@ test('format user', function (t) {
     const user = JSON.parse(response.payload)
     t.equal(user.foo, undefined)
     t.equal(user.baz, 'bar')
+  })
+})
+
+test('expose decode token for plugin extension', function (t) {
+  t.plan(3)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', jwtDecode: true })
+
+  fastify.post('/sign', async function (request, reply) {
+    const token = await reply.jwtSign(request.body)
+    return { token }
+  })
+
+  fastify.get('/check-decoded-token', async function (request, reply) {
+    const decodedToken = await request.jwtDecode()
+    return reply.send(decodedToken)
+  })
+
+  fastify.get('/check-decoded-token-callback', function (request, reply) {
+    request.jwtDecode((err, decodedToken) => {
+      if (err) {
+        return reply.send(err)
+      }
+      return reply.send(decodedToken)
+    })
+  })
+
+  t.test('should decode token without verifying', async function (t) {
+    t.plan(2)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.equal(decodedToken.foo, 'bar')
+  })
+
+  t.test('should decode token with callback', async function (t) {
+    t.plan(2)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token-callback',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.equal(decodedToken.foo, 'bar')
+  })
+
+  t.test('should handle decode error', async function (t) {
+    t.plan(1)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {}
+    })
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.equal(decodedToken.statusCode, 401)
+  })
+})
+
+test('support extended config contract', function (t) {
+  t.plan(1)
+  const extConfig = {
+    sign: {
+      issuer: 'api.example.tld'
+    },
+    verify: {
+      issuer: 'api.example.tld',
+      extractToken: (req) => (req.headers.otherauth)
+    },
+    decode: {
+      complete: true
+    }
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', jwtDecode: true })
+
+  fastify.post('/sign', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, extConfig)
+    return { token }
+  })
+
+  fastify.get('/check-decoded-token', async function (request, reply) {
+    const decodedToken = await request.jwtDecode(extConfig)
+    return reply.send(decodedToken)
+  })
+
+  fastify.get('/check-verify-token', async function (request, reply) {
+    const decodedAndVerifiedToken = await request.jwtVerify(extConfig)
+    return reply.send(decodedAndVerifiedToken)
+  })
+
+  t.test('configuration overrides properly passed through callable methods', async function (t) {
+    t.plan(7)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {
+        otherauth: token
+      }
+    })
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.ok(decodedToken)
+    t.equal(decodedToken.header.typ, 'JWT')
+    t.equal(decodedToken.payload.iss, extConfig.sign.issuer)
+    t.equal(decodedToken.payload.foo, 'bar')
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-verify-token',
+      headers: {
+        otherauth: token
+      }
+    })
+    const decodedAndVerifiedToken = JSON.parse(verifyResponse.payload)
+    t.equal(decodedAndVerifiedToken.iss, extConfig.sign.issuer)
+    t.equal(decodedAndVerifiedToken.foo, 'bar')
   })
 })

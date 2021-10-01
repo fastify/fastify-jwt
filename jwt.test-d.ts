@@ -54,7 +54,8 @@ const jwtOptions: FastifyJWTOptions = {
         ? JSON.parse(payload.toString())
         : payload;
     return { name: objectPayload.userName }
-  }
+  },
+  jwtDecode: true
 }
 
 app.register(fastifyJwt, jwtOptions);
@@ -75,6 +76,7 @@ expectAssignable<FastifyJWTOptions['cookie']>(app.jwt.cookie)
 app.addHook("preHandler", async (request, reply) => {
   // assert request and reply specific interface merges
   expectAssignable<Function>(request.jwtVerify)
+  expectAssignable<Function>(request.jwtDecode)
   expectAssignable<object | string | Buffer>(request.user)
   expectAssignable<Function>(reply.jwtSign)
 
