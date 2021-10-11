@@ -51,6 +51,10 @@ export interface VerifyCallback<Decoded extends VerifyPayloadType> extends jwt.V
   (err: jwt.VerifyErrors, decoded: Decoded): void
 }
 
+export interface DecodeCallback<Decoded extends DecodePayloadType> {
+  (err: Error, decoded: Decoded): void
+}
+
 export interface FastifyJWTOptions {
   secret: Secret | { public: Secret; private: Secret }
   decode?: jwt.DecodeOptions
@@ -68,7 +72,8 @@ export interface FastifyJWTOptions {
     authorizationTokenUntrusted?: string
   }
   trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
-  formatUser?: (payload: SignPayloadType) => UserType
+  formatUser?: (payload: SignPayloadType) => UserType,
+  jwtDecode?: boolean | string
 }
 
 export interface JWT {
@@ -97,21 +102,44 @@ export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
 
 export default fastifyJWT
 
+export interface FastifyJwtSignOptions {
+  sign?: jwt.SignOptions
+}
+
+export interface FastifyJwtVerifyOptions {
+  decode: jwt.DecodeOptions
+  verify: jwt.VerifyOptions
+}
+
+export interface FastifyJwtDecodeOptions {
+  decode: jwt.DecodeOptions
+  verify: jwt.VerifyOptions
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     jwt: JWT
   }
 
   interface FastifyReply {
+    jwtSign(payload: SignPayloadType, options?: FastifyJwtSignOptions): Promise<string>
+    jwtSign(payload: SignPayloadType, callback: jwt.SignCallback): void
+    jwtSign(payload: SignPayloadType, options: FastifyJwtSignOptions, callback: jwt.SignCallback): void
     jwtSign(payload: SignPayloadType, options?: jwt.SignOptions): Promise<string>
     jwtSign(payload: SignPayloadType, callback: jwt.SignCallback): void
     jwtSign(payload: SignPayloadType, options: jwt.SignOptions, callback: jwt.SignCallback): void
   }
 
   interface FastifyRequest {
+    jwtVerify<Decoded extends VerifyPayloadType>(options?: FastifyJwtVerifyOptions): Promise<Decoded>
+    jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifyCallback<Decoded>): void
+    jwtVerify<Decoded extends VerifyPayloadType>(options: FastifyJwtVerifyOptions, callback: VerifyCallback<Decoded>): void
     jwtVerify<Decoded extends VerifyPayloadType>(options?: jwt.VerifyOptions): Promise<Decoded>
     jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifyCallback<Decoded>): void
     jwtVerify<Decoded extends VerifyPayloadType>(options: jwt.VerifyOptions, callback: VerifyCallback<Decoded>): void
+    jwtDecode<Decoded extends DecodePayloadType>(options?: FastifyJwtDecodeOptions): Promise<Decoded>
+    jwtDecode<Decoded extends DecodePayloadType>(callback: DecodeCallback<Decoded>): void
+    jwtDecode<Decoded extends DecodePayloadType>(options: FastifyJwtDecodeOptions, callback: DecodeCallback<Decoded>): void
     user: UserType
   }
 }

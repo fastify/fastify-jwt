@@ -105,16 +105,17 @@ Make sure that you also check [fastify-auth](https://github.com/fastify/fastify-
 
 If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fastify-auth0-verify](https://github.com/nearform/fastify-auth0-verify), which is based on top of this module.
 
-## API Spec
+## Options
 
-### fastify-jwt
-`fastify-jwt` is a Fastify plugin. You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
+### `secret` (required)
+You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
 In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
 Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `token`, and `callback` parameters.
+
 #### Example
 ```js
 const { readFileSync } = require('fs')
@@ -237,6 +238,8 @@ fastify.listen(3000, err => {
 })
 ```
 
+### `cookie`
+
 #### Example using cookie
 
 In some situations you may want to store a token in a cookie. This allows you to drastically reduce the attack surface of XSS on your web app with the [`httpOnly`](https://wiki.owasp.org/index.php/HttpOnly) and `secure` flags. Cookies can be susceptible to CSRF. You can mitigate this by either setting the [`sameSite`](https://www.owasp.org/index.php/SameSite) flag to `strict`, or by using a CSRF library such as [`fastify-csrf`](https://www.npmjs.com/package/fastify-csrf).
@@ -292,6 +295,8 @@ fastify.listen(3000, err => {
 })
 ```
 
+### `trusted`
+
 #### Example trusted tokens
 ```js
 const fastify = require('fastify')()
@@ -321,6 +326,8 @@ async function validateToken(request, decodedToken) {
 }
 ```
 
+### `formatUser`
+
 #### Example with formatted user
 You may customize the `request.user` object setting a custom sync function as parameter:
 
@@ -343,11 +350,105 @@ fastify.get("/", async (request, reply) => {
 });
 ```
 
+### `namespace`
+
+To define multiple JWT validators on the same routes, you may use the `namespace` option.
+You can combine this with custom names for `jwtVerify` and `jwtSign`.
+
+When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `<namespace>JwtVerify` and `<namespace>JwtSign`.
+
+#### Example with namespace
+
+```js
+const fastify = require('fastify')
+
+fastify.register(jwt, {
+  secret: 'test',
+  namespace: 'security',
+  jwtVerify: 'securityVerify',
+  jwtSign: 'securitySign'
+})
+
+fastify.register(jwt, {
+  secret: 'fastify',
+  namespace: 'airDrop'
+})
+
+// use them like this:
+fastify.post('/sign/:namespace', async function (request, reply) {
+  switch (request.params.namespace) {
+    case 'security':
+      return reply.securitySign(request.body)
+    default:
+      return reply.airDropJwtSign(request.body)
+  }
+})
+```
+
+### `messages`
+For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
+
+#### Example
+
+```js
+const fastify = require('fastify')
+
+const myCustomMessages = {
+  badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  noAuthorizationInHeaderMessage: 'Autorization header is missing!',
+  authorizationTokenExpiredMessage: 'Authorization token expired',
+  // for the below message you can pass a sync function that must return a string as shown or a string
+  authorizationTokenInvalid: (err) => {
+    return `Authorization token is invalid: ${err.message}`
+  }
+}
+
+fastify.register(require('fastify-jwt'), {
+  secret: 'supersecret',
+  messages: myCustomMessages
+})
+```
+
+### `decode`
+
+* `json`: force JSON.parse on the payload even if the header doesn't contain `"typ":"JWT"`.
+* `complete`: return an object with the decoded payload and header.
+
+### `sign`
+
+* `algorithm` (default: `HS256`)
+* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `audience`
+* `issuer`
+* `jwtid`
+* `subject`
+* `noTimestamp`
+* `header`
+* `keyid`
+* `mutatePayload`: if true, the sign function will modify the payload object directly. This is useful if you need a raw reference to the payload after claims have been applied to it but before it has been encoded into a token.
+
+### `verify`
+
+* `algorithms`: List of strings with the names of the allowed algorithms. For instance, `["HS256", "HS384"]`.
+* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. E.g.: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
+* `issuer` (optional): string or array of strings of valid values for the `iss` field.
+* `ignoreExpiration`: if `true` do not validate the expiration of the token.
+* `ignoreNotBefore`...
+* `subject`: if you want to check subject (`sub`), provide a value here
+* `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
+* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
+* `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
+* `extractToken(request): token`: Callback function allowing to use custom logic to extract the JWT token from the request.
+
+## API Spec
+
 ### fastify.jwt.sign(payload [,options] [,callback])
 The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
 
 ### fastify.jwt.verify(token, [,options] [,callback])
 The `verify` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback) `.verify()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
+
 #### Example
 ```js
 const token = fastify.jwt.sign({ foo: 'bar' })
@@ -362,6 +463,7 @@ fastify.jwt.verify(token, (err, decoded) => {
 
 ### fastify.jwt.decode(token [,options])
 The `decode` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtdecodetoken--options) `.decode()`. Can only be used synchronously.
+
 #### Example
 ```js
 const token = fastify.jwt.sign({ foo: 'bar' })
@@ -432,104 +534,49 @@ fastify.listen(3000, err => {
   if (err) throw err
 })
 ```
-
-#### namespace options
-
-To define multiple JWT validators on the same routes, you may use the `namespace` option.
-You can combine this with custom names for `jwtVerify` and `jwtSign`.
-
-When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `<namespace>JwtVerify` and `<namespace>JwtSign`.
-
-##### Example with namespace
-
-```js
-const fastify = require('fastify')
-
-fastify.register(jwt, {
-  secret: 'test',
-  namespace: 'security',
-  jwtVerify: 'securityVerify',
-  jwtSign: 'securitySign'
-})
-
-fastify.register(jwt, {
-  secret: 'fastify',
-  namespace: 'airDrop'
-})
-
-// use them like this:
-fastify.post('/sign/:namespace', async function (request, reply) {
-  switch (request.params.namespace) {
-    case 'security':
-      return reply.securitySign(request.body)
-    default:
-      return reply.airDropJwtSign(request.body)
-  }
-})
-```
-
-#### decode options
-* `json`: force JSON.parse on the payload even if the header doesn't contain `"typ":"JWT"`.
-* `complete`: return an object with the decoded payload and header.
-
-#### sign options
-* `algorithm` (default: `HS256`)
-* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `audience`
-* `issuer`
-* `jwtid`
-* `subject`
-* `noTimestamp`
-* `header`
-* `keyid`
-* `mutatePayload`: if true, the sign function will modify the payload object directly. This is useful if you need a raw reference to the payload after claims have been applied to it but before it has been encoded into a token.
-
-#### verify options
-
-* `algorithms`: List of strings with the names of the allowed algorithms. For instance, `["HS256", "HS384"]`.
-* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. E.g.: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
-* `issuer` (optional): string or array of strings of valid values for the `iss` field.
-* `ignoreExpiration`: if `true` do not validate the expiration of the token.
-* `ignoreNotBefore`...
-* `subject`: if you want to check subject (`sub`), provide a value here
-* `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
-* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
-* `extractToken(request): token`: Callback function allowing to use custom logic to extract the JWT token from the request.
-
-#### messages options
-
-For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
-
-#### Example
-
-```js
-const fastify = require('fastify')
-
-const myCustomMessages = {
-  badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
-  noAuthorizationInHeaderMessage: 'Autorization header is missing!',
-  authorizationTokenExpiredMessage: 'Authorization token expired',
-  // for the below message you can pass a sync function that must return a string as shown or a string
-  authorizationTokenInvalid: (err) => {
-    return `Authorization token is invalid: ${err.message}`
-  }
-}
-
-fastify.register(require('fastify-jwt'), {
-  secret: 'supersecret',
-  messages: myCustomMessages
-})
-```
-
 ### fastify.jwt.cookie
 For your convenience, `request.jwtVerify()` will look for the token in the cookies property of the decorated request. You must specify `cookieName`. Refer to the [cookie example](https://github.com/fastify/fastify-jwt#example-using-cookie) to see sample usage and important caveats.
 
 ### reply.jwtSign(payload, [options,] callback)
+
+`options` must be an `Object` and can contain `sign` options.
+
 ### request.jwtVerify([options,] callback)
-These methods are very similar to their standard jsonwebtoken counterparts.
-#### Example
+
+`options` must be an `Object` and can contain `verify` and `decode` options.
+
+### request.jwtDecode([options,] callback)
+
+Decode a JWT without verifying
+
+As of 3.2.0, decorated when `options.jwtDecode` is truthy. Will become non-conditionally decorated in 4.0.0. This avoid breaking change that would effect fastify-auth0-verify.
+
+`options` must be an `Object` and can contain `verify` and `decode` options.
+
+### Algorithms supported
+
+The following algorithms are currently supported by [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#algorithms-supported) that is internally used by `fastify-jwt`.
+
+algorithm(s) Parameter Value | Digital Signature or MAC Algorithm
+----------------|----------------------------
+HS256 | HMAC using SHA-256 hash algorithm
+HS384 | HMAC using SHA-384 hash algorithm
+HS512 | HMAC using SHA-512 hash algorithm
+RS256 | RSASSA using SHA-256 hash algorithm
+RS384 | RSASSA using SHA-384 hash algorithm
+RS512 | RSASSA using SHA-512 hash algorithm
+ES256 | ECDSA using P-256 curve and SHA-256 hash algorithm
+ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
+ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
+none | No digital signature or MAC value included
+
+### Examples
+
+#### Certificates Generation
+
+[Here](./example/UsingCertificates.md) some example on how to generate certificates and use them, with or without passphrase.
+
+#### Signing and verifying (jwtSign, jwtVerify)
 ```js
 const fastify = require('fastify')()
 const jwt = require('fastify-jwt')
@@ -592,11 +639,11 @@ fastify.listen(3000, function (err) {
 })
 ```
 
-### Verifying with JWKS
+#### Verifying with JWKS
 
 The following example integrates the [get-jwks](https://github.com/nearform/get-jwks) package to fetch a JWKS and verify a JWT against a valid public JWK.
 
-#### Example
+##### Example
 ```js
 const Fastify = require('fastify')
 const fjwt = require('fastify-jwt')
@@ -623,27 +670,6 @@ fastify.addHook('onRequest', async (request, reply) => {
 
 fastify.listen(3000)
 ```
-
-### Algorithms supported
-
-The following algorithms are currently supported by [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#algorithms-supported) that is internally used by `fastify-jwt`.
-
-algorithm(s) Parameter Value | Digital Signature or MAC Algorithm
-----------------|----------------------------
-HS256 | HMAC using SHA-256 hash algorithm
-HS384 | HMAC using SHA-384 hash algorithm
-HS512 | HMAC using SHA-512 hash algorithm
-RS256 | RSASSA using SHA-256 hash algorithm
-RS384 | RSASSA using SHA-384 hash algorithm
-RS512 | RSASSA using SHA-512 hash algorithm
-ES256 | ECDSA using P-256 curve and SHA-256 hash algorithm
-ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
-ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
-none | No digital signature or MAC value included
-
-### Certificates Generation
-
-[Here](./example/UsingCertificates.md) some example on how to generate certificates and use them, with or without passphrase.
 
 ## TypeScript
 
