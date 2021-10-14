@@ -74,9 +74,9 @@ export interface FastifyJWTOptions {
   trusted?: (request: fastify.FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
   formatUser?: (payload: SignPayloadType) => UserType,
   jwtDecode?: boolean | string
-  namespace?: string;
-  jwtVerify?: string;
-  jwtSign?: string;
+  namespace?: string
+  jwtVerify?: string
+  jwtSign?: string
 }
 
 export interface JWT {
