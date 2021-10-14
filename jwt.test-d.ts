@@ -55,7 +55,10 @@ const jwtOptions: FastifyJWTOptions = {
         : payload;
     return { name: objectPayload.userName }
   },
-  jwtDecode: true
+  jwtDecode: true,
+  namespace: 'security',
+  jwtVerify: 'securityVerify',
+  jwtSign: 'securitySign'
 }
 
 app.register(fastifyJwt, jwtOptions);
