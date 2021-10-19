@@ -1,6 +1,7 @@
 'use strict'
 
 const fp = require('fastify-plugin')
+const { createSigner, createVerifier } = require('fast-jwt')
 const jwt = require('jsonwebtoken')
 const assert = require('assert')
 const steed = require('steed')
@@ -191,18 +192,17 @@ function fastifyJwt (fastify, options, next) {
 
     if (typeof options === 'function') {
       callback = options
-      options = Object.assign({}, signOptions)
+      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions)
     }
 
     if (!options) {
-      options = Object.assign({}, signOptions)
+      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions)
+    } else {
+      options = Object.assign(!options.key ? { key: secretOrPrivateKey } : {}, options)
     }
 
-    if (typeof callback === 'function') {
-      jwt.sign(payload, secretOrPrivateKey, options, callback)
-    } else {
-      return jwt.sign(payload, secretOrPrivateKey, options)
-    }
+    const signer = createSigner(options)
+    return signer(payload, callback)
   }
 
   function verify (token, options, callback) {
@@ -211,18 +211,17 @@ function fastifyJwt (fastify, options, next) {
 
     if ((typeof options === 'function') && !callback) {
       callback = options
-      options = Object.assign({}, verifyOptions)
+      options = Object.assign(!verifyOptions.key ? { key: secretOrPublicKey } : {}, verifyOptions)
     }
 
     if (!options) {
-      options = Object.assign({}, verifyOptions)
+      options = Object.assign(!verifyOptions.key ? { key: secretOrPublicKey } : {}, verifyOptions)
+    } else {
+      options = Object.assign(!options.key ? { key: secretOrPublicKey } : {}, options)
     }
 
-    if (typeof callback === 'function') {
-      jwt.verify(token, secretOrPublicKey, options, callback)
-    } else {
-      return jwt.verify(token, secretOrPublicKey, options)
-    }
+    const verifier = createVerifier(options)
+    return verifier(token, callback)
   }
 
   function replySign (payload, options, next) {
@@ -238,11 +237,11 @@ function fastifyJwt (fastify, options, next) {
     if (options.sign) {
       // New supported contract, options supports sign and can expand
       options = {
-        sign: Object.assign({}, signOptions, options.sign)
+        sign: Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions, options.sign)
       }
     } else {
       // Original contract, options supports only sign
-      options = Object.assign({}, signOptions, options)
+      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions, options)
     }
 
     const reply = this
@@ -268,7 +267,8 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function sign (secretOrPrivateKey, callback) {
-        jwt.sign(payload, secretOrPrivateKey, options.sign || options, callback)
+        const signer = createSigner(options.sign || options)
+        signer(payload, callback)
       }
     ], next)
   }
@@ -321,11 +321,11 @@ function fastifyJwt (fastify, options, next) {
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign({}, verifyOptions, options.verify)
+        verify: Object.assign(!verifyOptions.key ? { key: (secretCallbackVerify) => secretCallbackVerify } : {}, verifyOptions, options.verify)
       }
     } else {
       // Original contract, options supports only verify
-      options = Object.assign({}, verifyOptions, options)
+      options = Object.assign(!verifyOptions.key ? { key: (secretCallbackVerify) => secretCallbackVerify } : {}, verifyOptions, options)
     }
 
     const request = this
@@ -356,7 +356,9 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function verify (secretOrPublicKey, callback) {
-        jwt.verify(token, secretOrPublicKey, options.verify || options, (err, result) => {
+        const verifier = createVerifier(options)
+        verifier(token, (err, result) => {
+          console.log('VERIFIER CB err: ', err)
           if (err instanceof jwt.TokenExpiredError) {
             return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
           }
