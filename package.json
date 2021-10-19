@@ -34,7 +34,6 @@
     "fast-jwt": "^1.2.0",
     "fastify-plugin": "^3.0.0",
     "http-errors": "^1.8.0",
-    "jsonwebtoken": "^8.5.1",
     "steed": "^1.1.3"
   },
   "devDependencies": {

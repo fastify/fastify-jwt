@@ -1,8 +1,7 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const { createSigner, createVerifier } = require('fast-jwt')
-const jwt = require('jsonwebtoken')
+const { createSigner, createDecoder, createVerifier, TokenError } = require('fast-jwt')
 const assert = require('assert')
 const steed = require('steed')
 const {
@@ -97,7 +96,8 @@ function fastifyJwt (fastify, options, next) {
     },
     cookie: cookie,
     sign: sign,
-    verify: verify
+    verify: verify,
+    lookupToken: lookupToken
   }
 
   let jwtDecodeName = 'jwtDecode'
@@ -141,7 +141,8 @@ function fastifyJwt (fastify, options, next) {
       options = Object.assign({}, decodeOptions)
     }
 
-    return jwt.decode(token, options)
+    const decoder = createDecoder(options)
+    return decoder(token)
   }
 
   function lookupToken (request, options) {
@@ -267,8 +268,10 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function sign (secretOrPrivateKey, callback) {
-        const signer = createSigner(options.sign || options)
-        signer(payload, callback)
+        const signerOptions = Object.assign({}, options.sign || options, { key: secretOrPrivateKey })
+        const signer = createSigner(signerOptions)
+        const token = signer(payload)
+        callback(null, { token })
       }
     ], next)
   }
@@ -356,17 +359,18 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function verify (secretOrPublicKey, callback) {
-        const verifier = createVerifier(options)
-        verifier(token, (err, result) => {
-          console.log('VERIFIER CB err: ', err)
-          if (err instanceof jwt.TokenExpiredError) {
-            return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
-          }
-          if (err instanceof jwt.JsonWebTokenError) {
-            return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(err) : messagesOptions.authorizationTokenInvalid))
-          }
-          callback(err, result)
-        })
+        const verifierOptions = Object.assign({}, options.verify || options, { key: secretOrPublicKey })
+        const verifier = createVerifier(verifierOptions)
+        const result = verifier(token)
+
+        if (result.code === TokenError.codes.expired) {
+          return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
+        }
+        if (result.code === TokenError.codes.invalidKey) {
+          return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(result) : messagesOptions.authorizationTokenInvalid))
+        }
+
+        callback(null, result)
       },
       function checkIfIsTrusted (result, callback) {
         if (!trusted) {
