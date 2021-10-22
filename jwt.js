@@ -203,7 +203,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     const signer = createSigner(options)
-    return signer(payload, callback)
+
+    if (typeof callback === 'function') {
+      const token = signer(payload)
+      callback(null, token)
+    } else {
+      return signer(payload)
+    }
   }
 
   function verify (token, options, callback) {
@@ -222,7 +228,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     const verifier = createVerifier(options)
-    return verifier(token, callback)
+
+    if (typeof callback === 'function') {
+      const result = verifier(token)
+      callback(null, result)
+    } else {
+      return verifier(token)
+    }
   }
 
   function replySign (payload, options, next) {
@@ -271,7 +283,7 @@ function fastifyJwt (fastify, options, next) {
         const signerOptions = Object.assign({}, options.sign || options, { key: secretOrPrivateKey })
         const signer = createSigner(signerOptions)
         const token = signer(payload)
-        callback(null, { token })
+        callback(null, token)
       }
     ], next)
   }
