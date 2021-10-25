@@ -365,24 +365,31 @@ function fastifyJwt (fastify, options, next) {
     steed.waterfall([
       function getSecret (callback) {
         const verifyResult = secretCallbackVerify(request, decodedToken, callback)
-
         if (verifyResult && typeof verifyResult.then === 'function') {
           verifyResult.then(result => callback(null, result), callback)
         }
       },
       function verify (secretOrPublicKey, callback) {
-        const verifierOptions = Object.assign({}, options.verify || options, { key: secretOrPublicKey })
-        const verifier = createVerifier(verifierOptions)
-        const result = verifier(token)
+        try {
+          const verifierOptions = Object.assign({}, options.verify || options, { key: secretOrPublicKey })
+          const verifier = createVerifier(verifierOptions)
+          const verifyResult = verifier(token)
 
-        if (result.code === TokenError.codes.expired) {
-          return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
-        }
-        if (result.code === TokenError.codes.invalidKey) {
-          return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(result) : messagesOptions.authorizationTokenInvalid))
-        }
+          callback(null, verifyResult)
+        } catch (error) {
+          if (error.code === TokenError.codes.expired) {
+            return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
+          }
 
-        callback(null, result)
+          if (error.code === TokenError.codes.invalidKey ||
+              error.code === TokenError.codes.invalidSignature ||
+              error.code === TokenError.codes.invalidClaimValue
+          ) {
+            return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(error) : messagesOptions.authorizationTokenInvalid))
+          }
+
+          return callback(error)
+        }
       },
       function checkIfIsTrusted (result, callback) {
         if (!trusted) {
