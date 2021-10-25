@@ -5,7 +5,7 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-jwt/badge.svg)](https://snyk.io/test/github/fastify/fastify-jwt)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
-JWT utils for Fastify, internally uses [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken).
+JWT utils for Fastify, internally it uses [fast-jwt](https://github.com/nearform/fast-jwt).
 
 `fastify-jwt` supports Fastify@3.
 `fastify-jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
@@ -17,7 +17,7 @@ npm i fastify-jwt --save
 ```
 
 ## Usage
-Register as a plugin. This will decorate your `fastify` instance with the standard [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) methods `decode`, `sign`, and `verify`; refer to their documentation to find how to use the utilities. It will also register `request.jwtVerify` and `reply.jwtSign`. You must pass a `secret` when registering the plugin.
+Register as a plugin. This will decorate your `fastify` instance with the following methods: `decode`, `sign`, and `verify`; refer to their documentation to find how to use the utilities. It will also register `request.jwtVerify` and `reply.jwtSign`. You must pass a `secret` when registering the plugin.
 
 ```js
 const fastify = require('fastify')()
@@ -411,43 +411,37 @@ fastify.register(require('fastify-jwt'), {
 
 ### `decode`
 
-* `json`: force JSON.parse on the payload even if the header doesn't contain `"typ":"JWT"`.
-* `complete`: return an object with the decoded payload and header.
+* `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
+* `checkTyp`: When validating the decoded header, setting this option forces the check of the typ property against this value. Example: `checkTyp: 'JWT'`. Default is `undefined`.
 
 ### `sign`
 
-* `algorithm` (default: `HS256`)
-* `expiresIn`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `notBefore`: expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `audience`
-* `issuer`
-* `jwtid`
-* `subject`
-* `noTimestamp`
-* `header`
-* `keyid`
-* `mutatePayload`: if true, the sign function will modify the payload object directly. This is useful if you need a raw reference to the payload after claims have been applied to it but before it has been encoded into a token.
+* `key`: A string or a buffer containing the secret for `HS*` algorithms or the PEM encoded public key for `RS*`, `PS*`, `ES*` and `EdDSA` algorithms. The key can also be a function accepting a Node style callback or a function returning a promise. If provided, it will override the value of [secret](#secret-required) provided in the options.
+* `algorithm`: The algorithm to use to sign the token. The default is autodetected from the key, using RS256 for RSA private keys, HS256 for plain secrets and the correspondent ES or EdDSA algorithms for EC or Ed* private keys.
+* `mutatePayload`: If the original payload must be modified in place (via Object.assign) and thus will result changed to the caller funciton.
+* `expiresIn`: Time span (in milliseconds) after which the token expires, added as the exp claim in the payload. This will override any existing value in the claim.
+
+* ... the rest of the **sign** options can be found [here](https://github.com/nearform/fast-jwt#createsigner).
 
 ### `verify`
 
-* `algorithms`: List of strings with the names of the allowed algorithms. For instance, `["HS256", "HS384"]`.
-* `audience`: if you want to check audience (`aud`), provide a value here. The audience can be checked against a string, a regular expression or a list of strings and/or regular expressions. E.g.: `"urn:foo"`, `/urn:f[o]{2}/`, `[/urn:f[o]{2}/, "urn:bar"]`
-* `issuer` (optional): string or array of strings of valid values for the `iss` field.
-* `ignoreExpiration`: if `true` do not validate the expiration of the token.
-* `ignoreNotBefore`...
-* `subject`: if you want to check subject (`sub`), provide a value here
-* `clockTolerance`: number of seconds to tolerate when checking the `nbf` and `exp` claims, to deal with small clock differences among different servers
-* `maxAge`: the maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms). E.g.: `1000`, `"2 days"`, `"10h"`, `"7d"`. A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`).
-* `clockTimestamp`: the time in seconds that should be used as the current time for all necessary comparisons.
-* `extractToken(request): token`: Callback function allowing to use custom logic to extract the JWT token from the request.
+* `key`: A string or a buffer containing the secret for `HS*` algorithms or the PEM encoded public key for `RS*`, `PS*`, `ES*` and `EdDSA` algorithms. The key can also be a function accepting a Node style callback or a function returning a promise. If provided, it will override the value of [secret](#secret-required) provided in the options.
+* `algorithms`: List of strings with the names of the allowed algorithms. By default, all algorithms are accepted.
+* `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
+* `cache`: A positive number specifying the size of the verified tokens cache (using LRU strategy). Setting this to `true` is equivalent to provide the size 1000. When enabled the  performance is dramatically improved. By default the cache is disabled.
+* `cacheTTL`: The maximum time to live of a cache entry (in milliseconds). If the token has a earlier expiration or the verifier has a shorter `maxAge`, the earlier takes precedence. The default is `600000`, which is 10 minutes.
+* ... the rest of the **verify** options can be found [here](https://github.com/nearform/fast-jwt#createverifier).
 
 ## API Spec
 
 ### fastify.jwt.sign(payload [,options] [,callback])
-The `sign` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtsignpayload-secretorprivatekey-options-callback) `.sign()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
+This method is used to sign the provided `payload`. It returns the token.
+The `payload` must be an `Object`. Can be used asynchronously by passing a callback function; synchronously without a callback.
+`options` must be an `Object` and can contain [sign](#sign) options.
 
 ### fastify.jwt.verify(token, [,options] [,callback])
-The `verify` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback) `.verify()`. Can be used asynchronously by passing a callback function; synchronously without a callback.
+This method is used to verify provided token. It accepts a `token` (as `Buffer` or a `string`) and returns the payload or the sections of the token. Can be used asynchronously by passing a callback function; synchronously without a callback.
+`options` must be an `Object` and can contain [verify](#verify) options.
 
 #### Example
 ```js
@@ -462,7 +456,9 @@ fastify.jwt.verify(token, (err, decoded) => {
 ```
 
 ### fastify.jwt.decode(token [,options])
-The `decode` method is an implementation of [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#jwtdecodetoken--options) `.decode()`. Can only be used synchronously.
+This method is used to decode the provided token. It accepts a token (as a `Buffer` or a `string`) and returns the payload or the sections of the token. 
+`options` must be an `Object` and can contain [decode](#decode) options.
+Can only be used synchronously.
 
 #### Example
 ```js
@@ -555,20 +551,26 @@ As of 3.2.0, decorated when `options.jwtDecode` is truthy. Will become non-condi
 
 ### Algorithms supported
 
-The following algorithms are currently supported by [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken#algorithms-supported) that is internally used by `fastify-jwt`.
+The following algorithms are currently supported by [fast-jwt](https://github.com/nearform/fast-jwt) that is internally used by `fastify-jwt`.
 
-algorithm(s) Parameter Value | Digital Signature or MAC Algorithm
+**Name** | **Description**
 ----------------|----------------------------
-HS256 | HMAC using SHA-256 hash algorithm
-HS384 | HMAC using SHA-384 hash algorithm
-HS512 | HMAC using SHA-512 hash algorithm
-RS256 | RSASSA using SHA-256 hash algorithm
-RS384 | RSASSA using SHA-384 hash algorithm
-RS512 | RSASSA using SHA-512 hash algorithm
-ES256 | ECDSA using P-256 curve and SHA-256 hash algorithm
-ES384 | ECDSA using P-384 curve and SHA-384 hash algorithm
-ES512 | ECDSA using P-521 curve and SHA-512 hash algorithm
-none | No digital signature or MAC value included
+none |	Empty algorithm - The token signature section will be empty
+HS256 |	HMAC using SHA-256 hash algorithm
+HS384 |	HMAC using SHA-384 hash algorithm
+HS512 |	HMAC using SHA-512 hash algorithm
+ES256 |	ECDSA using P-256 curve and SHA-256 hash algorithm
+ES384 |	ECDSA using P-384 curve and SHA-384 hash algorithm
+ES512 |	ECDSA using P-521 curve and SHA-512 hash algorithm
+RS256 |	RSASSA-PKCS1-v1_5 using SHA-256 hash algorithm
+RS384 |	RSASSA-PKCS1-v1_5 using SHA-384 hash algorithm
+RS512 |	RSASSA-PKCS1-v1_5 using SHA-512 hash algorithm
+PS256 |	RSASSA-PSS using SHA-256 hash algorithm
+PS384 |	RSASSA-PSS using SHA-384 hash algorithm
+PS512 |	RSASSA-PSS using SHA-512 hash algorithm
+EdDSA |	EdDSA tokens using Ed25519 or Ed448 keys, only supported on Node.js 12+
+
+You can find the list [here](https://github.com/nearform/fast-jwt#algorithms-supported).
 
 ### Examples
 
