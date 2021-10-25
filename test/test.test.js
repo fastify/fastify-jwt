@@ -1424,7 +1424,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(10)
+  t.plan(11)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
@@ -1449,8 +1449,18 @@ test('errors', function (t) {
       })
   })
 
-  fastify.get('/verifyFail', function (request, reply) {
+  fastify.get('/verifyFailOnIss', function (request, reply) {
     request.jwtVerify({ verify: { allowedIss: 'bar' } })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyFailOnAlgorithmMismatch', function (request, reply) {
+    request.jwtVerify({ verify: { algorithms: ['invalid'] } })
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
@@ -1645,7 +1655,7 @@ test('errors', function (t) {
 
           fastify.inject({
             method: 'get',
-            url: '/verifyFail',
+            url: '/verifyFailOnIss',
             headers: {
               authorization: `Bearer ${token}`
             }
@@ -1653,6 +1663,33 @@ test('errors', function (t) {
             const error = JSON.parse(verifyResponse.payload)
             t.equal(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
             t.equal(verifyResponse.statusCode, 401)
+          })
+        })
+      })
+
+      t.test('requestVerify function: algorithm mismatch error', function (t) {
+        t.plan(3)
+
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: {
+            payload: { foo: 'bar' }
+          }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verifyFailOnAlgorithmMismatch',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const error = JSON.parse(verifyResponse.payload)
+            t.equal(error.message, 'The token algorithm is invalid.')
+            t.equal(verifyResponse.statusCode, 500)
           })
         })
       })
@@ -1942,7 +1979,7 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, cookie uparsed (header fallback)', function (t) {
+  t.test('both authorization and cookie headers present, cookie unparsed (header fallback)', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2292,9 +2329,11 @@ test('support extended config contract', function (t) {
   t.plan(1)
   const extConfig = {
     sign: {
+      key: 'secret',
       iss: 'api.example.tld'
     },
     verify: {
+      key: 'secret',
       allowedIss: 'api.example.tld',
       extractToken: (req) => (req.headers.otherauth)
     },
@@ -2355,5 +2394,78 @@ test('support extended config contract', function (t) {
     const decodedAndVerifiedToken = JSON.parse(verifyResponse.payload)
     t.equal(decodedAndVerifiedToken.iss, extConfig.sign.iss)
     t.equal(decodedAndVerifiedToken.foo, 'bar')
+  })
+})
+
+test('support fast-jwt compatible config options', async function (t) {
+  t.plan(4)
+  const options = {
+    sign: {
+      key: 'secret'
+    },
+    verify: {
+      key: 'secret'
+    },
+    decode: {
+      complete: true
+    }
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', ...options })
+
+  fastify.post('/signWithSignOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { sign: { iss: 'foo' } })
+    return reply.send({ token })
+  })
+
+  fastify.post('/signWithOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { iss: 'foo' })
+    return reply.send({ token })
+  })
+
+  await fastify.ready()
+
+  t.test('options are functions', function (t) {
+    t.plan(4)
+    fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
+      t.error(err)
+      t.ok(token)
+
+      fastify.jwt.verify(token, (err, result) => {
+        t.error(err)
+        t.ok(result)
+      })
+    })
+  })
+
+  t.test('no options defined', async function (t) {
+    const token = await fastify.jwt.sign({ foo: 'bar' })
+    t.ok(token)
+
+    const verifiedToken = await fastify.jwt.verify(token)
+    t.ok(verifiedToken)
+  })
+
+  t.test('options.sign defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithSignOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+  })
+
+  t.test('general options defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
   })
 })

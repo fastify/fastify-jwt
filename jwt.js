@@ -336,11 +336,11 @@ function fastifyJwt (fastify, options, next) {
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign(!verifyOptions.key ? { key: (secretCallbackVerify) => secretCallbackVerify } : {}, verifyOptions, options.verify)
+        verify: Object.assign({}, verifyOptions, options.verify)
       }
     } else {
       // Original contract, options supports only verify
-      options = Object.assign(!verifyOptions.key ? { key: (secretCallbackVerify) => secretCallbackVerify } : {}, verifyOptions, options)
+      options = Object.assign({}, verifyOptions, options)
     }
 
     const request = this
