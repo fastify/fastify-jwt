@@ -7,11 +7,12 @@ const jwt = require('../jwt')
 
 const helper = require('./helper')
 
+// TODO: Uncomment when (if) fast-jwt adds suport for encoded private keys (passphrase protected)
 // const passphrase = 'super secret passphrase'
-const { privateKey, publicKey } = helper.generateKeyPair()
 // const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helper.generateKeyPairProtected(passphrase)
-const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 // const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
+const { privateKey, publicKey } = helper.generateKeyPair()
+const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 
 test('register', function (t) {
   t.plan(14)
@@ -816,7 +817,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
     })
   })
-
+  // TODO: Uncomment when (if) fast-jwt adds suport for encoded private keys (passphrase protected)
   // t.test('RSA certificates (passphrase protected)', function (t) {
   //   t.plan(2)
 
