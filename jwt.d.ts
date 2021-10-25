@@ -1,6 +1,5 @@
 import { DecoderOptions, KeyFetcher, SignerCallback, SignerOptions, VerifierCallback, VerifierOptions } from 'fast-jwt'
 import * as fastify from 'fastify'
-// import * as jwt from 'jsonwebtoken'
 
 /**
  * for declaration merging
