@@ -188,18 +188,27 @@ function fastifyJwt (fastify, options, next) {
     return token
   }
 
+  function mergeOptionsWithKey (options, useProvidedPrivateKey) {
+    if (useProvidedPrivateKey && (typeof useProvidedPrivateKey !== 'boolean')) {
+      return Object.assign({}, options, { key: useProvidedPrivateKey })
+    } else {
+      const key = useProvidedPrivateKey ? secretOrPrivateKey : secretOrPublicKey
+      return Object.assign(!options.key ? { key } : {}, options)
+    }
+  }
+
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
 
     if (typeof options === 'function') {
       callback = options
-      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions)
+      options = mergeOptionsWithKey(signOptions, true)
     }
 
     if (!options) {
-      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions)
+      options = mergeOptionsWithKey(signOptions, true)
     } else {
-      options = Object.assign(!options.key ? { key: secretOrPrivateKey } : {}, options)
+      options = mergeOptionsWithKey(options, true)
     }
 
     const signer = createSigner(options)
@@ -218,13 +227,13 @@ function fastifyJwt (fastify, options, next) {
 
     if ((typeof options === 'function') && !callback) {
       callback = options
-      options = Object.assign(!verifyOptions.key ? { key: secretOrPublicKey } : {}, verifyOptions)
+      options = mergeOptionsWithKey(verifyOptions)
     }
 
     if (!options) {
-      options = Object.assign(!verifyOptions.key ? { key: secretOrPublicKey } : {}, verifyOptions)
+      options = mergeOptionsWithKey(verifyOptions)
     } else {
-      options = Object.assign(!options.key ? { key: secretOrPublicKey } : {}, options)
+      options = mergeOptionsWithKey(options)
     }
 
     const verifier = createVerifier(options)
@@ -250,11 +259,11 @@ function fastifyJwt (fastify, options, next) {
     if (options.sign) {
       // New supported contract, options supports sign and can expand
       options = {
-        sign: Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions, options.sign)
+        sign: mergeOptionsWithKey({ ...signOptions, ...options.sign }, true)
       }
     } else {
       // Original contract, options supports only sign
-      options = Object.assign(!signOptions.key ? { key: secretOrPrivateKey } : {}, signOptions, options)
+      options = mergeOptionsWithKey({ ...signOptions, ...options }, true)
     }
 
     const reply = this
@@ -280,7 +289,7 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function sign (secretOrPrivateKey, callback) {
-        const signerOptions = Object.assign({}, options.sign || options, { key: secretOrPrivateKey })
+        const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
         const signer = createSigner(signerOptions)
         const token = signer(payload)
         callback(null, token)
@@ -371,7 +380,7 @@ function fastifyJwt (fastify, options, next) {
       },
       function verify (secretOrPublicKey, callback) {
         try {
-          const verifierOptions = Object.assign({}, options.verify || options, { key: secretOrPublicKey })
+          const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
           const verifier = createVerifier(verifierOptions)
           const verifyResult = verifier(token)
 
