@@ -197,25 +197,42 @@ function fastifyJwt (fastify, options, next) {
     }
   }
 
+  function checkAndMergeOptions (options, defaultOptions, usePrivateKey, callback) {
+    let mergedOptions
+
+    if (typeof options === 'function') {
+      console.log('@@@@@ options:', options)
+      callback = options
+      console.log('@@@@@ callback:', callback)
+      mergedOptions = mergeOptionsWithKey(defaultOptions, usePrivateKey)
+    } else {
+      if (!options) {
+        mergedOptions = mergeOptionsWithKey(defaultOptions, usePrivateKey)
+      } else {
+        mergedOptions = mergeOptionsWithKey(options, usePrivateKey)
+      }
+    }
+
+    return { options: mergedOptions, callback }
+  }
+
+  function checkAndMergeSignOptions (options, callback) {
+    return checkAndMergeOptions(options, signOptions, true, callback)
+  }
+
+  function checkAndMergeVerifyOptions (options, callback) {
+    return checkAndMergeOptions(options, verifyOptions, false, callback)
+  }
+
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
 
-    if (typeof options === 'function') {
-      callback = options
-      options = mergeOptionsWithKey(signOptions, true)
-    }
+    const signerConfig = checkAndMergeSignOptions(options, callback)
+    const signer = createSigner(signerConfig.options)
 
-    if (!options) {
-      options = mergeOptionsWithKey(signOptions, true)
-    } else {
-      options = mergeOptionsWithKey(options, true)
-    }
-
-    const signer = createSigner(options)
-
-    if (typeof callback === 'function') {
+    if (typeof signerConfig.callback === 'function') {
       const token = signer(payload)
-      callback(null, token)
+      signerConfig.callback(null, token)
     } else {
       return signer(payload)
     }
@@ -225,22 +242,12 @@ function fastifyJwt (fastify, options, next) {
     assert(token, 'missing token')
     assert(secretOrPublicKey, 'missing secret')
 
-    if ((typeof options === 'function') && !callback) {
-      callback = options
-      options = mergeOptionsWithKey(verifyOptions)
-    }
+    const veriferConfig = checkAndMergeVerifyOptions(options, callback)
+    const verifier = createVerifier(veriferConfig.options)
 
-    if (!options) {
-      options = mergeOptionsWithKey(verifyOptions)
-    } else {
-      options = mergeOptionsWithKey(options)
-    }
-
-    const verifier = createVerifier(options)
-
-    if (typeof callback === 'function') {
+    if (typeof veriferConfig.callback === 'function') {
       const result = verifier(token)
-      callback(null, result)
+      veriferConfig.callback(null, result)
     } else {
       return verifier(token)
     }
