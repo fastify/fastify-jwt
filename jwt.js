@@ -201,9 +201,7 @@ function fastifyJwt (fastify, options, next) {
     let mergedOptions
 
     if (typeof options === 'function') {
-      console.log('@@@@@ options:', options)
       callback = options
-      console.log('@@@@@ callback:', callback)
       mergedOptions = mergeOptionsWithKey(defaultOptions, usePrivateKey)
     } else {
       if (!options) {
