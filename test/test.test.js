@@ -7,10 +7,9 @@ const jwt = require('../jwt')
 
 const helper = require('./helper')
 
-// TODO: Uncomment when (if) fast-jwt adds suport for encoded private keys (passphrase protected)
-// const passphrase = 'super secret passphrase'
-// const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helper.generateKeyPairProtected(passphrase)
-// const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
+const passphrase = 'super secret passphrase'
+const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helper.generateKeyPairProtected(passphrase)
+const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
 const { privateKey, publicKey } = helper.generateKeyPair()
 const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 
@@ -504,7 +503,7 @@ test('sign and verify with HS-secret', function (t) {
 })
 
 test('sign and verify with RSA/ECDSA certificates and global options', function (t) {
-  t.plan(3)
+  t.plan(5)
 
   t.test('RSA certificates', function (t) {
     t.plan(2)
@@ -817,316 +816,316 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
     })
   })
-  // TODO: Uncomment when (if) fast-jwt adds suport for encoded private keys (passphrase protected)
-  // t.test('RSA certificates (passphrase protected)', function (t) {
-  //   t.plan(2)
 
-  //   t.test('server methods', function (t) {
-  //     t.plan(2)
+  t.test('RSA certificates (passphrase protected)', function (t) {
+    t.plan(2)
 
-  //     const fastify = Fastify()
-  //     fastify.register(jwt, {
-  //       secret: {
-  //         private: { key: privateKeyProtected, passphrase: 'super secret passphrase' },
-  //         public: publicKeyProtected
-  //       },
-  //       sign: {
-  //         algorithm: 'RS256',
-  //         aud: 'test'
-  //       },
-  //       verify: {
-  //         allowedAud: 'test'
-  //       }
-  //     })
+    t.test('server methods', function (t) {
+      t.plan(2)
 
-  //     fastify
-  //       .ready()
-  //       .then(function () {
-  //         t.test('synchronous', function (t) {
-  //           t.plan(2)
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          private: { key: privateKeyProtected, passphrase: 'super secret passphrase' },
+          public: publicKeyProtected
+        },
+        sign: {
+          algorithm: 'RS256',
+          aud: 'test'
+        },
+        verify: {
+          allowedAud: 'test'
+        }
+      })
 
-  //           const token = fastify.jwt.sign({ foo: 'bar' })
-  //           const decoded = fastify.jwt.verify(token)
+      fastify
+        .ready()
+        .then(function () {
+          t.test('synchronous', function (t) {
+            t.plan(2)
 
-  //           t.equal(decoded.aud, 'test')
-  //           t.equal(decoded.foo, 'bar')
-  //         })
+            const token = fastify.jwt.sign({ foo: 'bar' })
+            const decoded = fastify.jwt.verify(token)
 
-  //         t.test('with callbacks', function (t) {
-  //           t.plan(4)
+            t.equal(decoded.aud, 'test')
+            t.equal(decoded.foo, 'bar')
+          })
 
-  //           fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-  //             t.error(error)
+          t.test('with callbacks', function (t) {
+            t.plan(4)
 
-  //             fastify.jwt.verify(token, function (error, decoded) {
-  //               t.error(error)
-  //               t.equal(decoded.aud, 'test')
-  //               t.equal(decoded.foo, 'bar')
-  //             })
-  //           })
-  //         })
-  //       })
-  //     })
-  //   })
+            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+              t.error(error)
 
-  //   t.test('route methods', function (t) {
-  //     t.plan(2)
+              fastify.jwt.verify(token, function (error, decoded) {
+                t.error(error)
+                t.equal(decoded.aud, 'test')
+                t.equal(decoded.foo, 'bar')
+              })
+            })
+          })
+        })
+    })
 
-  //     const fastify = Fastify()
-  //     fastify.register(jwt, {
-  //       secret: {
-  //         private: { key: privateKeyProtected, passphrase: 'super secret passphrase' },
-  //         public: publicKeyProtected
-  //       },
-  //       sign: {
-  //         algorithm: 'RS256',
-  //         aud: 'test'
-  //       },
-  //       verify: {
-  //         allowedAud: 'test'
-  //       }
-  //     })
+    t.test('route methods', function (t) {
+      t.plan(2)
 
-  //     fastify.post('/signSync', function (request, reply) {
-  //       reply.jwtSign(request.body)
-  //         .then(function (token) {
-  //           return reply.send({ token })
-  //         })
-  //     })
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          private: { key: privateKeyProtected, passphrase: 'super secret passphrase' },
+          public: publicKeyProtected
+        },
+        sign: {
+          algorithm: 'RS256',
+          aud: 'test'
+        },
+        verify: {
+          allowedAud: 'test'
+        }
+      })
 
-  //     fastify.get('/verifySync', function (request, reply) {
-  //       return request.jwtVerify()
-  //     })
+      fastify.post('/signSync', function (request, reply) {
+        reply.jwtSign(request.body)
+          .then(function (token) {
+            return reply.send({ token })
+          })
+      })
 
-  //     fastify.post('/signAsync', function (request, reply) {
-  //       reply.jwtSign(request.body, function (error, token) {
-  //         return reply.send(error || { token })
-  //       })
-  //     })
+      fastify.get('/verifySync', function (request, reply) {
+        return request.jwtVerify()
+      })
 
-  //     fastify.get('/verifyAsync', function (request, reply) {
-  //       request.jwtVerify(function (error, decodedToken) {
-  //         return reply.send(error || decodedToken)
-  //       })
-  //     })
+      fastify.post('/signAsync', function (request, reply) {
+        reply.jwtSign(request.body, function (error, token) {
+          return reply.send(error || { token })
+        })
+      })
 
-  //     fastify
-  //       .ready()
-  //       .then(function () {
-  //         t.test('synchronous', function (t) {
-  //           t.plan(3)
+      fastify.get('/verifyAsync', function (request, reply) {
+        request.jwtVerify(function (error, decodedToken) {
+          return reply.send(error || decodedToken)
+        })
+      })
 
-  //           fastify.inject({
-  //             method: 'post',
-  //             url: '/signSync',
-  //             payload: { foo: 'bar' }
-  //           }).then(function (signResponse) {
-  //             const token = JSON.parse(signResponse.payload).token
-  //             t.ok(token)
+      fastify
+        .ready()
+        .then(function () {
+          t.test('synchronous', function (t) {
+            t.plan(3)
 
-  //             fastify.inject({
-  //               method: 'get',
-  //               url: '/verifySync',
-  //               headers: {
-  //                 authorization: `Bearer ${token}`
-  //               }
-  //             }).then(function (verifyResponse) {
-  //               const decodedToken = JSON.parse(verifyResponse.payload)
-  //               t.equal(decodedToken.aud, 'test')
-  //               t.equal(decodedToken.foo, 'bar')
-  //             }).catch(function (error) {
-  //               t.fail(error)
-  //             })
-  //           }).catch(function (error) {
-  //             t.fail(error)
-  //           })
-  //         })
+            fastify.inject({
+              method: 'post',
+              url: '/signSync',
+              payload: { foo: 'bar' }
+            }).then(function (signResponse) {
+              const token = JSON.parse(signResponse.payload).token
+              t.ok(token)
 
-  //         t.test('with callbacks', function (t) {
-  //           t.plan(3)
+              fastify.inject({
+                method: 'get',
+                url: '/verifySync',
+                headers: {
+                  authorization: `Bearer ${token}`
+                }
+              }).then(function (verifyResponse) {
+                const decodedToken = JSON.parse(verifyResponse.payload)
+                t.equal(decodedToken.aud, 'test')
+                t.equal(decodedToken.foo, 'bar')
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            }).catch(function (error) {
+              t.fail(error)
+            })
+          })
 
-  //           fastify.inject({
-  //             method: 'post',
-  //             url: '/signAsync',
-  //             payload: { foo: 'bar' }
-  //           }).then(function (signResponse) {
-  //             const token = JSON.parse(signResponse.payload).token
-  //             t.ok(token)
+          t.test('with callbacks', function (t) {
+            t.plan(3)
 
-  //             fastify.inject({
-  //               method: 'get',
-  //               url: '/verifyAsync',
-  //               headers: {
-  //                 authorization: `Bearer ${token}`
-  //               }
-  //             }).then(function (verifyResponse) {
-  //               const decodedToken = JSON.parse(verifyResponse.payload)
-  //               t.equal(decodedToken.aud, 'test')
-  //               t.equal(decodedToken.foo, 'bar')
-  //             }).catch(function (error) {
-  //               t.fail(error)
-  //             })
-  //           }).catch(function (error) {
-  //             t.fail(error)
-  //           })
-  //         })
-  //       })
-  //   })
-  // })
+            fastify.inject({
+              method: 'post',
+              url: '/signAsync',
+              payload: { foo: 'bar' }
+            }).then(function (signResponse) {
+              const token = JSON.parse(signResponse.payload).token
+              t.ok(token)
 
-  // t.test('ECDSA certificates (passphrase protected)', function (t) {
-  //   t.plan(2)
+              fastify.inject({
+                method: 'get',
+                url: '/verifyAsync',
+                headers: {
+                  authorization: `Bearer ${token}`
+                }
+              }).then(function (verifyResponse) {
+                const decodedToken = JSON.parse(verifyResponse.payload)
+                t.equal(decodedToken.aud, 'test')
+                t.equal(decodedToken.foo, 'bar')
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            }).catch(function (error) {
+              t.fail(error)
+            })
+          })
+        })
+    })
+  })
 
-  //   t.test('server methods', function (t) {
-  //     t.plan(2)
+  t.test('ECDSA certificates (passphrase protected)', function (t) {
+    t.plan(2)
 
-  //     const fastify = Fastify()
-  //     fastify.register(jwt, {
-  //       secret: {
-  //         private: { key: privateKeyProtectedECDSA, passphrase: 'super secret passphrase' },
-  //         public: publicKeyProtectedECDSA
-  //       },
-  //       sign: {
-  //         algorithm: 'ES256',
-  //         sub: 'test'
-  //       },
-  //       verify: {
-  //         allowedSub: 'test'
-  //       }
-  //     })
+    t.test('server methods', function (t) {
+      t.plan(2)
 
-  //     fastify
-  //       .ready()
-  //       .then(function () {
-  //         t.test('synchronous', function (t) {
-  //           t.plan(2)
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          private: { key: privateKeyProtectedECDSA, passphrase: 'super secret passphrase' },
+          public: publicKeyProtectedECDSA
+        },
+        sign: {
+          algorithm: 'ES256',
+          sub: 'test'
+        },
+        verify: {
+          allowedSub: 'test'
+        }
+      })
 
-  //           const token = fastify.jwt.sign({ foo: 'bar' })
-  //           const decoded = fastify.jwt.verify(token)
+      fastify
+        .ready()
+        .then(function () {
+          t.test('synchronous', function (t) {
+            t.plan(2)
 
-  //           t.equal(decoded.foo, 'bar')
-  //           t.equal(decoded.sub, 'test')
-  //         })
+            const token = fastify.jwt.sign({ foo: 'bar' })
+            const decoded = fastify.jwt.verify(token)
 
-  //         t.test('with callbacks', function (t) {
-  //           t.plan(4)
+            t.equal(decoded.foo, 'bar')
+            t.equal(decoded.sub, 'test')
+          })
 
-  //           fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-  //             t.error(error)
+          t.test('with callbacks', function (t) {
+            t.plan(4)
 
-  //             fastify.jwt.verify(token, function (error, decoded) {
-  //               t.error(error)
-  //               t.equal(decoded.foo, 'bar')
-  //               t.equal(decoded.sub, 'test')
-  //             })
-  //           })
-  //         })
-  //       })
-  //   })
+            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+              t.error(error)
 
-  //   t.test('route methods', function (t) {
-  //     t.plan(2)
+              fastify.jwt.verify(token, function (error, decoded) {
+                t.error(error)
+                t.equal(decoded.foo, 'bar')
+                t.equal(decoded.sub, 'test')
+              })
+            })
+          })
+        })
+    })
 
-  //     const fastify = Fastify()
-  //     fastify.register(jwt, {
-  //       secret: {
-  //         private: { key: privateKeyProtectedECDSA, passphrase: 'super secret passphrase' },
-  //         public: publicKeyProtectedECDSA
-  //       },
-  //       sign: {
-  //         algorithm: 'ES256',
-  //         sub: 'test'
-  //       },
-  //       verify: {
-  //         allowedSub: 'test'
-  //       }
-  //     })
+    t.test('route methods', function (t) {
+      t.plan(2)
 
-  //     fastify.post('/signSync', function (request, reply) {
-  //       reply.jwtSign(request.body)
-  //         .then(function (token) {
-  //           return reply.send({ token })
-  //         })
-  //     })
+      const fastify = Fastify()
+      fastify.register(jwt, {
+        secret: {
+          private: { key: privateKeyProtectedECDSA, passphrase: 'super secret passphrase' },
+          public: publicKeyProtectedECDSA
+        },
+        sign: {
+          algorithm: 'ES256',
+          sub: 'test'
+        },
+        verify: {
+          allowedSub: 'test'
+        }
+      })
 
-  //     fastify.get('/verifySync', function (request, reply) {
-  //       return request.jwtVerify()
-  //     })
+      fastify.post('/signSync', function (request, reply) {
+        reply.jwtSign(request.body)
+          .then(function (token) {
+            return reply.send({ token })
+          })
+      })
 
-  //     fastify.post('/signAsync', function (request, reply) {
-  //       reply.jwtSign(request.body, function (error, token) {
-  //         return reply.send(error || { token })
-  //       })
-  //     })
+      fastify.get('/verifySync', function (request, reply) {
+        return request.jwtVerify()
+      })
 
-  //     fastify.get('/verifyAsync', function (request, reply) {
-  //       request.jwtVerify(function (error, decodedToken) {
-  //         return reply.send(error || decodedToken)
-  //       })
-  //     })
+      fastify.post('/signAsync', function (request, reply) {
+        reply.jwtSign(request.body, function (error, token) {
+          return reply.send(error || { token })
+        })
+      })
 
-  //     fastify
-  //       .ready()
-  //       .then(function () {
-  //         t.test('synchronous', function (t) {
-  //           t.plan(3)
+      fastify.get('/verifyAsync', function (request, reply) {
+        request.jwtVerify(function (error, decodedToken) {
+          return reply.send(error || decodedToken)
+        })
+      })
 
-  //           fastify.inject({
-  //             method: 'post',
-  //             url: '/signSync',
-  //             payload: { foo: 'bar' }
-  //           }).then(function (signResponse) {
-  //             const token = JSON.parse(signResponse.payload).token
-  //             t.ok(token)
+      fastify
+        .ready()
+        .then(function () {
+          t.test('synchronous', function (t) {
+            t.plan(3)
 
-  //             fastify.inject({
-  //               method: 'get',
-  //               url: '/verifySync',
-  //               headers: {
-  //                 authorization: `Bearer ${token}`
-  //               }
-  //             }).then(function (verifyResponse) {
-  //               const decodedToken = JSON.parse(verifyResponse.payload)
-  //               t.equal(decodedToken.foo, 'bar')
-  //               t.equal(decodedToken.sub, 'test')
-  //             }).catch(function (error) {
-  //               t.fail(error)
-  //             })
-  //           }).catch(function (error) {
-  //             t.fail(error)
-  //           })
-  //         })
+            fastify.inject({
+              method: 'post',
+              url: '/signSync',
+              payload: { foo: 'bar' }
+            }).then(function (signResponse) {
+              const token = JSON.parse(signResponse.payload).token
+              t.ok(token)
 
-  //         t.test('with callbacks', function (t) {
-  //           t.plan(3)
+              fastify.inject({
+                method: 'get',
+                url: '/verifySync',
+                headers: {
+                  authorization: `Bearer ${token}`
+                }
+              }).then(function (verifyResponse) {
+                const decodedToken = JSON.parse(verifyResponse.payload)
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            }).catch(function (error) {
+              t.fail(error)
+            })
+          })
 
-  //           fastify.inject({
-  //             method: 'post',
-  //             url: '/signAsync',
-  //             payload: { foo: 'bar' }
-  //           }).then(function (signResponse) {
-  //             const token = JSON.parse(signResponse.payload).token
-  //             t.ok(token)
+          t.test('with callbacks', function (t) {
+            t.plan(3)
 
-  //             fastify.inject({
-  //               method: 'get',
-  //               url: '/verifyAsync',
-  //               headers: {
-  //                 authorization: `Bearer ${token}`
-  //               }
-  //             }).then(function (verifyResponse) {
-  //               const decodedToken = JSON.parse(verifyResponse.payload)
-  //               t.equal(decodedToken.foo, 'bar')
-  //               t.equal(decodedToken.sub, 'test')
-  //             }).catch(function (error) {
-  //               t.fail(error)
-  //             })
-  //           }).catch(function (error) {
-  //             t.fail(error)
-  //           })
-  //         })
-  //       })
-  //   })
+            fastify.inject({
+              method: 'post',
+              url: '/signAsync',
+              payload: { foo: 'bar' }
+            }).then(function (signResponse) {
+              const token = JSON.parse(signResponse.payload).token
+              t.ok(token)
+
+              fastify.inject({
+                method: 'get',
+                url: '/verifyAsync',
+                headers: {
+                  authorization: `Bearer ${token}`
+                }
+              }).then(function (verifyResponse) {
+                const decodedToken = JSON.parse(verifyResponse.payload)
+                t.equal(decodedToken.foo, 'bar')
+                t.equal(decodedToken.sub, 'test')
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            }).catch(function (error) {
+              t.fail(error)
+            })
+          })
+        })
+    })
+  })
 
   t.test('Overriding global options', function (t) {
     t.plan(2)
