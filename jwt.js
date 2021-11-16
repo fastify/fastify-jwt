@@ -4,6 +4,7 @@ const fp = require('fastify-plugin')
 const { createSigner, createDecoder, createVerifier, TokenError } = require('fast-jwt')
 const assert = require('assert')
 const steed = require('steed')
+const { parse } = require('@lukeed/ms')
 const {
   BadRequest,
   Unauthorized
@@ -23,6 +24,32 @@ function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
     return cb(null, secret)
   }
+}
+
+function convertToMs (time) {
+  // by default if time is number we assume that they are seconds - see README.md
+  if (typeof time === 'number') {
+    return time * 1000
+  }
+  return parse(time)
+}
+
+function convertTemporalProps (options, isVerifyOptions) {
+  if (options && typeof options !== 'function') {
+    if (isVerifyOptions && options.maxAge) {
+      options.maxAge = convertToMs(options.maxAge)
+    } else if (options.expiresIn || options.notBefore) {
+      if (options.expiresIn) {
+        options.expiresIn = convertToMs(options.expiresIn)
+      }
+
+      if (options.notBefore) {
+        options.notBefore = convertToMs(options.notBefore)
+      }
+    }
+  }
+
+  return options
 }
 
 function fastifyJwt (fastify, options, next) {
@@ -62,8 +89,8 @@ function fastifyJwt (fastify, options, next) {
   const formatUser = options.formatUser
 
   const decodeOptions = options.decode || {}
-  const signOptions = options.sign || {}
-  const verifyOptions = options.verify || {}
+  const signOptions = convertTemporalProps(options.sign) || {}
+  const verifyOptions = convertTemporalProps(options.verify, true) || {}
   const messagesOptions = Object.assign({}, messages, options.messages)
   const namespace = typeof options.namespace === 'string' ? options.namespace : undefined
 
@@ -225,6 +252,8 @@ function fastifyJwt (fastify, options, next) {
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
 
+    convertTemporalProps(options)
+
     const signerConfig = checkAndMergeSignOptions(options, callback)
     const signer = createSigner(signerConfig.options)
 
@@ -239,6 +268,8 @@ function fastifyJwt (fastify, options, next) {
   function verify (token, options, callback) {
     assert(token, 'missing token')
     assert(secretOrPublicKey, 'missing secret')
+
+    convertTemporalProps(options, true)
 
     const veriferConfig = checkAndMergeVerifyOptions(options, callback)
     const verifier = createVerifier(veriferConfig.options)
@@ -262,11 +293,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (options.sign) {
+      convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
       options = {
         sign: mergeOptionsWithKey({ ...signOptions, ...options.sign }, true)
       }
     } else {
+      convertTemporalProps(options)
       // Original contract, options supports only sign
       options = mergeOptionsWithKey({ ...signOptions, ...options }, true)
     }
@@ -347,12 +380,14 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (options.decode || options.verify) {
+      convertTemporalProps(options.verify, true)
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
         verify: Object.assign({}, verifyOptions, options.verify)
       }
     } else {
+      convertTemporalProps(options, true)
       // Original contract, options supports only verify
       options = Object.assign({}, verifyOptions, options)
     }

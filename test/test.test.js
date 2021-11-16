@@ -2469,3 +2469,93 @@ test('support fast-jwt compatible config options', async function (t) {
     t.ok(token)
   })
 })
+
+test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', async function (t) {
+  t.plan(3)
+  const options = {
+    sign: {
+      key: 'secret',
+      expiresIn: '1d'
+    },
+    verify: {
+      key: 'secret',
+      maxAge: 2000
+    },
+    decode: {
+      complete: true
+    },
+    jwtDecode: true
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', ...options })
+
+  fastify.post('/signWithSignOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { sign: { iss: 'foo' } })
+    return reply.send({ token })
+  })
+
+  fastify.post('/signWithOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { iss: 'foo', notBefore: '5 hours' })
+    return reply.send({ token })
+  })
+
+  fastify.get('/check-decoded-token', async function (request, reply) {
+    const decodedToken = await request.jwtDecode()
+    return reply.send(decodedToken)
+  })
+
+  await fastify.ready()
+
+  t.test('options are functions', function (t) {
+    t.plan(6)
+    fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
+      t.error(err)
+      t.ok(token)
+
+      fastify.jwt.verify(token, (err, result) => {
+        t.error(err)
+        t.ok(result)
+        t.ok(result.exp)
+        t.equal(typeof result.exp, 'number')
+      })
+    })
+  })
+
+  t.test('options.sign defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithSignOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+  })
+
+  t.test('general options defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.ok(decodedToken)
+    t.ok(decodedToken.payload.exp)
+    t.equal(typeof decodedToken.payload.exp, 'number')
+    t.ok(decodedToken.payload.nbf)
+    t.equal(typeof decodedToken.payload.nbf, 'number')
+  })
+})
