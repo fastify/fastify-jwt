@@ -159,16 +159,22 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateRequest(jwtVerifyName, requestVerify)
   fastify.decorateReply(jwtSignName, replySign)
 
+  const signerConfig = checkAndMergeSignOptions()
+  const signer = createSigner(signerConfig.options)
+  const decoder = createDecoder(decodeOptions)
+  const verifierConfig = checkAndMergeVerifyOptions()
+  const verifier = createVerifier(verifierConfig.options)
+
   next()
 
   function decode (token, options) {
     assert(token, 'missing token')
 
-    if (!options) {
-      options = Object.assign({}, decodeOptions)
+    if (options && typeof options !== 'function') {
+      const localDecoder = createDecoder(options)
+      return localDecoder(token)
     }
 
-    const decoder = createDecoder(options)
     return decoder(token)
   }
 
@@ -251,17 +257,20 @@ function fastifyJwt (fastify, options, next) {
 
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
+    let localSigner = signer
 
     convertTemporalProps(options)
-
     const signerConfig = checkAndMergeSignOptions(options, callback)
-    const signer = createSigner(signerConfig.options)
+
+    if (options && typeof options !== 'function') {
+      localSigner = createSigner(signerConfig.options)
+    }
 
     if (typeof signerConfig.callback === 'function') {
-      const token = signer(payload)
+      const token = localSigner(payload)
       signerConfig.callback(null, token)
     } else {
-      return signer(payload)
+      return localSigner(payload)
     }
   }
 
@@ -269,27 +278,34 @@ function fastifyJwt (fastify, options, next) {
     assert(token, 'missing token')
     assert(secretOrPublicKey, 'missing secret')
 
-    convertTemporalProps(options, true)
+    let localVerifier = verifier
 
+    convertTemporalProps(options, true)
     const veriferConfig = checkAndMergeVerifyOptions(options, callback)
-    const verifier = createVerifier(veriferConfig.options)
+
+    if (options && typeof options !== 'function') {
+      localVerifier = createVerifier(veriferConfig.options)
+    }
 
     if (typeof veriferConfig.callback === 'function') {
-      const result = verifier(token)
+      const result = localVerifier(token)
       veriferConfig.callback(null, result)
     } else {
-      return verifier(token)
+      return localVerifier(token)
     }
   }
 
   function replySign (payload, options, next) {
+    let useLocalSigner = true
     if (typeof options === 'function') {
       next = options
       options = {}
+      useLocalSigner = false
     } // support no options
 
     if (!options) {
       options = {}
+      useLocalSigner = false
     }
 
     if (options.sign) {
@@ -327,10 +343,15 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function sign (secretOrPrivateKey, callback) {
-        const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
-        const signer = createSigner(signerOptions)
-        const token = signer(payload)
-        callback(null, token)
+        if (useLocalSigner) {
+          const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
+          const localSigner = createSigner(signerOptions)
+          const token = localSigner(payload)
+          callback(null, token)
+        } else {
+          const token = signer(payload)
+          callback(null, token)
+        }
       }
     ], next)
   }
@@ -370,13 +391,16 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function requestVerify (options, next) {
+    let useLocalVerifier = true
     if (typeof options === 'function' && !next) {
       next = options
       options = {}
+      useLocalVerifier = false
     } // support no options
 
     if (!options) {
       options = {}
+      useLocalVerifier = false
     }
 
     if (options.decode || options.verify) {
@@ -420,11 +444,15 @@ function fastifyJwt (fastify, options, next) {
       },
       function verify (secretOrPublicKey, callback) {
         try {
-          const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
-          const verifier = createVerifier(verifierOptions)
-          const verifyResult = verifier(token)
-
-          callback(null, verifyResult)
+          if (useLocalVerifier) {
+            const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
+            const localVerifier = createVerifier(verifierOptions)
+            const verifyResult = localVerifier(token)
+            callback(null, verifyResult)
+          } else {
+            const verifyResult = verifier(token)
+            callback(null, verifyResult)
+          }
         } catch (error) {
           if (error.code === TokenError.codes.expired) {
             return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
