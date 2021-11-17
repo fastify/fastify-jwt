@@ -8,7 +8,6 @@
 JWT utils for Fastify, internally it uses [fast-jwt](https://github.com/nearform/fast-jwt).
 
 **NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation.
-In addition, note that if you made use of strings describing a time span [vercel/ms](https://github.com/vercel/ms) (eg: `"1h"`, `"10 days"`, `"1 month"`...), you **must** convert all these references to **milliseconds**.
 
 `fastify-jwt` supports Fastify@3.
 `fastify-jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
@@ -422,7 +421,8 @@ fastify.register(require('fastify-jwt'), {
 * `key`: A string or a buffer containing the secret for `HS*` algorithms or the PEM encoded public key for `RS*`, `PS*`, `ES*` and `EdDSA` algorithms. The key can also be a function accepting a Node style callback or a function returning a promise. If provided, it will override the value of [secret](#secret-required) provided in the options.
 * `algorithm`: The algorithm to use to sign the token. The default is autodetected from the key, using RS256 for RSA private keys, HS256 for plain secrets and the correspondent ES or EdDSA algorithms for EC or Ed* private keys.
 * `mutatePayload`: If the original payload must be modified in place (via Object.assign) and thus will result changed to the caller funciton.
-* `expiresIn`: Time span (in milliseconds) after which the token expires, added as the exp claim in the payload. This will override any existing value in the claim.
+* `expiresIn`: Time span after which the token expires, added as the `exp` claim in the payload. It is expressed in seconds or a string describing a time span (E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`). A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`). This will override any existing value in the claim.
+* `notBefore`: Time span before the token is active, added as the `nbf` claim in the payload. It is expressed in seconds or a string describing a time span (E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`). A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`). This will override any existing value in the claim.
 
 * ... the rest of the **sign** options can be found [here](https://github.com/nearform/fast-jwt#createsigner).
 
@@ -433,6 +433,7 @@ fastify.register(require('fastify-jwt'), {
 * `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
 * `cache`: A positive number specifying the size of the verified tokens cache (using LRU strategy). Setting this to `true` is equivalent to provide the size 1000. When enabled the  performance is dramatically improved. By default the cache is disabled.
 * `cacheTTL`: The maximum time to live of a cache entry (in milliseconds). If the token has a earlier expiration or the verifier has a shorter `maxAge`, the earlier takes precedence. The default is `600000`, which is 10 minutes.
+* `maxAge`: The maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span (E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`). A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`). By default this is not checked.
 * ... the rest of the **verify** options can be found [here](https://github.com/nearform/fast-jwt#createverifier).
 
 ## API Spec
