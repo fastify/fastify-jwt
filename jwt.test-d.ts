@@ -26,14 +26,14 @@ const secretOptions = {
 const jwtOptions: FastifyJWTOptions = {
   secret: 'supersecret',
   sign: {
-    expiresIn: 36000
+    expiresIn: 3600
   },
   cookie: {
     cookieName: 'jwt',
     signed: false
   },
   verify: {
-    maxAge: 36000,
+    maxAge: '1 hour',
     extractToken: (request) => 'token'
   },
   decode: {

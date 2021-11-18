@@ -65,11 +65,20 @@ export interface DecodeCallback<Decoded extends DecodePayloadType> {
   (err: Error, decoded: Decoded): void
 }
 
+export interface SignOptions extends Omit<SignerOptions, "expiresIn" | "notBefore"> {
+  expiresIn: number | string;
+  notBefore: number | string;
+}
+
+export interface VerifyOptions extends Omit<VerifierOptions, "maxAge"> {
+  maxAge: number | string;
+}
+
 export interface FastifyJWTOptions {
   secret: Secret | { public: Secret; private: Secret }
   decode?: Partial<DecoderOptions>
-  sign?: Partial<SignerOptions>
-  verify?: Partial<VerifierOptions> & { extractToken?: (request: fastify.FastifyRequest) => string | void }
+  sign?: Partial<SignOptions>
+  verify?: Partial<VerifyOptions> & { extractToken?: (request: fastify.FastifyRequest) => string | void }
   cookie?: {
     cookieName: string,
     signed: boolean
@@ -92,21 +101,21 @@ export interface FastifyJWTOptions {
 export interface JWT {
   options: {
     decode: Partial<DecoderOptions>
-    sign: Partial<SignerOptions>
-    verify: Partial<VerifierOptions>
+    sign: Partial<SignOptions>
+    verify: Partial<VerifyOptions>
   }
   cookie?: {
     cookieName: string,
     signed: boolean
   }
 
-  sign(payload: SignPayloadType, options?: Partial<SignerOptions>): string
+  sign(payload: SignPayloadType, options?: Partial<SignOptions>): string
   sign(payload: SignPayloadType, callback: SignerCallback): void
-  sign(payload: SignPayloadType, options: Partial<SignerOptions>, callback: SignerCallback): void
+  sign(payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
 
-  verify<Decoded extends VerifyPayloadType>(token: string, options?: Partial<VerifierOptions>): Decoded
+  verify<Decoded extends VerifyPayloadType>(token: string, options?: Partial<VerifyOptions>): Decoded
   verify<Decoded extends VerifyPayloadType>(token: string, callback: VerifierCallback): void
-  verify<Decoded extends VerifyPayloadType>(token: string, options: Partial<VerifierOptions>, callback: VerifierCallback): void
+  verify<Decoded extends VerifyPayloadType>(token: string, options: Partial<VerifyOptions>, callback: VerifierCallback): void
 
   decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded
 }
@@ -116,17 +125,17 @@ export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
 export default fastifyJWT
 
 export interface FastifyJwtSignOptions {
-  sign?: Partial<SignerOptions>
+  sign?: Partial<SignOptions>
 }
 
 export interface FastifyJwtVerifyOptions {
   decode: Partial<DecoderOptions>
-  verify: Partial<VerifierOptions>
+  verify: Partial<VerifyOptions>
 }
 
 export interface FastifyJwtDecodeOptions {
   decode: Partial<DecoderOptions>
-  verify: Partial<VerifierOptions>
+  verify: Partial<VerifyOptions>
 }
 
 declare module 'fastify' {
@@ -138,18 +147,18 @@ declare module 'fastify' {
     jwtSign(payload: SignPayloadType, options?: FastifyJwtSignOptions): Promise<string>
     jwtSign(payload: SignPayloadType, callback: SignerCallback): void
     jwtSign(payload: SignPayloadType, options: FastifyJwtSignOptions, callback: SignerCallback): void
-    jwtSign(payload: SignPayloadType, options?: Partial<SignerOptions>): Promise<string>
+    jwtSign(payload: SignPayloadType, options?: Partial<SignOptions>): Promise<string>
     jwtSign(payload: SignPayloadType, callback: SignerCallback): void
-    jwtSign(payload: SignPayloadType, options: Partial<SignerOptions>, callback: SignerCallback): void
+    jwtSign(payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
   }
 
   interface FastifyRequest {
     jwtVerify<Decoded extends VerifyPayloadType>(options?: FastifyJwtVerifyOptions): Promise<Decoded>
     jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifierCallback): void
     jwtVerify<Decoded extends VerifyPayloadType>(options: FastifyJwtVerifyOptions, callback: VerifierCallback): void
-    jwtVerify<Decoded extends VerifyPayloadType>(options?: Partial<VerifierOptions>): Promise<Decoded>
+    jwtVerify<Decoded extends VerifyPayloadType>(options?: Partial<VerifyOptions>): Promise<Decoded>
     jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifierCallback): void
-    jwtVerify<Decoded extends VerifyPayloadType>(options: Partial<VerifierOptions>, callback: VerifierCallback): void
+    jwtVerify<Decoded extends VerifyPayloadType>(options: Partial<VerifyOptions>, callback: VerifierCallback): void
     jwtDecode<Decoded extends DecodePayloadType>(options?: FastifyJwtDecodeOptions): Promise<Decoded>
     jwtDecode<Decoded extends DecodePayloadType>(callback: DecodeCallback<Decoded>): void
     jwtDecode<Decoded extends DecodePayloadType>(options: FastifyJwtDecodeOptions, callback: DecodeCallback<Decoded>): void
