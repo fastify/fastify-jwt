@@ -7,7 +7,7 @@
 
 JWT utils for Fastify, internally it uses [fast-jwt](https://github.com/nearform/fast-jwt).
 
-**NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation. See [below](#jsonwebtoken-migration-changes) for more details about what changes this migration introduced.
+**NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation. See [Upgrading notes](UPGRADING.md) for more details about what changes this migration introduced.
 
 `fastify-jwt` supports Fastify@3.
 `fastify-jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
@@ -712,23 +712,6 @@ fastify.get('/', async (request, replay) => {
 })
 
 ```
-
-## `jsonwebtoken` migration changes
-
-Migrating from `jsonwebtoken` to `fast-jwt` introduced the following breaking changes:
-- **sign** options:
-  - `audience` should be changed to `aud`
-  - `issuer` should be changed to `iss`
-  - `jwtid` should be changed to `jti`
-  - `subject` should be changed to `sub`
-  - `keyId` should be changed to `kid`
-
-- **verify** options:
-  - `audience` should be changed to `allowedAud`
-  - `issuer` should be changed to `allowedIss`
-  - `subject` should be changed to `allowedSub`
-  - `jwtid` should be changed to `allowedJti`
-  - `nonce` should be changed to `allowedNonce`
 
 ## Acknowledgements
 
