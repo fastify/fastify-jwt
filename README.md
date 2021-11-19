@@ -727,6 +727,8 @@ Migrating from `jsonwebtoken` to `fast-jwt` introduced the following breaking ch
   - `audience` should be changed to `allowedAud`
   - `issuer` should be changed to `allowedIss`
   - `subject` should be changed to `allowedSub`
+  - `jwtid` should be changed to `allowedJti`
+  - `nonce` should be changed to `allowedNonce`
 
 ## Acknowledgements
 
