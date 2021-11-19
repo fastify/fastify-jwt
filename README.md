@@ -187,7 +187,7 @@ fastify.register(jwt, {
   // Global default signing method options
   sign: {
     algorithm: 'ES256',
-    isss: 'api.example.tld'
+    iss: 'api.example.tld'
   },
   // Global default verifying method options
   verify: { allowedIss: 'api.example.tld' }
