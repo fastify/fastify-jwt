@@ -5,7 +5,7 @@
 Certificates `private.key` and `public.key` are generated with http://travistidwell.com/jsencrypt/demo/ or with the following command
 
 ```sh
-openssl genrsa -out private.key 1024
+openssl genrsa -out private.key 2048
 openssl rsa -in private.key -out public.key -outform PEM -pubout
 ```
 
