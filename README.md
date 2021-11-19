@@ -7,7 +7,7 @@
 
 JWT utils for Fastify, internally it uses [fast-jwt](https://github.com/nearform/fast-jwt).
 
-**NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation.
+**NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation. See [below](#jsonwebtoken-migration-changes) for more details about what changes this migration introduced.
 
 `fastify-jwt` supports Fastify@3.
 `fastify-jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
@@ -187,16 +187,16 @@ fastify.register(jwt, {
   // Global default signing method options
   sign: {
     algorithm: 'ES256',
-    issuer: 'api.example.tld'
+    isss: 'api.example.tld'
   },
   // Global default verifying method options
-  verify: { issuer: 'api.example.tld' }
+  verify: { allowedIss: 'api.example.tld' }
 })
 
 fastify.get('/decode', async (request, reply) => {
   // We clone the global signing options before modifying them
   let altSignOptions = Object.assign({}, fastify.jwt.options.sign)
-  altSignOptions.issuer = 'another.example.tld'
+  altSignOptions.iss = 'another.example.tld'
 
   // We generate a token using the default sign options
   const token = await reply.jwtSign({ foo: 'bar' })
@@ -487,12 +487,12 @@ fastify.register(jwt, {
   },
   sign: {
     algorithm: 'RS256',
-    audience: 'foo',
-    issuer: 'example.tld'
+    aud: 'foo',
+    iss: 'example.tld'
   },
   verify: {
-    audience: 'foo',
-    issuer: 'example.tld',
+    allowedAud: 'foo',
+    allowedIss: 'example.tld',
   }
 })
 
@@ -502,8 +502,8 @@ fastify.get('/', (request, reply) => {
   // We recommend that you clone the options like this when you need to mutate them
   // modifiedVerifyOptions = { audience: 'foo', issuer: 'example.tld' }
   let modifiedVerifyOptions = Object.assign({}, fastify.jwt.options.verify)
-  modifiedVerifyOptions.audience = 'bar'
-  modifiedVerifyOptions.subject = 'test'
+  modifiedVerifyOptions.allowedAud = 'bar'
+  modifiedVerifyOptions.allowedSub = 'test'
 
   return { globalOptions, modifiedVerifyOptions }
   /**
@@ -513,18 +513,18 @@ fastify.get('/', (request, reply) => {
    *     decode: {},
    *     sign: {
    *       algorithm: 'RS256',
-   *       audience: 'foo',
-   *       issuer: 'example.tld'
+   *       aud: 'foo',
+   *       iss: 'example.tld'
    *     },
    *     verify: {
-   *       audience: 'foo',
-   *       issuer: 'example.tld'
+   *       allowedAud: 'foo',
+   *       allowedIss: 'example.tld'
    *     }
    *   },
    *   modifiedVerifyOptions: {
-   *     audience: 'bar',
-   *     issuer: 'example.tld',
-   *     subject: 'test'
+   *     allowedAud: 'bar',
+   *     allowedIss: 'example.tld',
+   *     allowedSub: 'test'
    *   }
    * }
    */
@@ -712,6 +712,21 @@ fastify.get('/', async (request, replay) => {
 })
 
 ```
+
+## `jsonwebtoken` migration changes
+
+Migrating from `jsonwebtoken` to `fast-jwt` introduced the following breaking changes:
+- **sign** options:
+  - `audience` should be changed to `aud`
+  - `issuer` should be changed to `iss`
+  - `jwtid` should be changed to `jti`
+  - `subject` should be changed to `sub`
+  - `keyId` should be changed to `kid`
+
+- **verify** options:
+  - `audience` should be changed to `allowedAud`
+  - `issuer` should be changed to `allowedIss`
+  - `subject` should be changed to `allowedSub`
 
 ## Acknowledgements
 
