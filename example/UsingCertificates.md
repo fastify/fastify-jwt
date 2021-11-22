@@ -5,7 +5,7 @@
 Certificates `private.key` and `public.key` are generated with http://travistidwell.com/jsencrypt/demo/ or with the following command
 
 ```sh
-openssl genrsa -out private.key 1024
+openssl genrsa -out private.key 2048
 openssl rsa -in private.key -out public.key -outform PEM -pubout
 ```
 
@@ -63,7 +63,7 @@ Certificates `privateECDSA.key` and `publicECDSA.key` are generated with the fol
 
 ```sh
 # generate a P-256 curve ECDSA key pair
-openssl ecparam -genkey -name secp256k1 -out privateECDSA.key
+openssl ecparam -genkey -name prime256v1 -out privateECDSA.key
 
 # export the ECDSA public key to a file
 openssl ec -in privateECDSA.key -pubout -out publicECDSA.key
@@ -81,7 +81,7 @@ fastify.register(jwt, {
     private: readFileSync('path/to/privateECDSA.key', 'utf8'),
     public: readFileSync('path/to/publicECDSA.key', 'utf8')
   },
-  sign: { algorithm: 'RS256' }
+  sign: { algorithm: 'ES256' }
 })
 ```
 
@@ -92,7 +92,7 @@ Certificates `privateECDSA.pem` and `publicECDSA.pem` are generated with the fol
 ```sh
 # generate a P-256 curve ECDSA key pair, and encrypts them with a passphrase
 # the passphrase I choose for the demo files is: super secret passphrase
-openssl ecparam -genkey -name secp256k1 | openssl ec -aes256 -out privateECDSA.pem
+openssl ecparam -genkey -name prime256v1 | openssl ec -aes256 -out privateECDSA.pem
 
 # export the ECDSA public key to a file
 openssl ec -in privateECDSA.pem -pubout -out publicECDSA.pem
@@ -113,6 +113,6 @@ fastify.register(jwt, {
     },
     public: readFileSync('path/to/publicECDSA.pem', 'utf8')
   },
-  sign: { algorithm: 'RS256' }
+  sign: { algorithm: 'ES256' }
 })
 ```

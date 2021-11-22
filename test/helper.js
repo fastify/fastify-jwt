@@ -39,7 +39,7 @@ function generateKeyPairProtected (passphrase) {
 function generateKeyPairECDSA () {
   const options = {
     modulusLength: 2048,
-    namedCurve: 'secp256k1',
+    namedCurve: 'prime256v1',
     publicKeyEncoding: {
       type: 'spki',
       format: 'pem'
@@ -55,7 +55,7 @@ function generateKeyPairECDSA () {
 function generateKeyPairECDSAProtected (passphrase) {
   const options = {
     modulusLength: 2048,
-    namedCurve: 'secp256k1',
+    namedCurve: 'prime256v1',
     publicKeyEncoding: {
       type: 'spki',
       format: 'pem'
