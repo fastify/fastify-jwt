@@ -15,3 +15,9 @@ In `v4` we migrated away from using `jsonwebtoken` to `fast-jwt`. This introduce
   - `audience` should be changed to `allowedAud`
   - `issuer` should be changed to `allowedIss`
   - `subject` should be changed to `allowedSub`
+  - `jwtid` should be changed to `allowedJti`
+  - `nonce` should be changed to `allowedNonce`
+
+- **decode** options:
+  - `json` option has been removed
+  - `checkTyp` option has been introduced. If set to a string value, a check of the `typ` header claim is forced. Example: `checkTyp: 'JWT'`. By default `checkTyp` is `undefined`.
