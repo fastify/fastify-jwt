@@ -10,7 +10,11 @@
   "scripts": {
     "lint": "standard",
     "lint:fix": "standard --fix",
-    "test": "standard && tap --100 test/*.test.js && tsd"
+    "test": "npm run lint && npm run unit && npm run test:typescript",
+    "test:typescript": "tsd",
+    "unit": "tap -J test/*.test.js",
+    "unit:report": "npm run unit -- --cov --coverage-report=html",
+    "unit:verbose": "npm run unit -- -Rspec"
   },
   "repository": {
     "type": "git",

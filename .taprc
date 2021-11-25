@@ -1,0 +1,6 @@
+ts: false
+jsx: false
+flow: false
+coverage: true
+check-coverage: true
+100: true
