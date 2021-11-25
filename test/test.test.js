@@ -2,16 +2,16 @@
 
 const test = require('tap').test
 const Fastify = require('fastify')
-const rawJwt = require('jsonwebtoken')
+const { createSigner } = require('fast-jwt')
 const jwt = require('../jwt')
 
 const helper = require('./helper')
 
 const passphrase = 'super secret passphrase'
-const { privateKey, publicKey } = helper.generateKeyPair()
 const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helper.generateKeyPairProtected(passphrase)
-const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
+const { privateKey, publicKey } = helper.generateKeyPair()
+const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 
 test('register', function (t) {
   t.plan(14)
@@ -131,9 +131,9 @@ test('register', function (t) {
         },
         sign: {
           algorithm: 'RS256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'missing private key and/or public key')
@@ -149,9 +149,9 @@ test('register', function (t) {
         },
         sign: {
           algorithm: 'ES256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'missing private key and/or public key')
@@ -166,14 +166,14 @@ test('register', function (t) {
       secret: 'test',
       decode: { complete: true },
       sign: {
-        issuer: 'Some issuer',
-        subject: 'Some subject',
-        audience: 'Some audience'
+        iss: 'Some issuer',
+        sub: 'Some subject',
+        aud: 'Some audience'
       },
       verify: {
-        issuer: 'Some issuer',
-        subject: 'Some subject',
-        audience: 'Some audience'
+        allowedIss: 'Some issuer',
+        allowedSub: 'Some subject',
+        allowedAud: 'Some audience'
       }
     }).ready(function (error) {
       t.equal(error, undefined)
@@ -194,15 +194,15 @@ test('register', function (t) {
         decode: { complete: true },
         sign: {
           algorithm: 'RS256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         },
         verify: {
           algorithms: ['RS256'],
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          allowedAud: 'Some audience',
+          allowedIss: 'Some issuer',
+          allowedSub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error, undefined)
@@ -220,15 +220,15 @@ test('register', function (t) {
         decode: { complete: true },
         sign: {
           algorithm: 'ES256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         },
         verify: {
           algorithms: ['ES256'],
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          allowedAud: 'Some audience',
+          allowedIss: 'Some issuer',
+          allowedSub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error, undefined)
@@ -247,9 +247,9 @@ test('register', function (t) {
         secret: 'test',
         sign: {
           algorithm: 'RS256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
@@ -263,9 +263,9 @@ test('register', function (t) {
         secret: 'test',
         sign: {
           algorithm: 'ES256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
@@ -284,9 +284,9 @@ test('register', function (t) {
         secret: Buffer.from('some secret', 'base64'),
         sign: {
           algorithm: 'RS256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
@@ -300,9 +300,9 @@ test('register', function (t) {
         secret: Buffer.from('some secret', 'base64'),
         sign: {
           algorithm: 'ES256',
-          audience: 'Some audience',
-          issuer: 'Some issuer',
-          subject: 'Some subject'
+          aud: 'Some audience',
+          iss: 'Some issuer',
+          sub: 'Some subject'
         }
       }).ready(function (error) {
         t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
@@ -519,11 +519,11 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          issuer: 'test'
+          iss: 'test'
         },
         verify: {
           algorithms: ['RS256'],
-          issuer: 'test'
+          allowedIss: 'test'
         }
       })
 
@@ -567,10 +567,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          issuer: 'test'
+          iss: 'test'
         },
         verify: {
-          issuer: 'test'
+          allowedIss: 'test'
         }
       })
 
@@ -675,11 +675,11 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'ES256',
-          subject: 'test'
+          sub: 'test'
         },
         verify: {
           algorithms: ['ES256'],
-          subject: 'test'
+          allowedSub: 'test'
         }
       })
 
@@ -723,10 +723,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'ES256',
-          subject: 'test'
+          sub: 'test'
         },
         verify: {
-          subject: 'test'
+          allowedSub: 'test'
         }
       })
 
@@ -831,10 +831,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          audience: 'test'
+          aud: 'test'
         },
         verify: {
-          audience: 'test'
+          allowedAud: 'test'
         }
       })
 
@@ -878,10 +878,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          audience: 'test'
+          aud: 'test'
         },
         verify: {
-          audience: 'test'
+          allowedAud: 'test'
         }
       })
 
@@ -986,10 +986,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'ES256',
-          subject: 'test'
+          sub: 'test'
         },
         verify: {
-          subject: 'test'
+          allowedSub: 'test'
         }
       })
 
@@ -1033,10 +1033,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'ES256',
-          subject: 'test'
+          sub: 'test'
         },
         verify: {
-          subject: 'test'
+          allowedSub: 'test'
         }
       })
 
@@ -1141,11 +1141,11 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          issuer: 'test'
+          iss: 'test'
         },
         verify: {
           algorithms: ['RS256'],
-          issuer: 'test'
+          allowedIss: 'test'
         }
       })
 
@@ -1154,12 +1154,11 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         .then(function () {
           t.test('synchronous', function (t) {
             t.plan(2)
-
             const localOptions = Object.assign({}, fastify.jwt.options.sign)
-            localOptions.issuer = 'other'
+            localOptions.iss = 'other'
 
             const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
-            const decoded = fastify.jwt.verify(token, { issuer: 'other' })
+            const decoded = fastify.jwt.verify(token, { iss: 'other' })
 
             t.equal(decoded.foo, 'bar')
             t.equal(decoded.iss, 'other')
@@ -1167,14 +1166,13 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
           t.test('with callbacks', function (t) {
             t.plan(4)
-
             const localOptions = Object.assign({}, fastify.jwt.options.sign)
-            localOptions.issuer = 'other'
+            localOptions.iss = 'other'
 
             fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
               t.error(error)
 
-              fastify.jwt.verify(token, { issuer: 'other' }, function (error, decoded) {
+              fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
                 t.error(error)
                 t.equal(decoded.foo, 'bar')
                 t.equal(decoded.iss, 'other')
@@ -1186,7 +1184,6 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
     t.test('route methods', function (t) {
       t.plan(2)
-
       const fastify = Fastify()
       fastify.register(jwt, {
         secret: {
@@ -1195,10 +1192,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         },
         sign: {
           algorithm: 'RS256',
-          issuer: 'test'
+          iss: 'test'
         },
         verify: {
-          issuer: 'test'
+          allowedIss: 'test'
         }
       })
 
@@ -1230,7 +1227,6 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         .then(function () {
           t.test('synchronous', function (t) {
             t.plan(3)
-
             fastify.inject({
               method: 'post',
               url: '/signSync',
@@ -1259,7 +1255,6 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
           t.test('with callbacks', function (t) {
             t.plan(3)
-
             fastify.inject({
               method: 'post',
               url: '/signAsync',
@@ -1307,7 +1302,8 @@ test('sign and verify with trusted token', function (t) {
         })
     })
 
-    const trustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'trusted' })
+    const signer = createSigner({ key: 'test', jti: 'trusted' })
+    const trustedToken = signer({ foo: 'bar' })
     f.inject({
       method: 'get',
       url: '/',
@@ -1334,7 +1330,8 @@ test('sign and verify with trusted token', function (t) {
         })
     })
 
-    const trustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'trusted' })
+    const signer = createSigner({ key: 'test', jti: 'trusted' })
+    const trustedToken = signer({ foo: 'bar' })
     f.inject({
       method: 'get',
       url: '/',
@@ -1427,13 +1424,13 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(10)
+  t.plan(11)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
 
   fastify.post('/sign', function (request, reply) {
-    reply.jwtSign(request.body.payload)
+    reply.jwtSign(request.body.payload, { sign: { iss: 'foo' } })
       .then(function (token) {
         return reply.send({ token })
       })
@@ -1452,8 +1449,8 @@ test('errors', function (t) {
       })
   })
 
-  fastify.get('/verifyFail', function (request, reply) {
-    request.jwtVerify({ issuer: 'foo' })
+  fastify.get('/verifyFailOnIss', function (request, reply) {
+    request.jwtVerify({ verify: { allowedIss: 'bar' } })
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
@@ -1462,9 +1459,19 @@ test('errors', function (t) {
       })
   })
 
-  fastify.get('/verifyCallbackCount', function (request, reply) {
+  fastify.get('/verifyFailOnAlgorithmMismatch', function (request, reply) {
+    request.jwtVerify({ verify: { algorithms: ['invalid'] } })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyErrorCallbackCount', function (request, reply) {
     let count = 0
-    request.jwtVerify(function () {
+    request.jwtVerify({ verify: { key: 'invalid key' } }, function () {
       count += 1
       setImmediate(function () {
         reply.send({ count })
@@ -1568,7 +1575,9 @@ test('errors', function (t) {
       t.test('Invalid signature error', function (t) {
         t.plan(2)
 
-        const invalidSignatureToken = rawJwt.sign({ foo: 'bar' }, Buffer.alloc(64), {})
+        const signer = createSigner({ key: Buffer.alloc(64) })
+        const invalidSignatureToken = signer({ foo: 'bar' })
+
         fastify.inject({
           method: 'get',
           url: '/verify',
@@ -1577,7 +1586,7 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Authorization token is invalid: invalid signature')
+          t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
           t.equal(response.statusCode, 401)
         })
       })
@@ -1585,7 +1594,9 @@ test('errors', function (t) {
       t.test('Untrusted token error', function (t) {
         t.plan(2)
 
-        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        const signer = createSigner({ key: 'test', jti: 'untrusted' })
+        const untrustedToken = signer({ foo: 'bar' })
+
         fastify.inject({
           method: 'get',
           url: '/verifyFailUntrustedToken',
@@ -1614,7 +1625,8 @@ test('errors', function (t) {
             })
         })
 
-        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        const signer = createSigner({ key: 'test', jti: 'untrusted' })
+        const untrustedToken = signer({ foo: 'bar' })
         f.inject({
           method: 'get',
           url: '/',
@@ -1643,30 +1655,68 @@ test('errors', function (t) {
 
           fastify.inject({
             method: 'get',
-            url: '/verifyFail',
+            url: '/verifyFailOnIss',
             headers: {
               authorization: `Bearer ${token}`
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.equal(error.message, 'Authorization token is invalid: jwt issuer invalid. expected: foo')
+            t.equal(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
             t.equal(verifyResponse.statusCode, 401)
           })
         })
       })
 
-      t.test('jwtVerify callback invoked once on error', function (t) {
-        t.plan(1)
+      t.test('requestVerify function: algorithm mismatch error', function (t) {
+        t.plan(3)
 
         fastify.inject({
-          method: 'get',
-          url: '/verifyCallbackCount',
-          headers: {
-            authorization: 'Bearer invalid'
+          method: 'post',
+          url: '/sign',
+          payload: {
+            payload: { foo: 'bar' }
           }
-        }).then(function (response) {
-          const result = JSON.parse(response.payload)
-          t.equal(result.count, 1)
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verifyFailOnAlgorithmMismatch',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const error = JSON.parse(verifyResponse.payload)
+            t.equal(error.message, 'The token algorithm is invalid.')
+            t.equal(verifyResponse.statusCode, 500)
+          })
+        })
+      })
+
+      t.test('jwtVerify callback invoked once on error', function (t) {
+        t.plan(2)
+
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: {
+            payload: { foo: 'bar' }
+          }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verifyErrorCallbackCount',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (response) {
+            const result = JSON.parse(response.payload)
+            t.equal(result.count, 1)
+          })
         })
       })
     })
@@ -1929,7 +1979,7 @@ test('token in cookie, without fastify-cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, cookie uparsed (header fallback)', function (t) {
+  t.test('both authorization and cookie headers present, cookie unparsed (header fallback)', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2027,7 +2077,9 @@ test('custom response messages', function (t) {
       t.test('custom invalid signature error', function (t) {
         t.plan(2)
 
-        const invalidSignatureToken = rawJwt.sign({ foo: 'bar' }, Buffer.alloc(64), {})
+        const signer = createSigner({ key: Buffer.alloc(64) })
+        const invalidSignatureToken = signer({ foo: 'bar' })
+
         fastify.inject({
           method: 'get',
           url: '/verify',
@@ -2044,7 +2096,8 @@ test('custom response messages', function (t) {
       t.test('custom untrusted token error', function (t) {
         t.plan(2)
 
-        const untrustedToken = rawJwt.sign({ foo: 'bar' }, 'test', { jwtid: 'untrusted' })
+        const signer = createSigner({ key: 'test', jti: 'untrusted' })
+        const untrustedToken = signer({ foo: 'bar' })
         fastify.inject({
           method: 'get',
           url: '/verify',
@@ -2276,10 +2329,12 @@ test('support extended config contract', function (t) {
   t.plan(1)
   const extConfig = {
     sign: {
-      issuer: 'api.example.tld'
+      key: 'secret',
+      iss: 'api.example.tld'
     },
     verify: {
-      issuer: 'api.example.tld',
+      key: 'secret',
+      allowedIss: 'api.example.tld',
       extractToken: (req) => (req.headers.otherauth)
     },
     decode: {
@@ -2326,7 +2381,7 @@ test('support extended config contract', function (t) {
     const decodedToken = JSON.parse(decodeResponse.payload)
     t.ok(decodedToken)
     t.equal(decodedToken.header.typ, 'JWT')
-    t.equal(decodedToken.payload.iss, extConfig.sign.issuer)
+    t.equal(decodedToken.payload.iss, extConfig.sign.iss)
     t.equal(decodedToken.payload.foo, 'bar')
 
     const verifyResponse = await fastify.inject({
@@ -2337,7 +2392,170 @@ test('support extended config contract', function (t) {
       }
     })
     const decodedAndVerifiedToken = JSON.parse(verifyResponse.payload)
-    t.equal(decodedAndVerifiedToken.iss, extConfig.sign.issuer)
+    t.equal(decodedAndVerifiedToken.iss, extConfig.sign.iss)
     t.equal(decodedAndVerifiedToken.foo, 'bar')
+  })
+})
+
+test('support fast-jwt compatible config options', async function (t) {
+  t.plan(4)
+  const options = {
+    sign: {
+      key: 'secret'
+    },
+    verify: {
+      key: 'secret'
+    },
+    decode: {
+      complete: true
+    }
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', ...options })
+
+  fastify.post('/signWithSignOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { sign: { iss: 'foo' } })
+    return reply.send({ token })
+  })
+
+  fastify.post('/signWithOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { iss: 'foo' })
+    return reply.send({ token })
+  })
+
+  await fastify.ready()
+
+  t.test('options are functions', function (t) {
+    t.plan(4)
+    fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
+      t.error(err)
+      t.ok(token)
+
+      fastify.jwt.verify(token, (err, result) => {
+        t.error(err)
+        t.ok(result)
+      })
+    })
+  })
+
+  t.test('no options defined', async function (t) {
+    const token = await fastify.jwt.sign({ foo: 'bar' })
+    t.ok(token)
+
+    const verifiedToken = await fastify.jwt.verify(token)
+    t.ok(verifiedToken)
+  })
+
+  t.test('options.sign defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithSignOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+  })
+
+  t.test('general options defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+  })
+})
+
+test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', async function (t) {
+  t.plan(3)
+  const options = {
+    sign: {
+      key: 'secret',
+      expiresIn: '1d'
+    },
+    verify: {
+      key: 'secret',
+      maxAge: 2000
+    },
+    decode: {
+      complete: true
+    },
+    jwtDecode: true
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', ...options })
+
+  fastify.post('/signWithSignOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { sign: { iss: 'foo' } })
+    return reply.send({ token })
+  })
+
+  fastify.post('/signWithOptions', async function (request, reply) {
+    const token = await reply.jwtSign(request.body, { iss: 'foo', notBefore: '5 hours' })
+    return reply.send({ token })
+  })
+
+  fastify.get('/check-decoded-token', async function (request, reply) {
+    const decodedToken = await request.jwtDecode()
+    return reply.send(decodedToken)
+  })
+
+  await fastify.ready()
+
+  t.test('options are functions', function (t) {
+    t.plan(6)
+    fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
+      t.error(err)
+      t.ok(token)
+
+      fastify.jwt.verify(token, (err, result) => {
+        t.error(err)
+        t.ok(result)
+        t.ok(result.exp)
+        t.equal(typeof result.exp, 'number')
+      })
+    })
+  })
+
+  t.test('options.sign defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithSignOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+  })
+
+  t.test('general options defined and merged with signOptions', async function (t) {
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/signWithOptions',
+      payload: { foo: 'bar' }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.ok(token)
+
+    const decodeResponse = await fastify.inject({
+      method: 'get',
+      url: '/check-decoded-token',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const decodedToken = JSON.parse(decodeResponse.payload)
+    t.ok(decodedToken)
+    t.ok(decodedToken.payload.exp)
+    t.equal(typeof decodedToken.payload.exp, 'number')
+    t.ok(decodedToken.payload.nbf)
+    t.equal(typeof decodedToken.payload.nbf, 'number')
   })
 })
