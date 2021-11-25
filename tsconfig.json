@@ -8,6 +8,6 @@
     "esModuleInterop": true,
   },
   "files": [
-    "jwt.test-d.ts"
+    "test/types/jwt.test-d.ts"
   ]
 }
