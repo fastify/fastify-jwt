@@ -1,5 +1,5 @@
 import fastify from 'fastify';
-import fastifyJwt, { FastifyJWTOptions } from './jwt'
+import fastifyJwt, { FastifyJWTOptions } from '../../jwt'
 import { expectAssignable } from 'tsd'
 
 const app = fastify();
