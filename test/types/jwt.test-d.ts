@@ -41,7 +41,9 @@ const jwtOptions: FastifyJWTOptions = {
   },
   messages: {
     badRequestErrorMessage: 'Bad Request',
+    badCookieRequestErrorMessage: 'Bad Cookie Request',
     noAuthorizationInHeaderMessage: 'No Header',
+    noAuthorizationInCookieMessage: 'No Cookie',
     authorizationTokenExpiredMessage: 'Token Expired',
     authorizationTokenInvalid: (err) => `${err.message}`,
     authorizationTokenUntrusted: 'Token untrusted'
