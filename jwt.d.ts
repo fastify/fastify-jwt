@@ -85,7 +85,9 @@ export interface FastifyJWTOptions {
   }
   messages?: {
     badRequestErrorMessage?: string
+    badCookieRequestErrorMessage?: string
     noAuthorizationInHeaderMessage?: string
+    noAuthorizationInCookieMessage?: string
     authorizationTokenExpiredMessage?: string
     authorizationTokenInvalid?: ((err: Error) => string) | string
     authorizationTokenUntrusted?: string
