@@ -150,7 +150,6 @@ declare module 'fastify' {
     jwtSign(payload: SignPayloadType, callback: SignerCallback): void
     jwtSign(payload: SignPayloadType, options: FastifyJwtSignOptions, callback: SignerCallback): void
     jwtSign(payload: SignPayloadType, options?: Partial<SignOptions>): Promise<string>
-    jwtSign(payload: SignPayloadType, callback: SignerCallback): void
     jwtSign(payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
   }
 
@@ -159,7 +158,6 @@ declare module 'fastify' {
     jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifierCallback): void
     jwtVerify<Decoded extends VerifyPayloadType>(options: FastifyJwtVerifyOptions, callback: VerifierCallback): void
     jwtVerify<Decoded extends VerifyPayloadType>(options?: Partial<VerifyOptions>): Promise<Decoded>
-    jwtVerify<Decoded extends VerifyPayloadType>(callback: VerifierCallback): void
     jwtVerify<Decoded extends VerifyPayloadType>(options: Partial<VerifyOptions>, callback: VerifierCallback): void
     jwtDecode<Decoded extends DecodePayloadType>(options?: FastifyJwtDecodeOptions): Promise<Decoded>
     jwtDecode<Decoded extends DecodePayloadType>(callback: DecodeCallback<Decoded>): void
