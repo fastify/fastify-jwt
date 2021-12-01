@@ -1,4 +1,12 @@
-import { DecoderOptions, KeyFetcher, SignerCallback, SignerOptions, VerifierCallback, VerifierOptions, JwtHeader } from 'fast-jwt'
+import {
+  DecoderOptions,
+  JwtHeader,
+  KeyFetcher,
+  SignerCallback,
+  SignerOptions,
+  VerifierCallback,
+  VerifierOptions
+} from 'fast-jwt'
 import * as fastify from 'fastify'
 
 /**
