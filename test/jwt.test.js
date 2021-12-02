@@ -1424,7 +1424,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(11)
+  t.plan(12)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
