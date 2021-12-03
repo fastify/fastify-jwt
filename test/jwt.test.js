@@ -1424,7 +1424,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(11)
+  t.plan(12)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
@@ -1461,6 +1461,16 @@ test('errors', function (t) {
 
   fastify.get('/verifyFailOnAlgorithmMismatch', function (request, reply) {
     request.jwtVerify({ verify: { algorithms: ['invalid'] } })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyFailOnInvalidClockTimestamp', function (request, reply) {
+    request.jwtVerify({ verify: { clockTimestamp: 'not_a_number' } })
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
@@ -1688,7 +1698,34 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.equal(error.message, 'The token algorithm is invalid.')
+            t.equal(error.message, 'Authorization token is invalid: Invalid public key provided for algorithms invalid.')
+            t.equal(verifyResponse.statusCode, 401)
+          })
+        })
+      })
+
+      t.test('requestVerify function: invalid timestamp', function (t) {
+        t.plan(3)
+
+        fastify.inject({
+          method: 'post',
+          url: '/sign',
+          payload: {
+            payload: { foo: 'bar' }
+          }
+        }).then(function (signResponse) {
+          const token = JSON.parse(signResponse.payload).token
+          t.ok(token)
+
+          fastify.inject({
+            method: 'get',
+            url: '/verifyFailOnInvalidClockTimestamp',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          }).then(function (verifyResponse) {
+            const error = JSON.parse(verifyResponse.payload)
+            t.equal(error.message, 'The clockTimestamp option must be a positive number.')
             t.equal(verifyResponse.statusCode, 500)
           })
         })

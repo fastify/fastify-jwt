@@ -1,4 +1,12 @@
-import { DecoderOptions, KeyFetcher, SignerCallback, SignerOptions, VerifierCallback, VerifierOptions } from 'fast-jwt'
+import {
+  DecoderOptions,
+  JwtHeader,
+  KeyFetcher,
+  SignerCallback,
+  SignerOptions,
+  VerifierCallback,
+  VerifierOptions
+} from 'fast-jwt'
 import * as fastify from 'fastify'
 
 /**
@@ -36,21 +44,6 @@ export type SignPayloadType = FastifyJWT extends { payload: infer T }
 export type UserType = FastifyJWT extends { user: infer T }
   ? T
   : SignPayloadType
-
-// standard names https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1
-// same interface as in jsonwebtoken lib - https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/jsonwebtoken/index.d.ts
-export interface JwtHeader {
-    alg: string | Algorithm;
-    typ?: string | undefined;
-    cty?: string | undefined;
-    crit?: Array<string | Exclude<keyof JwtHeader, 'crit'>> | undefined;
-    kid?: string | undefined;
-    jku?: string | undefined;
-    x5u?: string | string[] | undefined;
-    'x5t#S256'?: string | undefined;
-    x5t?: string | undefined;
-    x5c?: string | string[] | undefined;
-}
 
 export type TokenOrHeader = JwtHeader | { header: JwtHeader; payload: any }
 
@@ -121,6 +114,8 @@ export interface JWT {
 
   decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded
 }
+
+export type { JwtHeader } from 'fast-jwt'
 
 export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
 
