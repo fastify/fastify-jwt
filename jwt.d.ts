@@ -115,6 +115,8 @@ export interface JWT {
   decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded
 }
 
+export type { JwtHeader } from 'fast-jwt'
+
 export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
 
 export default fastifyJWT
