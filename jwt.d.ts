@@ -48,8 +48,8 @@ export type UserType = FastifyJWT extends { user: infer T }
 export type TokenOrHeader = JwtHeader | { header: JwtHeader; payload: any }
 
 export type Secret = string | Buffer | KeyFetcher
-| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader, cb: (e: Error | null, secret: string | undefined) => void) => void)
-| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader) => Promise<string>)
+| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader, cb: (e: Error | null, secret: string | Buffer | undefined) => void) => void)
+| ((request: fastify.FastifyRequest, tokenOrHeader: TokenOrHeader) => Promise<string | Buffer>)
 
 export type VerifyPayloadType = object | string
 export type DecodePayloadType = object | string
