@@ -13,6 +13,9 @@ const secretOptions = {
   secretFnCallback: (_req, _token, cb) => { cb(null, 'supersecret') },
   secretFnPromise: (_req, _token) => Promise.resolve('supersecret'),
   secretFnAsync: async (_req, _token) => 'supersecret',
+  secretFnBufferCallback: (_req, _token, cb) => { cb(null, Buffer.from('some secret', 'base64')) },
+  secretFnBufferPromise: (_req, _token) => Promise.resolve(Buffer.from('some secret', 'base64')),
+  secretFnBufferAsync: async (_req, _token) => Buffer.from('some secret', 'base64'),
   publicPrivateKeyFn: {
     public: (_req, _rep, cb) => { cb(null, 'publicKey') },
     private: 'privateKey'
