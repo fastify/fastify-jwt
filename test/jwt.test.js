@@ -14,7 +14,7 @@ const { privateKey, publicKey } = helper.generateKeyPair()
 const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 
 test('register', function (t) {
-  t.plan(14)
+  t.plan(20)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(8)
@@ -99,6 +99,36 @@ test('register', function (t) {
     const fastify = Fastify()
     fastify.register(jwt, {
       secret: Buffer.from('some secret', 'base64')
+    }).ready(function (error) {
+      t.equal(error, undefined)
+    })
+  })
+
+  t.test('secret as a function with a callback returning a Buffer', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: (request, token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
+    }).ready(function (error) {
+      t.equal(error, undefined)
+    })
+  })
+
+  t.test('secret as a function returning a promise with Buffer', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: (request, token) => Promise.resolve(Buffer.from('some secret', 'base64'))
+    }).ready(function (error) {
+      t.equal(error, undefined)
+    })
+  })
+
+  t.test('secret as an async function returning a Buffer', function (t) {
+    t.plan(1)
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async (request, token) => Buffer.from('some secret', 'base64')
     }).ready(function (error) {
       t.equal(error, undefined)
     })
@@ -360,6 +390,24 @@ test('register', function (t) {
   t.test('secret as an async function', t => {
     return runWithSecret(t, async function (request, token) {
       return 'some-secret'
+    })
+  })
+
+  t.test('secret as a function with callback returning a Buffer', t => {
+    return runWithSecret(t, function (request, token, callback) {
+      callback(null, Buffer.from('some-secret', 'base64'))
+    })
+  })
+
+  t.test('secret as a function returning a promise with a Buffer', t => {
+    return runWithSecret(t, function (request, token) {
+      return Promise.resolve(Buffer.from('some secret', 'base64'))
+    })
+  })
+
+  t.test('secret as an async function returning a Buffer', t => {
+    return runWithSecret(t, async function (request, token) {
+      return Buffer.from('some secret', 'base64')
     })
   })
 
