@@ -37,7 +37,7 @@
     "@lukeed/ms": "^2.0.0",
     "fast-jwt": "^1.4.0",
     "fastify-plugin": "^3.0.0",
-    "http-errors": "^1.8.1",
+    "http-errors": "^2.0.0",
     "steed": "^1.1.3"
   },
   "devDependencies": {
