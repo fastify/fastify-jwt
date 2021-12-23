@@ -117,9 +117,9 @@ export interface JWT {
 
 export type { JwtHeader } from 'fast-jwt'
 
-export const fastifyJWT: fastify.FastifyPluginCallback<FastifyJWTOptions>
+export const fastifyJwt: fastify.FastifyPluginCallback<FastifyJWTOptions>
 
-export default fastifyJWT
+export default fastifyJwt
 
 export interface FastifyJwtSignOptions {
   sign?: Partial<SignOptions>

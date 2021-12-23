@@ -4,6 +4,8 @@ const test = require('tap').test
 const Fastify = require('fastify')
 const { createSigner } = require('fast-jwt')
 const jwt = require('../jwt')
+const defaultExport = require('../jwt').default
+const { fastifyJwt: namedExport } = require('../jwt')
 
 const helper = require('./helper')
 
@@ -12,6 +14,25 @@ const { privateKey: privateKeyProtected, publicKey: publicKeyProtected } = helpe
 const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA } = helper.generateKeyPairECDSAProtected(passphrase)
 const { privateKey, publicKey } = helper.generateKeyPair()
 const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
+
+test('export', function (t) {
+  t.plan(3)
+
+  t.test('module export', function (t) {
+    t.plan(1)
+    t.equal(typeof jwt, 'function')
+  })
+
+  t.test('default export', function (t) {
+    t.plan(1)
+    t.equal(typeof defaultExport, 'function')
+  })
+
+  t.test('named export', function (t) {
+    t.plan(1)
+    t.equal(typeof namedExport, 'function')
+  })
+})
 
 test('register', function (t) {
   t.plan(20)
