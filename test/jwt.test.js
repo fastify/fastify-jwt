@@ -2593,6 +2593,8 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     jwtDecode: true
   }
 
+  const oneDayInSeconds = 24 * 60 * 60
+
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', ...options })
 
@@ -2614,7 +2616,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
   await fastify.ready()
 
   t.test('options are functions', function (t) {
-    t.plan(6)
+    t.plan(7)
     fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
       t.error(err)
       t.ok(token)
@@ -2624,6 +2626,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
         t.ok(result)
         t.ok(result.exp)
         t.equal(typeof result.exp, 'number')
+        t.equal(result.exp - result.iat, oneDayInSeconds)
       })
     })
   })
@@ -2637,6 +2640,14 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
 
     const token = JSON.parse(signResponse.payload).token
     t.ok(token)
+    fastify.jwt.verify(token, { secret: 'test' }, (err, result) => {
+      t.error(err)
+      t.ok(result)
+      t.ok(result.exp)
+      t.equal(typeof result.exp, 'number')
+      t.equal(result.iss, 'foo')
+      t.equal(result.exp - result.iat, oneDayInSeconds)
+    })
   })
 
   t.test('general options defined and merged with signOptions', async function (t) {
@@ -2661,6 +2672,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     t.ok(decodedToken)
     t.ok(decodedToken.payload.exp)
     t.equal(typeof decodedToken.payload.exp, 'number')
+    t.equal(decodedToken.payload.exp - decodedToken.payload.iat, oneDayInSeconds)
     t.ok(decodedToken.payload.nbf)
     t.equal(typeof decodedToken.payload.nbf, 'number')
   })

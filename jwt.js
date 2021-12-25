@@ -308,6 +308,16 @@ function fastifyJwt (fastify, options, next) {
       useLocalSigner = false
     }
 
+    const reply = this
+
+    if (next === undefined) {
+      return new Promise(function (resolve, reject) {
+        reply[jwtSignName](payload, options, function (err, val) {
+          err ? reject(err) : resolve(val)
+        })
+      })
+    }
+
     if (options.sign) {
       convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
@@ -318,16 +328,6 @@ function fastifyJwt (fastify, options, next) {
       convertTemporalProps(options)
       // Original contract, options supports only sign
       options = mergeOptionsWithKey({ ...signOptions, ...options }, true)
-    }
-
-    const reply = this
-
-    if (next === undefined) {
-      return new Promise(function (resolve, reject) {
-        reply[jwtSignName](payload, options, function (err, val) {
-          err ? reject(err) : resolve(val)
-        })
-      })
     }
 
     if (!payload) {
