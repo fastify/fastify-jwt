@@ -688,7 +688,7 @@ import fastifyJwt, { FastifyJWTOptions } from 'fastify-jwt'
 ```
 
 
-Define custom Payload Type
+Define custom Payload Type and Attached User Type to request object
 > [typescript declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html)
 
 ```ts
@@ -697,17 +697,22 @@ import "fastify-jwt"
 
 declare module "fastify-jwt" {
   interface FastifyJWT {
-    payload: { name: string }
+    payload: { id: number } // payload type is used for signing and verifying
+    user: {
+      id: number,
+      name: string,
+      age: number
+      } // user type is return type of `request.user` object
   }
 }
 
 // index.ts
-fastify.get('/', async (request, replay) => {
+fastify.get('/', async (request, reply) => {
   request.user.name // string
 
-  const token = await replay.jwtSign({
-    name: 123
-    // ^ Type 'number' is not assignable to type 'string'.
+  const token = await reply.jwtSign({
+    id: '123'
+    // ^ Type 'string' is not assignable to type 'number'.
   });
 })
 
