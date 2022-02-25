@@ -2577,7 +2577,8 @@ test('support fast-jwt compatible config options', async function (t) {
 })
 
 test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', async function (t) {
-  t.plan(3)
+  t.plan(4)
+
   const options = {
     sign: {
       key: 'secret',
@@ -2614,6 +2615,13 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
   })
 
   await fastify.ready()
+
+  t.test('initial options should not be modified', function (t) {
+    t.plan(2)
+
+    t.equal(fastify.jwt.options.sign.expiresIn, '1d')
+    t.equal(fastify.jwt.options.verify.maxAge, 2000)
+  })
 
   t.test('options are functions', function (t) {
     t.plan(7)
@@ -2676,4 +2684,33 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     t.ok(decodedToken.payload.nbf)
     t.equal(typeof decodedToken.payload.nbf, 'number')
   })
+})
+
+test('global user options should not be modified', async function (t) {
+  t.plan(3)
+
+  const options = {
+    sign: {
+      key: 'secret',
+      expiresIn: '1d',
+      notBefore: '4 hours'
+    },
+    verify: {
+      key: 'secret',
+      maxAge: 2000
+    },
+    decode: {
+      complete: true
+    },
+    jwtDecode: true
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', ...options })
+
+  await fastify.ready()
+
+  t.equal(fastify.jwt.options.sign.expiresIn, '1d')
+  t.equal(fastify.jwt.options.sign.notBefore, '4 hours')
+  t.equal(fastify.jwt.options.verify.maxAge, 2000)
 })
