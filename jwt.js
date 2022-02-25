@@ -262,8 +262,8 @@ function fastifyJwt (fastify, options, next) {
     assert(payload, 'missing payload')
     let localSigner = signer
 
-    convertTemporalProps(options)
-    const signerConfig = checkAndMergeSignOptions(options, callback)
+    const localOptions = convertTemporalProps(options)
+    const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
       localSigner = createSigner(signerConfig.options)
@@ -283,8 +283,8 @@ function fastifyJwt (fastify, options, next) {
 
     let localVerifier = verifier
 
-    convertTemporalProps(options, true)
-    const veriferConfig = checkAndMergeVerifyOptions(options, callback)
+    const localOptions = convertTemporalProps(options, true)
+    const veriferConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
       localVerifier = createVerifier(veriferConfig.options)
