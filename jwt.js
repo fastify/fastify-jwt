@@ -35,21 +35,25 @@ function convertToMs (time) {
 }
 
 function convertTemporalProps (options, isVerifyOptions) {
-  if (options && typeof options !== 'function') {
-    if (isVerifyOptions && options.maxAge) {
-      options.maxAge = convertToMs(options.maxAge)
-    } else if (options.expiresIn || options.notBefore) {
-      if (options.expiresIn) {
-        options.expiresIn = convertToMs(options.expiresIn)
-      }
+  if (!options || typeof options === 'function') {
+    return options
+  }
 
-      if (options.notBefore) {
-        options.notBefore = convertToMs(options.notBefore)
-      }
+  const formatedOptions = Object.assign({}, options)
+
+  if (isVerifyOptions && formatedOptions.maxAge) {
+    formatedOptions.maxAge = convertToMs(formatedOptions.maxAge)
+  } else if (formatedOptions.expiresIn || formatedOptions.notBefore) {
+    if (formatedOptions.expiresIn) {
+      formatedOptions.expiresIn = convertToMs(formatedOptions.expiresIn)
+    }
+
+    if (formatedOptions.notBefore) {
+      formatedOptions.notBefore = convertToMs(formatedOptions.notBefore)
     }
   }
 
-  return options
+  return formatedOptions
 }
 
 function fastifyJwt (fastify, options, next) {
@@ -61,8 +65,20 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('options prefix is deprecated'))
   }
 
-  const secret = options.secret
-  const trusted = options.trusted
+  const {
+    cookie,
+    decode: decodeOptions = {},
+    formatUser,
+    jwtDecode,
+    jwtSign,
+    jwtVerify,
+    secret,
+    sign: initialSignOptions = {},
+    trusted,
+    verify: initialVerifyOptions = {},
+    ...pluginOptions
+  } = options
+
   let secretOrPrivateKey
   let secretOrPublicKey
 
@@ -85,14 +101,10 @@ function fastifyJwt (fastify, options, next) {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
   }
 
-  const cookie = options.cookie
-  const formatUser = options.formatUser
-
-  const decodeOptions = options.decode || {}
-  const signOptions = convertTemporalProps(options.sign) || {}
-  const verifyOptions = convertTemporalProps(options.verify, true) || {}
-  const messagesOptions = Object.assign({}, messages, options.messages)
-  const namespace = typeof options.namespace === 'string' ? options.namespace : undefined
+  const signOptions = convertTemporalProps(initialSignOptions)
+  const verifyOptions = convertTemporalProps(initialVerifyOptions, true)
+  const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
+  const namespace = typeof pluginOptions.namespace === 'string' ? pluginOptions.namespace : undefined
 
   if (
     signOptions &&
@@ -113,12 +125,12 @@ function fastifyJwt (fastify, options, next) {
     return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
   }
 
-  const jwtConfig = {
+  const jwtDecorator = {
     decode: decode,
     options: {
       decode: decodeOptions,
-      sign: signOptions,
-      verify: verifyOptions,
+      sign: initialSignOptions,
+      verify: initialVerifyOptions,
       messages: messagesOptions
     },
     cookie: cookie,
@@ -139,21 +151,21 @@ function fastifyJwt (fastify, options, next) {
     if (fastify.jwt[namespace]) {
       return next(new Error(`JWT namespace already used "${namespace}"`))
     }
-    fastify.jwt[namespace] = jwtConfig
+    fastify.jwt[namespace] = jwtDecorator
 
-    jwtDecodeName = options.jwtDecode ? (typeof options.jwtDecode === 'string' ? options.jwtDecode : 'jwtDecode') : `${namespace}JwtDecode`
-    jwtVerifyName = options.jwtVerify || `${namespace}JwtVerify`
-    jwtSignName = options.jwtSign || `${namespace}JwtSign`
+    jwtDecodeName = jwtDecode ? (typeof jwtDecode === 'string' ? jwtDecode : 'jwtDecode') : `${namespace}JwtDecode`
+    jwtVerifyName = jwtVerify || `${namespace}JwtVerify`
+    jwtSignName = jwtSign || `${namespace}JwtSign`
   } else {
     fastify.decorateRequest('user', null)
-    fastify.decorate('jwt', jwtConfig)
+    fastify.decorate('jwt', jwtDecorator)
   }
 
   // Temporary conditional to prevent breaking changes by exposing `jwtDecode`,
   // which already exists in fastify-auth0-verify.
   // If jwtDecode has been requested, or plugin is configured to use a namespace.
   // TODO Remove conditional when fastify-jwt >=4.x.x
-  if (options.jwtDecode || namespace) {
+  if (jwtDecode || namespace) {
     fastify.decorateRequest(jwtDecodeName, requestDecode)
   }
   fastify.decorateRequest(jwtVerifyName, requestVerify)
@@ -231,20 +243,11 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function checkAndMergeOptions (options, defaultOptions, usePrivateKey, callback) {
-    let mergedOptions
-
     if (typeof options === 'function') {
-      callback = options
-      mergedOptions = mergeOptionsWithKey(defaultOptions, usePrivateKey)
-    } else {
-      if (!options) {
-        mergedOptions = mergeOptionsWithKey(defaultOptions, usePrivateKey)
-      } else {
-        mergedOptions = mergeOptionsWithKey(options, usePrivateKey)
-      }
+      return { options: mergeOptionsWithKey(defaultOptions, usePrivateKey), callback: options }
     }
 
-    return { options: mergedOptions, callback }
+    return { options: mergeOptionsWithKey(options || defaultOptions, usePrivateKey), callback }
   }
 
   function checkAndMergeSignOptions (options, callback) {
@@ -259,8 +262,8 @@ function fastifyJwt (fastify, options, next) {
     assert(payload, 'missing payload')
     let localSigner = signer
 
-    convertTemporalProps(options)
-    const signerConfig = checkAndMergeSignOptions(options, callback)
+    const localOptions = convertTemporalProps(options)
+    const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
       localSigner = createSigner(signerConfig.options)
@@ -280,8 +283,8 @@ function fastifyJwt (fastify, options, next) {
 
     let localVerifier = verifier
 
-    convertTemporalProps(options, true)
-    const veriferConfig = checkAndMergeVerifyOptions(options, callback)
+    const localOptions = convertTemporalProps(options, true)
+    const veriferConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
       localVerifier = createVerifier(veriferConfig.options)
@@ -319,15 +322,15 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (options.sign) {
-      convertTemporalProps(options.sign)
+      const localSignOptions = convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
       options = {
-        sign: mergeOptionsWithKey({ ...signOptions, ...options.sign }, true)
+        sign: mergeOptionsWithKey(Object.assign(signOptions, localSignOptions), true)
       }
     } else {
-      convertTemporalProps(options)
+      const localOptions = convertTemporalProps(options)
       // Original contract, options supports only sign
-      options = mergeOptionsWithKey({ ...signOptions, ...options }, true)
+      options = mergeOptionsWithKey(Object.assign(signOptions, localOptions), true)
     }
 
     if (!payload) {
@@ -392,6 +395,7 @@ function fastifyJwt (fastify, options, next) {
 
   function requestVerify (options, next) {
     let useLocalVerifier = true
+
     if (typeof options === 'function' && !next) {
       next = options
       options = {}
@@ -404,16 +408,16 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (options.decode || options.verify) {
-      convertTemporalProps(options.verify, true)
+      const localVerifyOptions = convertTemporalProps(options.verify, true)
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign({}, verifyOptions, options.verify)
+        verify: Object.assign({}, verifyOptions, localVerifyOptions)
       }
     } else {
-      convertTemporalProps(options, true)
+      const localOptions = convertTemporalProps(options, true)
       // Original contract, options supports only verify
-      options = Object.assign({}, verifyOptions, options)
+      options = Object.assign({}, verifyOptions, localOptions)
     }
 
     const request = this
