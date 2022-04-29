@@ -1,5 +1,5 @@
 ## Upgrading Notes
-This document captures breaking changes between versions of `fastify-jwt`.
+This document captures breaking changes between versions of `@fastify/jwt`.
 
 ### Upgrading from 3.x to 4.0
 
