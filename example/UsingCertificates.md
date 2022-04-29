@@ -14,7 +14,7 @@ Code example
 ```js
 const { readFileSync } = require('fs')
 const fastify = require('fastify')()
-const jwt = require('fastify-jwt')
+const jwt = require('@fastify/jwt')
 
 fastify.register(jwt, {
   secret: {
@@ -43,7 +43,7 @@ Code example
 ```js
 const { readFileSync } = require('fs')
 const fastify = require('fastify')()
-const jwt = require('fastify-jwt')
+const jwt = require('@fastify/jwt')
 
 fastify.register(jwt, {
   secret: {
@@ -74,7 +74,7 @@ Code example
 ```js
 const { readFileSync } = require('fs')
 const fastify = require('fastify')()
-const jwt = require('fastify-jwt')
+const jwt = require('@fastify/jwt')
 
 fastify.register(jwt, {
   secret: {
@@ -103,7 +103,7 @@ Code example
 ```js
 const { readFileSync } = require('fs')
 const fastify = require('fastify')()
-const jwt = require('fastify-jwt')
+const jwt = require('@fastify/jwt')
 
 fastify.register(jwt, {
   secret: {
