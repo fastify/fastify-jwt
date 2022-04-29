@@ -1828,7 +1828,7 @@ test('errors', function (t) {
     })
 })
 
-test('token in a signed cookie, with fastify-cookie parsing', function (t) {
+test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
   t.plan(2)
 
   const fastify = Fastify()
@@ -1836,7 +1836,7 @@ test('token in a signed cookie, with fastify-cookie parsing', function (t) {
     secret: 'test',
     cookie: { cookieName: 'jwt', signed: true }
   })
-  fastify.register(require('fastify-cookie'), {
+  fastify.register(require('@fastify/cookie'), {
     secret: 'cookieSecret'
   })
 
@@ -1877,12 +1877,12 @@ test('token in a signed cookie, with fastify-cookie parsing', function (t) {
   })
 })
 
-test('token in cookie, with fastify-cookie parsing', function (t) {
+test('token in cookie, with @fastify/cookie parsing', function (t) {
   t.plan(6)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', cookie: { cookieName: 'jwt' } })
-  fastify.register(require('fastify-cookie'))
+  fastify.register(require('@fastify/cookie'))
 
   fastify.post('/sign', function (request, reply) {
     return reply.jwtSign(request.body)
@@ -2041,7 +2041,7 @@ test('token in cookie, with fastify-cookie parsing', function (t) {
   })
 })
 
-test('token in cookie, without fastify-cookie parsing', function (t) {
+test('token in cookie, without @fastify/cookie parsing', function (t) {
   t.plan(2)
 
   const fastify = Fastify()
