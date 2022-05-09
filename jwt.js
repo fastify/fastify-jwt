@@ -126,17 +126,17 @@ function fastifyJwt (fastify, options, next) {
   }
 
   const jwtDecorator = {
-    decode: decode,
+    decode,
     options: {
       decode: decodeOptions,
       sign: initialSignOptions,
       verify: initialVerifyOptions,
       messages: messagesOptions
     },
-    cookie: cookie,
-    sign: sign,
-    verify: verify,
-    lookupToken: lookupToken
+    cookie,
+    sign,
+    verify,
+    lookupToken
   }
 
   let jwtDecodeName = 'jwtDecode'
@@ -501,6 +501,6 @@ function fastifyJwt (fastify, options, next) {
 }
 
 module.exports = fp(fastifyJwt, {
-  fastify: '>=3.0.0',
-  name: 'fastify-jwt'
+  fastify: '4.x',
+  name: '@fastify/jwt'
 })
