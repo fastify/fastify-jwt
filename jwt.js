@@ -142,9 +142,10 @@ function fastifyJwt (fastify, options, next) {
   let jwtDecodeName = 'jwtDecode'
   let jwtVerifyName = 'jwtVerify'
   let jwtSignName = 'jwtSign'
+  const jwtDecoratorName = process.env.JWT_DECORATOR_NAME || 'user'
   if (namespace) {
     if (!fastify.jwt) {
-      fastify.decorateRequest('jwtUser', null)
+      fastify.decorateRequest(jwtDecoratorName, null)
       fastify.decorate('jwt', Object.create(null))
     }
 
@@ -157,7 +158,7 @@ function fastifyJwt (fastify, options, next) {
     jwtVerifyName = jwtVerify || `${namespace}JwtVerify`
     jwtSignName = jwtSign || `${namespace}JwtSign`
   } else {
-    fastify.decorateRequest('jwtUser', null)
+    fastify.decorateRequest(jwtDecoratorName, null)
     fastify.decorate('jwt', jwtDecorator)
   }
 
