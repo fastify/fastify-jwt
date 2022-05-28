@@ -2715,7 +2715,7 @@ test('global user options should not be modified', async function (t) {
   t.equal(fastify.jwt.options.verify.maxAge, 2000)
 })
 
-test('decorator name should work after being changed in the env', async function (t) {
+test('decorator name should work after being changed in the options', async function (t) {
   t.plan(1)
 
   const fastify = Fastify()
