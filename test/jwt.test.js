@@ -2718,10 +2718,8 @@ test('global user options should not be modified', async function (t) {
 test('decorator name should work after being changed in the env', async function (t) {
   t.plan(1)
 
-  process.env.JWT_DECORATOR_NAME = 'jwtUser'
-
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test' })
+  fastify.register(jwt, { secret: 'test', decoratorName: 'customName' })
 
   fastify.post('/sign', async function (request, reply) {
     const token = await reply.jwtSign(request.body)
