@@ -2716,10 +2716,11 @@ test('global user options should not be modified', async function (t) {
 })
 
 test('decorator name should work after being changed in the options', async function (t) {
-  t.plan(1)
+  t.plan(3)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', decoratorName: 'customName' })
+  const decoratorName = 'customName'
+  fastify.register(jwt, { secret: 'test', decoratorName: decoratorName })
 
   fastify.post('/sign', async function (request, reply) {
     const token = await reply.jwtSign(request.body)
@@ -2733,4 +2734,6 @@ test('decorator name should work after being changed in the options', async func
   })
   const token = JSON.parse(signResponse.payload).token
   t.ok(token)
+  t.ok(fastify.jwt.options.decoratorName)
+  t.equal(fastify.jwt.options.decoratorName, decoratorName)
 })

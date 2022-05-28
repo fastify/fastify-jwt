@@ -132,7 +132,8 @@ function fastifyJwt (fastify, options, next) {
       decode: decodeOptions,
       sign: initialSignOptions,
       verify: initialVerifyOptions,
-      messages: messagesOptions
+      messages: messagesOptions,
+      decoratorName
     },
     cookie,
     sign,
