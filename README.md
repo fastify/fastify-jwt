@@ -410,6 +410,19 @@ fastify.register(require('@fastify/jwt'), {
 })
 ```
 
+### `decoratorName`
+If this plugin is used together with fastify/passport, we might get an error as both plugins use the same name for a decorator. We can change the name of the decorator, or `user` will default
+
+#### Example
+
+```js
+const fastify = require('fastify')
+fastify.register(require('@fastify/jwt'), {
+  secret: 'supersecret',
+  decoratorName: 'customName'
+})
+```
+
 ### `decode`
 
 * `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.

@@ -2714,3 +2714,26 @@ test('global user options should not be modified', async function (t) {
   t.equal(fastify.jwt.options.sign.notBefore, '4 hours')
   t.equal(fastify.jwt.options.verify.maxAge, 2000)
 })
+
+test('decorator name should work after being changed in the options', async function (t) {
+  t.plan(3)
+
+  const fastify = Fastify()
+  const decoratorName = 'customName'
+  fastify.register(jwt, { secret: 'test', decoratorName: decoratorName })
+
+  fastify.post('/sign', async function (request, reply) {
+    const token = await reply.jwtSign(request.body)
+    return { token }
+  })
+
+  const signResponse = await fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { foo: 'bar' }
+  })
+  const token = JSON.parse(signResponse.payload).token
+  t.ok(token)
+  t.ok(fastify.jwt.options.decoratorName)
+  t.equal(fastify.jwt.options.decoratorName, decoratorName)
+})

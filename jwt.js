@@ -75,6 +75,7 @@ function fastifyJwt (fastify, options, next) {
     secret,
     sign: initialSignOptions = {},
     trusted,
+    decoratorName = 'user',
     verify: initialVerifyOptions = {},
     ...pluginOptions
   } = options
@@ -131,7 +132,8 @@ function fastifyJwt (fastify, options, next) {
       decode: decodeOptions,
       sign: initialSignOptions,
       verify: initialVerifyOptions,
-      messages: messagesOptions
+      messages: messagesOptions,
+      decoratorName
     },
     cookie,
     sign,
@@ -144,7 +146,7 @@ function fastifyJwt (fastify, options, next) {
   let jwtSignName = 'jwtSign'
   if (namespace) {
     if (!fastify.jwt) {
-      fastify.decorateRequest('user', null)
+      fastify.decorateRequest(decoratorName, null)
       fastify.decorate('jwt', Object.create(null))
     }
 
@@ -157,7 +159,7 @@ function fastifyJwt (fastify, options, next) {
     jwtVerifyName = jwtVerify || `${namespace}JwtVerify`
     jwtSignName = jwtSign || `${namespace}JwtSign`
   } else {
-    fastify.decorateRequest('user', null)
+    fastify.decorateRequest(decoratorName, null)
     fastify.decorate('jwt', jwtDecorator)
   }
 
