@@ -2720,7 +2720,7 @@ test('decorator name should work after being changed in the options', async func
 
   const fastify = Fastify()
   const decoratorName = 'customName'
-  fastify.register(jwt, { secret: 'test', decoratorName: decoratorName })
+  fastify.register(jwt, { secret: 'test', decoratorName })
 
   fastify.post('/sign', async function (request, reply) {
     const token = await reply.jwtSign(request.body)
