@@ -13,7 +13,7 @@ import * as fastify from 'fastify'
  * for declaration merging
  * @example
  * ```
- * declare module 'fastify-jwt' {
+ * declare module '@fastify/jwt' {
  *   interface FastifyJWT {
  *     payload: { name: string; email: string }
  *   }
@@ -22,7 +22,7 @@ import * as fastify from 'fastify'
  * @example
  * ```
  * // With `formatUser`.
- * declare module 'fastify-jwt' {
+ * declare module '@fastify/jwt' {
  *   interface FastifyJWT {
  *     payload: { Name: string; e_mail: string }
  *     user: { name: string; email: string }
