@@ -299,7 +299,7 @@ fastify.listen(3000, err => {
 
 ### `onlyCookie`
 
-Setting this options to `true` will decode only yhe cookie jwt stored in the request. This is useful for refreshToken implementations where the user is set two tokens. One for the main authentication which has a shorter timeout and refresh token normally stored in the cookie which has a longer timeout. This allows you to check to make sure that the cookie token is still valid if it has a different expiring time than the main token.
+Setting this options to `true` will decode only the cookie in the request. This is useful for refreshToken implementations where the request typically has two tokens: token and refreshToken. The main authentication token usually has a shorter timeout and the refresh token normally stored in the cookie has a longer timeout. This allows you to check to make sure that the cookie token is still valid, as it could have a different expiring time than the main token. The payloads of the two different tokens could also be different.
 
 ```js
 const fastify = require('fastify')()
