@@ -2112,6 +2112,63 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
   })
 })
 
+test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, decoded with different payloads ', function (t) {
+  t.plan(3)
+
+  const fastify = Fastify()
+  fastify.register(jwt, {
+    secret: 'test',
+    cookie: { cookieName: 'refreshToken', signed: true }
+  })
+
+  fastify.register(require('@fastify/cookie'), {
+    secret: 'cookieSecret'
+  })
+
+  fastify.post('/sign', async function (request, reply) {
+    const { token, refreshToken } = request.body
+    const tokenSigned = await reply.jwtSign(token, { expiresIn: '10m' })
+    const refreshTokenSigned = await reply.jwtSign(refreshToken, { expiresIn: '1d' })
+    return reply.setCookie('refreshToken', refreshTokenSigned, { signed: true }).send({ tokenSigned })
+  })
+
+  fastify.get('/verify', async function (request, reply) {
+    const token = await request.jwtVerify()
+    const refreshToken = await request.jwtVerify({ onlyCookie: true })
+    return reply.send({ token, refreshToken })
+  })
+
+  fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { token: { foo: 'bar' }, refreshToken: { bar: 'foo' } }
+  }).then(async function (signResponse) {
+    const cookieName = signResponse.cookies[0].name
+    const signedCookie = signResponse.cookies[0].value
+
+    const payLoad = JSON.parse(signResponse.payload)
+    const signedTokenHeader = payLoad.tokenSigned
+
+    t.equal(cookieName, 'refreshToken')
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      cookies: {
+        refreshToken: signedCookie
+      },
+      headers: {
+        Authorization: 'Bearer ' + signedTokenHeader
+      }
+    })
+
+    const decodedToken = JSON.parse(response.payload)
+
+    t.equal(decodedToken.token.foo, 'bar')
+    t.equal(decodedToken.refreshToken.bar, 'foo')
+  })
+})
+
 test('custom response messages', function (t) {
   t.plan(5)
 

@@ -296,6 +296,64 @@ fastify.listen(3000, err => {
 })
 ```
 
+
+### `onlyCookie`
+
+Setting this options to `true` will decode only yhe cookie jwt stored in the request. This is useful for refreshToken implementations where the user is set two tokens. One for the main authentication which has a shorter timeout and refresh token normally stored in the cookie which has a longer timeout. This allows you to check to make sure that the cookie token is still valid if it has a different expiring time than the main token.
+
+```js
+const fastify = require('fastify')()
+const jwt = require('@fastify/jwt')
+
+fastify.register(jwt, {
+  secret: 'foobar',
+  cookie: {
+    cookieName: 'refreshToken',
+  },
+  sign: {
+    expiresIn: '10m'
+  }
+})
+
+fastify
+  .register(require('@fastify/cookie'))
+
+fastify.get('/cookies', async (request, reply) => {
+
+  const token = await reply.jwtSign({
+    name: 'foo'
+  })
+
+  const refreshToken = await reply.jwtSign({
+    name: 'bar'
+  }, {expiresIn: '1d'})
+
+  reply
+    .setCookie('refreshToken', refreshToken, {
+      domain: 'your.domain',
+      path: '/',
+      secure: true, // send cookie over HTTPS only
+      httpOnly: true,
+      sameSite: true // alternative CSRF protection
+    })
+    .code(200)
+    .send({token})
+})
+
+fastify.addHook('onRequest', (request) => {
+    request.jwtVerify()
+    request.jwtVerify({onlyCookie: true})
+})
+
+fastify.get('/verifycookie', (request, reply) => {
+  reply.send({ code: 'OK', message: 'it works!' })
+})
+
+fastify.listen(3000, err => {
+  if (err) throw err
+})
+```
+
 ### `trusted`
 
 #### Example trusted tokens

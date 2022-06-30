@@ -199,12 +199,13 @@ function fastifyJwt (fastify, options, next) {
 
     let token
     const extractToken = options.extractToken
+    const onlyCookie = options.onlyCookie
     if (extractToken) {
       token = extractToken(request)
       if (!token) {
         throw new BadRequest(messagesOptions.badRequestErrorMessage)
       }
-    } else if (request.headers && request.headers.authorization) {
+    } else if ((request.headers && request.headers.authorization) && (!onlyCookie)) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
