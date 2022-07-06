@@ -496,7 +496,7 @@ function fastifyJwt (fastify, options, next) {
         next(err)
       } else {
         const user = formatUser ? formatUser(result) : result
-        request.user = user
+        request[decoratorName] = user
         next(null, user)
       }
     })
