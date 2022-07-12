@@ -31,10 +31,10 @@
   },
   "homepage": "https://github.com/fastify/fastify-jwt#readme",
   "dependencies": {
+    "@fastify/error": "^3.0.0",
     "@lukeed/ms": "^2.0.0",
     "fast-jwt": "^1.5.1",
     "fastify-plugin": "^4.0.0",
-    "http-errors": "^2.0.0",
     "steed": "^1.1.3"
   },
   "devDependencies": {
