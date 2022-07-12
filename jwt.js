@@ -5,10 +5,7 @@ const { createSigner, createDecoder, createVerifier, TokenError } = require('fas
 const assert = require('assert')
 const steed = require('steed')
 const { parse } = require('@lukeed/ms')
-const {
-  BadRequest,
-  Unauthorized
-} = require('http-errors')
+const createError = require('@fastify/error')
 
 const messages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
@@ -107,6 +104,17 @@ function fastifyJwt (fastify, options, next) {
   const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
   const namespace = typeof pluginOptions.namespace === 'string' ? pluginOptions.namespace : undefined
 
+  const NoAuthorizationInCookieError = createError('FST_JWT_NO_AUTHORIZATION_IN_COOKIE', messagesOptions.noAuthorizationInCookieMessage, 401)
+  const AuthorizationTokenExpiredError = createError('FST_JWT_AUTHORIZATION_TOKEN_EXPIRED', messagesOptions.authorizationTokenExpiredMessage, 401)
+  const AuthorizationTokenUntrustedError = createError('FST_JWT_AUTHORIZATION_TOKEN_UNTRUSTED', messagesOptions.authorizationTokenUntrusted, 401)
+  const NoAuthorizationInHeaderError = createError('FST_JWT_NO_AUTHORIZATION_IN_HEADER', messagesOptions.noAuthorizationInHeaderMessage, 401)
+  const AuthorizationTokenInvalidError = createError('FST_JWT_AUTHORIZATION_TOKEN_INVALID', typeof messagesOptions.authorizationTokenInvalid === 'function'
+    ? messagesOptions.authorizationTokenInvalid({ message: '%s' })
+    : messagesOptions.authorizationTokenInvalid
+  , 401)
+  const BadRequestError = createError('FST_JWT_BAD_REQUEST', messagesOptions.badRequestErrorMessage, 400)
+  const BadCookieRequestError = createError('FST_JWT_BAD_COOKIE_REQUEST', messagesOptions.badCookieRequestErrorMessage, 400)
+
   if (
     signOptions &&
     signOptions.algorithm &&
@@ -203,7 +211,7 @@ function fastifyJwt (fastify, options, next) {
     if (extractToken) {
       token = extractToken(request)
       if (!token) {
-        throw new BadRequest(messagesOptions.badRequestErrorMessage)
+        throw new BadRequestError()
       }
     } else if ((request.headers && request.headers.authorization) && (!onlyCookie)) {
       const parts = request.headers.authorization.split(' ')
@@ -212,10 +220,10 @@ function fastifyJwt (fastify, options, next) {
         token = parts[1]
 
         if (!/^Bearer$/i.test(scheme)) {
-          throw new BadRequest(messagesOptions.badRequestErrorMessage)
+          throw new BadRequestError()
         }
       } else {
-        throw new BadRequest(messagesOptions.badRequestErrorMessage)
+        throw new BadRequestError()
       }
     } else if (cookie) {
       if (request.cookies) {
@@ -224,13 +232,13 @@ function fastifyJwt (fastify, options, next) {
 
           token = cookie.signed ? request.unsignCookie(tokenValue).value : tokenValue
         } else {
-          throw new Unauthorized(messagesOptions.noAuthorizationInCookieMessage)
+          throw new NoAuthorizationInCookieError()
         }
       } else {
-        throw new BadRequest(messagesOptions.badCookieRequestErrorMessage)
+        throw new BadCookieRequestError()
       }
     } else {
-      throw new Unauthorized(messagesOptions.noAuthorizationInHeaderMessage)
+      throw new NoAuthorizationInHeaderError()
     }
 
     return token
@@ -462,14 +470,16 @@ function fastifyJwt (fastify, options, next) {
           }
         } catch (error) {
           if (error.code === TokenError.codes.expired) {
-            return callback(new Unauthorized(messagesOptions.authorizationTokenExpiredMessage))
+            return callback(new AuthorizationTokenExpiredError())
           }
 
           if (error.code === TokenError.codes.invalidKey ||
               error.code === TokenError.codes.invalidSignature ||
               error.code === TokenError.codes.invalidClaimValue
           ) {
-            return callback(new Unauthorized(typeof messagesOptions.authorizationTokenInvalid === 'function' ? messagesOptions.authorizationTokenInvalid(error) : messagesOptions.authorizationTokenInvalid))
+            return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
+              ? new AuthorizationTokenInvalidError(error.message)
+              : new AuthorizationTokenInvalidError())
           }
 
           return callback(error)
@@ -483,11 +493,11 @@ function fastifyJwt (fastify, options, next) {
 
           if (maybePromise && maybePromise.then) {
             maybePromise
-              .then(trusted => trusted ? callback(null, result) : callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted)))
+              .then(trusted => trusted ? callback(null, result) : callback(new AuthorizationTokenUntrustedError()))
           } else if (maybePromise) {
             callback(null, maybePromise)
           } else {
-            callback(new Unauthorized(messagesOptions.authorizationTokenUntrusted))
+            callback(new AuthorizationTokenUntrustedError())
           }
         }
       }
