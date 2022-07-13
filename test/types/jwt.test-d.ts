@@ -85,6 +85,8 @@ app.register(fastifyJwt, {
   sign: { algorithm: 'ES256' },
 })
 
+app.register(fastifyJwt, {...jwtOptions, decoratorName: 'token' })
+
 // expect jwt and its subsequent methods have merged with the fastify instance
 expectAssignable<object>(app.jwt)
 expectAssignable<Function>(app.jwt.sign)

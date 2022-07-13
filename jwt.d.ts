@@ -91,6 +91,7 @@ export interface FastifyJWTOptions {
   namespace?: string
   jwtVerify?: string
   jwtSign?: string
+  decoratorName?: string
 }
 
 export interface JWT {
