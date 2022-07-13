@@ -74,6 +74,17 @@ Object.values(secretOptions).forEach((value) => {
 
 app.register(fastifyJwt, {...jwtOptions, trusted: () => Promise.resolve(false || '' || Buffer.from('foo')) })
 
+app.register(fastifyJwt, {
+  secret: {
+    private: {
+      key: 'privateKey',
+      passphrase: 'super secret passphrase',
+    },
+    public: 'publicKey',
+  },
+  sign: { algorithm: 'ES256' },
+})
+
 // expect jwt and its subsequent methods have merged with the fastify instance
 expectAssignable<object>(app.jwt)
 expectAssignable<Function>(app.jwt.sign)
