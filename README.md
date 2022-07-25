@@ -14,7 +14,7 @@ supports both Fastify@2.
 
 ## Install
 ```
-npm i @fastify/jwt --save
+npm i @fastify/jwt
 ```
 
 ## Usage
