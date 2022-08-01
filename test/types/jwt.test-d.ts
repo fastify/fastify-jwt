@@ -92,6 +92,7 @@ expectAssignable<object>(app.jwt)
 expectAssignable<Function>(app.jwt.sign)
 expectAssignable<Function>(app.jwt.verify)
 expectAssignable<Function>(app.jwt.decode)
+expectAssignable<Function>(app.jwt.lookupToken)
 expectAssignable<FastifyJWTOptions['cookie']>(app.jwt.cookie)
 
 app.addHook("preHandler", async (request, reply) => {
