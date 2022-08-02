@@ -114,6 +114,8 @@ export interface JWT {
   verify<Decoded extends VerifyPayloadType>(token: string, options: Partial<VerifyOptions>, callback: VerifierCallback): void
 
   decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded
+
+  lookupToken(request: fastify.FastifyRequest, options?: FastifyJWTOptions['verify']): string
 }
 
 export type { JwtHeader } from 'fast-jwt'
