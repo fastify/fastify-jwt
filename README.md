@@ -32,7 +32,7 @@ fastify.post('/signup', (req, reply) => {
   reply.send({ token })
 })
 
-fastify.listen(3000, err => {
+fastify.listen({ port: 3000 }, err => {
   if (err) throw err
 })
 ```
@@ -234,7 +234,7 @@ fastify.get('/decode', async (request, reply) => {
    */
 })
 
-fastify.listen(3000, err => {
+fastify.listen({ port: 3000 }, err => {
   if (err) throw err
 })
 ```
@@ -291,7 +291,7 @@ fastify.get('/verifycookie', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
 })
 
-fastify.listen(3000, err => {
+fastify.listen({ port: 3000 }, err => {
   if (err) throw err
 })
 ```
@@ -349,7 +349,7 @@ fastify.get('/verifycookie', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
 })
 
-fastify.listen(3000, err => {
+fastify.listen({ port: 3000 }, err => {
   if (err) throw err
 })
 ```
@@ -371,7 +371,7 @@ fastify.get('/', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
 })
 
-fastify.listen(3000, (err) => {
+fastify.listen({ port: 3000 }, (err) => {
   if (err) {
     throw err
   }
@@ -600,7 +600,7 @@ fastify.get('/', (request, reply) => {
    */
 })
 
-fastify.listen(3000, err => {
+fastify.listen({ port: 3000 }, err => {
   if (err) throw err
 })
 ```
@@ -677,7 +677,7 @@ fastify.get('/verify', function (request, reply) {
   })
 })
 
-fastify.listen(3000, function (err) {
+fastify.listen({ port: 3000 }, function (err) {
   if (err) fastify.log.error(err)
   fastify.log.info(`Server live on port: ${fastify.server.address().port}`)
 
@@ -744,7 +744,7 @@ fastify.addHook('onRequest', async (request, reply) => {
   }
 })
 
-fastify.listen(3000)
+fastify.listen({ port: 3000 })
 ```
 
 ## TypeScript
