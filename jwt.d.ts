@@ -65,6 +65,7 @@ export interface SignOptions extends Omit<SignerOptions, "expiresIn" | "notBefor
 
 export interface VerifyOptions extends Omit<VerifierOptions, "maxAge"> {
   maxAge: number | string;
+  onlyCookie: boolean;
 }
 
 export interface FastifyJWTOptions {
@@ -140,7 +141,7 @@ export interface FastifyJwtDecodeOptions {
 
 declare module 'fastify' {
   interface FastifyInstance {
-    jwt: JWT
+    jwt: JWT & { [namespace: string]: JWT }
   }
 
   interface FastifyReply {
