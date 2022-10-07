@@ -141,7 +141,7 @@ export interface FastifyJwtDecodeOptions {
 
 declare module 'fastify' {
   interface FastifyInstance {
-    jwt: JWT & { [namespace: string]: JWT }
+    jwt: JWT
   }
 
   interface FastifyReply {
