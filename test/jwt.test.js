@@ -1897,7 +1897,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
         return reply.send(decodedToken)
       })
   })
-  
+
   t.test('token present in cookie', function (t) {
     t.plan(2)
     fastify.inject({
@@ -1975,7 +1975,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
         url: '/verify',
         cookies: {
           jwt: token + 'randomValue'
-        },
+        }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
         t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
@@ -1983,7 +1983,6 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       })
     })
   })
-
 })
 
 test('token in cookie, with @fastify/cookie parsing', function (t) {
