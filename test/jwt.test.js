@@ -1493,7 +1493,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(12)
+  t.plan(14)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
@@ -1668,6 +1668,58 @@ test('errors', function (t) {
           t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
           t.equal(response.statusCode, 401)
         })
+      })
+
+      t.test('Malformed token (header) error', function (t) {
+        t.plan(2)
+
+        const token = fastify.jwt.sign({
+          foo: 'bar'
+        })
+
+        let modifiedToken = token.split('.')
+        modifiedToken[0] = '1' + modifiedToken[0]
+        modifiedToken = modifiedToken.join('.')
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${modifiedToken}`
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
+            t.equal(response.statusCode, 401)
+          })
+      })
+
+      t.test('Malformed token (payload) error', function (t) {
+        t.plan(2)
+
+        const token = fastify.jwt.sign({
+          foo: 'bar'
+        })
+
+        let modifiedToken = token.split('.')
+        modifiedToken[1] = '1' + modifiedToken[1]
+        modifiedToken = modifiedToken.join('.')
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${modifiedToken}`
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(error.message, 'Authorization token is invalid: The token payload is not a valid base64url serialized JSON.')
+            t.equal(response.statusCode, 401)
+          })
       })
 
       t.test('Untrusted token error', function (t) {
@@ -2170,7 +2222,7 @@ test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, d
 })
 
 test('custom response messages', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token' }, trusted: (request, { jti }) => jti !== 'untrusted' })
@@ -2254,6 +2306,58 @@ test('custom response messages', function (t) {
           t.equal(error.message, 'invalid token')
           t.equal(response.statusCode, 401)
         })
+      })
+
+      t.test('Malformed token (header) error', function (t) {
+        t.plan(2)
+
+        const token = fastify.jwt.sign({
+          foo: 'bar'
+        })
+
+        let modifiedToken = token.split('.')
+        modifiedToken[0] = '1' + modifiedToken[0]
+        modifiedToken = modifiedToken.join('.')
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${modifiedToken}`
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(error.message, 'invalid token')
+            t.equal(response.statusCode, 401)
+          })
+      })
+
+      t.test('Malformed token (payload) error', function (t) {
+        t.plan(2)
+
+        const token = fastify.jwt.sign({
+          foo: 'bar'
+        })
+
+        let modifiedToken = token.split('.')
+        modifiedToken[1] = '1' + modifiedToken[1]
+        modifiedToken = modifiedToken.join('.')
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: `Bearer ${modifiedToken}`
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(error.message, 'invalid token')
+            t.equal(response.statusCode, 401)
+          })
       })
 
       t.test('custom untrusted token error', function (t) {

@@ -190,14 +190,18 @@ function fastifyJwt (fastify, options, next) {
   next()
 
   function decode (token, options) {
-    assert(token, 'missing token')
+    try {
+      assert(token, 'missing token')
 
-    if (options && typeof options !== 'function') {
-      const localDecoder = createDecoder(options)
-      return localDecoder(token)
+      if (options && typeof options !== 'function') {
+        const localDecoder = createDecoder(options)
+        return localDecoder(token)
+      }
+
+      return decoder(token)
+    } catch (err) {
+      return undefined
     }
-
-    return decoder(token)
   }
 
   function lookupToken (request, options) {
@@ -475,7 +479,8 @@ function fastifyJwt (fastify, options, next) {
 
           if (error.code === TokenError.codes.invalidKey ||
               error.code === TokenError.codes.invalidSignature ||
-              error.code === TokenError.codes.invalidClaimValue
+              error.code === TokenError.codes.invalidClaimValue ||
+              error.code === TokenError.codes.malformed
           ) {
             return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
               ? new AuthorizationTokenInvalidError(error.message)
