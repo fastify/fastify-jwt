@@ -37,7 +37,8 @@ const jwtOptions: FastifyJWTOptions = {
   },
   verify: {
     maxAge: '1 hour',
-    extractToken: (request) => 'token'
+    extractToken: (request) => 'token',
+    onlyCookie: false
   },
   decode: {
     complete: true
