@@ -65,6 +65,7 @@ export interface SignOptions extends Omit<SignerOptions, "expiresIn" | "notBefor
 
 export interface VerifyOptions extends Omit<VerifierOptions, "maxAge"> {
   maxAge: number | string;
+  onlyCookie: boolean;
 }
 
 export interface FastifyJWTOptions {

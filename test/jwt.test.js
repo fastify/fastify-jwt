@@ -1877,6 +1877,114 @@ test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
   })
 })
 
+test('token in cookie only, when onlyCookie is passed to verifyJWT()', function (t) {
+  t.plan(4)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test', cookie: { cookieName: 'jwt' } })
+  fastify.register(require('@fastify/cookie'))
+
+  fastify.post('/sign', function (request, reply) {
+    return reply.jwtSign(request.body)
+      .then(function (token) {
+        return { token }
+      })
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    return request.jwtVerify({ onlyCookie: true })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+  })
+
+  t.test('token present in cookie', function (t) {
+    t.plan(2)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify',
+        cookies: {
+          jwt: token
+        }
+      }).then(function (verifyResponse) {
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.equal(decodedToken.foo, 'bar')
+      })
+    })
+  })
+
+  t.test('token absent in cookie', function (t) {
+    t.plan(2)
+    fastify.inject({
+      method: 'get',
+      url: '/verify',
+      cookies: {}
+    }).then(function (verifyResponse) {
+      const error = JSON.parse(verifyResponse.payload)
+      t.equal(error.message, 'No Authorization was found in request.cookies')
+      t.equal(error.statusCode, 401)
+    })
+  })
+
+  // should reject
+  t.test('authorization headers present but no cookie header. should reject as we only check for cookie header', function (t) {
+    t.plan(3)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify',
+        headers: {
+          authorization: token
+        }
+      }).then(function (verifyResponse) {
+        const error = JSON.parse(verifyResponse.payload)
+        t.equal(error.message, 'No Authorization was found in request.cookies')
+        t.equal(error.statusCode, 401)
+      })
+    })
+  })
+
+  // check here 1
+  t.test('malformed cookie header, should reject', function (t) {
+    t.plan(3)
+    fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    }).then(function (signResponse) {
+      const token = JSON.parse(signResponse.payload).token
+      t.ok(token)
+
+      return fastify.inject({
+        method: 'get',
+        url: '/verify',
+        cookies: {
+          jwt: token + 'randomValue'
+        }
+      }).then(function (verifyResponse) {
+        const error = JSON.parse(verifyResponse.payload)
+        t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
+        t.equal(error.statusCode, 401)
+      })
+    })
+  })
+})
+
 test('token in cookie, with @fastify/cookie parsing', function (t) {
   t.plan(6)
 
