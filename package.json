@@ -30,6 +30,7 @@
     "url": "https://github.com/fastify/fastify-jwt/issues"
   },
   "homepage": "https://github.com/fastify/fastify-jwt#readme",
+  "files": ["*.js", "*.d.ts"],
   "dependencies": {
     "@fastify/error": "^3.0.0",
     "@lukeed/ms": "^2.0.0",
