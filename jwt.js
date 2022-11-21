@@ -73,7 +73,9 @@ function fastifyJwt (fastify, options, next) {
     sign: initialSignOptions = {},
     trusted,
     decoratorName = 'user',
-    verify: initialVerifyOptions = {},
+    // TODO: disable on next major
+    // enable errorCacheTTL to prevent breaking change
+    verify: initialVerifyOptions = { errorCacheTTL: 600000 },
     ...pluginOptions
   } = options
 
