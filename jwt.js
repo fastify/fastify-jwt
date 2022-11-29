@@ -519,3 +519,5 @@ module.exports = fp(fastifyJwt, {
   fastify: '4.x',
   name: '@fastify/jwt'
 })
+module.exports.default = fastifyJwt
+module.exports.fastifyJwt = fastifyJwt
