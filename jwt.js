@@ -194,12 +194,27 @@ function fastifyJwt (fastify, options, next) {
   function decode (token, options) {
     assert(token, 'missing token')
 
+    let selectedDecoder = decoder
+
     if (options && typeof options !== 'function') {
-      const localDecoder = createDecoder(options)
-      return localDecoder(token)
+      selectedDecoder = createDecoder(options)
     }
 
-    return decoder(token)
+    try {
+      return selectedDecoder(token)
+    } catch (error) {
+      if (error.code === TokenError.codes.malformed) {
+        throw new AuthorizationTokenInvalidError(error.message)
+      }
+
+      // istanbul ignore next. false positive: i don't know why this is not covered
+      if (error.code === TokenError.codes.invalidType) {
+        throw new AuthorizationTokenInvalidError(error.message)
+      }
+
+      // istanbul ignore next. unreachable code: this should never happen
+      throw error
+    }
   }
 
   function lookupToken (request, options) {

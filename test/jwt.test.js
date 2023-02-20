@@ -1496,7 +1496,11 @@ test('errors', function (t) {
   t.plan(12)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
+  fastify.register(jwt, {
+    secret: 'test',
+    trusted: (request, { jti }) => jti !== 'untrusted',
+    decode: { checkTyp: 'JWT' }
+  })
 
   fastify.post('/sign', function (request, reply) {
     reply.jwtSign(request.body.payload, { sign: { iss: 'foo' } })
@@ -1613,6 +1617,42 @@ test('errors', function (t) {
           t.equal(error.message, 'Format is Authorization: Bearer [token]')
           t.equal(response.statusCode, 400)
         })
+      })
+
+      t.test('authorization header malformed error', function (t) {
+        t.plan(2)
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: 'Bearer 1.2.3'
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(response.statusCode, 401)
+            t.equal(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
+          })
+      })
+
+      t.test('authorization header invalid type error', function (t) {
+        t.plan(2)
+
+        fastify
+          .inject({
+            method: 'get',
+            url: '/verify',
+            headers: {
+              authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUiJ9.e30.ha5mKb-6aDOVHh5lRaUBNdDmMAYLOl1no3LQkV2mAMQ'
+            }
+          })
+          .then(function (response) {
+            const error = JSON.parse(response.payload)
+            t.equal(response.statusCode, 401)
+            t.equal(error.message, 'Authorization token is invalid: The type must be "JWT".')
+          })
       })
 
       t.test('Bearer authorization format error', function (t) {
