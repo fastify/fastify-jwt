@@ -1493,7 +1493,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(12)
+  t.plan(14)
 
   const fastify = Fastify()
   fastify.register(jwt, {
