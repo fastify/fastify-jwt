@@ -194,12 +194,26 @@ function fastifyJwt (fastify, options, next) {
   function decode (token, options) {
     assert(token, 'missing token')
 
+    let selectedDecoder = decoder
+
     if (options && typeof options !== 'function') {
-      const localDecoder = createDecoder(options)
-      return localDecoder(token)
+      selectedDecoder = createDecoder(options)
     }
 
-    return decoder(token)
+    try {
+      return selectedDecoder(token)
+    } catch (error) {
+      // Ignoring the else branch because it's not possible to test it,
+      // it's just a safeguard for future changes in the fast-jwt library
+      /* istanbul ignore next */
+      if (error.code === TokenError.codes.malformed) {
+        throw new AuthorizationTokenInvalidError(error.message)
+      } else if (error.code === TokenError.codes.invalidType) {
+        throw new AuthorizationTokenInvalidError(error.message)
+      } else {
+        throw error
+      }
+    }
   }
 
   function lookupToken (request, options) {
