@@ -5,7 +5,7 @@ const Fastify = require('fastify')
 const { createSigner } = require('fast-jwt')
 const jwt = require('../jwt')
 const defaultExport = require('../jwt').default
-const { '@fastify/jwt': namedExport } = require('../jwt')
+const { fastifyJwt: namedExport } = require('../jwt')
 
 const helper = require('./helper')
 
