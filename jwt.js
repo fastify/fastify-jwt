@@ -511,7 +511,7 @@ function fastifyJwt (fastify, options, next) {
             maybePromise
               .then(trusted => trusted ? callback(null, result) : callback(new AuthorizationTokenUntrustedError()))
           } else if (maybePromise) {
-            callback(null, maybePromise)
+            callback(null, result)
           } else {
             callback(new AuthorizationTokenUntrustedError())
           }
