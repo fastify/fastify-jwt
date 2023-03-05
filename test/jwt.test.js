@@ -1387,13 +1387,15 @@ test('sign and verify with trusted token', function (t) {
   })
 
   t.test('Trusted token - async verification', function (t) {
-    t.plan(1)
+    t.plan(2)
 
     const f = Fastify()
     f.register(jwt, { secret: 'test', trusted: (request, { jti }) => Promise.resolve(jti !== 'untrusted') })
     f.get('/', (request, reply) => {
       request.jwtVerify()
         .then(function (decodedToken) {
+          delete decodedToken?.iat
+          t.same(decodedToken, { foo: 'bar', jti: 'trusted' })
           return reply.send(decodedToken)
         })
         .catch(function (error) {
