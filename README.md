@@ -454,8 +454,12 @@ const fastify = require('fastify')
 
 const myCustomMessages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
+  badCookieRequestErrorMessage: 'Cookie could not be parsed in request',
   noAuthorizationInHeaderMessage: 'Autorization header is missing!',
+  noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
+  authorizationTokenUntrusted: 'Untrusted authorization token',
+  authorizationTokenUnsigned: 'Unsigned authorization token
   // for the below message you can pass a sync function that must return a string as shown or a string
   authorizationTokenInvalid: (err) => {
     return `Authorization token is invalid: ${err.message}`

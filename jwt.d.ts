@@ -118,6 +118,7 @@ declare namespace fastifyJwt {
       authorizationTokenExpiredMessage?: string
       authorizationTokenInvalid?: ((err: Error) => string) | string
       authorizationTokenUntrusted?: string
+      authorizationTokenUnsigned?: string
     }
     trusted?: (request: FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
     formatUser?: (payload: SignPayloadType) => UserType,
