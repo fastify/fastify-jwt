@@ -1497,7 +1497,7 @@ test('decode', function (t) {
 })
 
 test('errors', function (t) {
-  t.plan(14)
+  t.plan(15)
 
   const fastify = Fastify()
   fastify.register(jwt, {
@@ -1567,6 +1567,16 @@ test('errors', function (t) {
   })
 
   fastify.get('/verifyFailUntrustedToken', function (request, reply) {
+    request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyFailUnsignedToken', function (request, reply) {
     request.jwtVerify()
       .then(function (decodedToken) {
         return reply.send(decodedToken)
@@ -1759,6 +1769,25 @@ test('errors', function (t) {
         }).then(function (response) {
           const error = JSON.parse(response.payload)
           t.equal(error.message, 'Untrusted authorization token')
+          t.equal(response.statusCode, 401)
+        })
+      })
+
+      t.test('Unsigned token error', function (t) {
+        t.plan(2)
+
+        const signer = createSigner({ algorithm: 'none' })
+        const unsignedToken = signer({ foo: 'bar' })
+
+        fastify.inject({
+          method: 'get',
+          url: '/verifyFailUnsignedToken',
+          headers: {
+            authorization: `Bearer ${unsignedToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.equal(error.message, 'Unsigned authorization token')
           t.equal(response.statusCode, 401)
         })
       })
@@ -2322,10 +2351,10 @@ test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, d
 })
 
 test('custom response messages', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token' }, trusted: (request, { jti }) => jti !== 'untrusted' })
+  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token', authorizationTokenUnsigned: 'unsigned token' }, trusted: (request, { jti }) => jti !== 'untrusted' })
 
   fastify.get('/verify', function (request, reply) {
     request.jwtVerify()
@@ -2404,6 +2433,25 @@ test('custom response messages', function (t) {
         }).then(function (response) {
           const error = JSON.parse(response.payload)
           t.equal(error.message, 'invalid token')
+          t.equal(response.statusCode, 401)
+        })
+      })
+
+      t.test('custom unsigned token error', function (t) {
+        t.plan(2)
+
+        const signer = createSigner({ algorithm: 'none' })
+        const unsignedToken = signer({ foo: 'bar' })
+
+        fastify.inject({
+          method: 'get',
+          url: '/verify',
+          headers: {
+            authorization: `Bearer ${unsignedToken}`
+          }
+        }).then(function (response) {
+          const error = JSON.parse(response.payload)
+          t.equal(error.message, 'unsigned token')
           t.equal(response.statusCode, 401)
         })
       })

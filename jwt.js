@@ -14,7 +14,8 @@ const messages = {
   noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
   authorizationTokenInvalid: (err) => `Authorization token is invalid: ${err.message}`,
-  authorizationTokenUntrusted: 'Untrusted authorization token'
+  authorizationTokenUntrusted: 'Untrusted authorization token',
+  authorizationTokenUnsigned: 'Unsigned authorization token'
 }
 
 function wrapStaticSecretInCallback (secret) {
@@ -109,6 +110,7 @@ function fastifyJwt (fastify, options, next) {
   const NoAuthorizationInCookieError = createError('FST_JWT_NO_AUTHORIZATION_IN_COOKIE', messagesOptions.noAuthorizationInCookieMessage, 401)
   const AuthorizationTokenExpiredError = createError('FST_JWT_AUTHORIZATION_TOKEN_EXPIRED', messagesOptions.authorizationTokenExpiredMessage, 401)
   const AuthorizationTokenUntrustedError = createError('FST_JWT_AUTHORIZATION_TOKEN_UNTRUSTED', messagesOptions.authorizationTokenUntrusted, 401)
+  const AuthorizationTokenUnsignedError = createError('FAST_JWT_MISSING_SIGNATURE', messagesOptions.authorizationTokenUnsigned, 401)
   const NoAuthorizationInHeaderError = createError('FST_JWT_NO_AUTHORIZATION_IN_HEADER', messagesOptions.noAuthorizationInHeaderMessage, 401)
   const AuthorizationTokenInvalidError = createError('FST_JWT_AUTHORIZATION_TOKEN_INVALID', typeof messagesOptions.authorizationTokenInvalid === 'function'
     ? messagesOptions.authorizationTokenInvalid({ message: '%s' })
@@ -496,6 +498,10 @@ function fastifyJwt (fastify, options, next) {
             return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
               ? new AuthorizationTokenInvalidError(error.message)
               : new AuthorizationTokenInvalidError())
+          }
+
+          if (error.code === TokenError.codes.missingSignature) {
+            return callback(new AuthorizationTokenUnsignedError())
           }
 
           return callback(error)
