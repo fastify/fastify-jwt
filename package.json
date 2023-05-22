@@ -33,7 +33,7 @@
   "dependencies": {
     "@fastify/error": "^3.0.0",
     "@lukeed/ms": "^2.0.0",
-    "fast-jwt": "^2.0.0",
+    "fast-jwt": "^3.0.0",
     "fastify-plugin": "^4.0.0",
     "steed": "^1.1.3"
   },
