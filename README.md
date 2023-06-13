@@ -117,6 +117,17 @@ In this object `{ private, public }` the `public` key is a string or buffer cont
 
 Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `token`, and `callback` parameters.
 
+#### Verify-only mode
+
+In cases when your incoming JWT tokens are issued by some trusted external
+service, and you need only to verify their signature without issuing, there is
+an option to configure `fastify-jwt` in *verify-only* mode by passing the
+`secret` object containing only a public key: `{ public }`.
+
+When only a public key provided, decode and verification functions will work as
+described below, but an exception will be thrown at an attempt to use any form
+of `sign` functionality.
+
 #### Example
 ```js
 const { readFileSync } = require('fs')
@@ -165,10 +176,18 @@ fastify.register(jwt, {
   },
   sign: { algorithm: 'ES256' }
 })
+// secret as an object with RSA public key
+// fastify-jwt is configured in VERIFY-ONLY mode
+fastify.register(jwt, {
+  secret: {
+    public: process.env.JWT_ISSUER_PUBKEY
+  }
+})
 ```
-Optionally you can define global default options that will be used by `@fastify/jwt` API if you do not override them.
 
-Additionally, it is also possible to reject tokens selectively (i.e. blacklisting) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>|SignPayloadType|Promise<SignPayloadType>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Its result should be `false` or `Promise<false>` if the token should be rejected or, otherwise, be `true` or `Promise<true>` if the token should be accepted and, considering that `request.user` will be used after that, the return should be `decodedToken` itself.
+### Default options
+
+Optionally you can define global default options that will be used by `@fastify/jwt` API if you do not override them.
 
 #### Example
 ```js
@@ -356,6 +375,8 @@ fastify.listen({ port: 3000 }, err => {
 
 ### `trusted`
 
+Additionally, it is also possible to reject tokens selectively (i.e. blacklisting) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>|SignPayloadType|Promise<SignPayloadType>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Its result should be `false` or `Promise<false>` if the token should be rejected or, otherwise, be `true` or `Promise<true>` if the token should be accepted and, considering that `request.user` will be used after that, the return should be `decodedToken` itself.
+
 #### Example trusted tokens
 ```js
 const fastify = require('fastify')()
@@ -534,7 +555,7 @@ fastify.jwt.verify(token, (err, decoded) => {
 ```
 
 ### fastify.jwt.decode(token [,options])
-This method is used to decode the provided token. It accepts a token (as a `Buffer` or a `string`) and returns the payload or the sections of the token. 
+This method is used to decode the provided token. It accepts a token (as a `Buffer` or a `string`) and returns the payload or the sections of the token.
 `options` must be an `Object` and can contain [decode](#decode) options.
 Can only be used synchronously.
 
