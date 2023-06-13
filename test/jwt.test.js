@@ -187,11 +187,11 @@ test('register', function (t) {
           sub: 'Some subject'
         }
       }).ready(function (error) {
-        t.equal(error.message, 'missing private key and/or public key')
+        t.equal(error.message, 'missing public key')
       })
     })
 
-    t.test('only public key (Must return an error)', function (t) {
+    t.test('only public key (Must not return an error)', function (t) {
       t.plan(1)
       const fastify = Fastify()
       fastify.register(jwt, {
@@ -205,7 +205,7 @@ test('register', function (t) {
           sub: 'Some subject'
         }
       }).ready(function (error) {
-        t.equal(error.message, 'missing private key and/or public key')
+        t.equal(error, undefined)
       })
     })
   })
@@ -577,34 +577,82 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
   t.test('RSA certificates', function (t) {
     t.plan(2)
 
+    const config = {
+      secret: {
+        private: privateKey,
+        public: publicKey
+      },
+      sign: {
+        algorithm: 'RS256',
+        iss: 'test'
+      },
+      verify: {
+        algorithms: ['RS256'],
+        allowedIss: 'test'
+      }
+    }
+
     t.test('server methods', function (t) {
       t.plan(2)
 
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: {
-          private: privateKey,
-          public: publicKey
-        },
-        sign: {
-          algorithm: 'RS256',
-          iss: 'test'
-        },
-        verify: {
-          algorithms: ['RS256'],
-          allowedIss: 'test'
-        }
+      let signedToken
+
+      t.test('signer mode', function (t) {
+        t.plan(2)
+        const fastifySigner = Fastify()
+        fastifySigner.register(jwt, config)
+
+        fastifySigner
+          .ready()
+          .then(function () {
+            t.test('synchronous', function (t) {
+              t.plan(2)
+
+              signedToken = fastifySigner.jwt.sign({ foo: 'bar' })
+              const decoded = fastifySigner.jwt.verify(signedToken)
+
+              t.equal(decoded.foo, 'bar')
+              t.equal(decoded.iss, 'test')
+            })
+
+            t.test('with callbacks', function (t) {
+              t.plan(4)
+
+              fastifySigner.jwt.sign({ foo: 'bar' }, function (error, token) {
+                t.error(error)
+
+                fastifySigner.jwt.verify(token, function (error, decoded) {
+                  t.error(error)
+                  t.equal(decoded.foo, 'bar')
+                  t.equal(decoded.iss, 'test')
+                })
+              })
+            })
+          })
       })
 
-      fastify
-        .ready()
-        .then(function () {
+      t.test('verifier mode', function (t) {
+        t.plan(2)
+        const fastifyVerifier = Fastify()
+        fastifyVerifier.register(jwt, {
+          ...config,
+          secret: {
+            public: config.secret.public
+            // no private key
+          }
+        })
+
+        fastifyVerifier.ready().then(function () {
           t.test('synchronous', function (t) {
-            t.plan(2)
+            t.plan(3)
 
-            const token = fastify.jwt.sign({ foo: 'bar' })
-            const decoded = fastify.jwt.verify(token)
+            try {
+              fastifyVerifier.jwt.sign({ foo: 'baz' })
+            } catch (error) {
+              t.equal(error.message, 'unable to sign: secret is configured in verify mode')
+            }
 
+            const decoded = fastifyVerifier.jwt.verify(signedToken)
             t.equal(decoded.foo, 'bar')
             t.equal(decoded.iss, 'test')
           })
@@ -612,79 +660,170 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           t.test('with callbacks', function (t) {
             t.plan(4)
 
-            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.error(error)
+            try {
+              fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error, token) {
+                // as for now, verifier-only error is not propagated here
+                t.error('SHOULD NOT BE HERE')
+                t.error(error)
+              })
+            } catch (error) {
+              t.equal(error.message, 'unable to sign: secret is configured in verify mode')
+            }
 
-              fastify.jwt.verify(token, function (error, decoded) {
+            fastifyVerifier.jwt.verify(
+              signedToken,
+              function (error, decoded) {
                 t.error(error)
                 t.equal(decoded.foo, 'bar')
                 t.equal(decoded.iss, 'test')
-              })
-            })
+              }
+            )
           })
         })
+      })
     })
 
     t.test('route methods', function (t) {
       t.plan(2)
 
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: {
-          private: privateKey,
-          public: publicKey
-        },
-        sign: {
-          algorithm: 'RS256',
-          iss: 'test'
-        },
-        verify: {
-          allowedIss: 'test'
-        }
-      })
+      let signedToken
 
-      fastify.post('/signSync', function (request, reply) {
-        reply.jwtSign(request.body)
-          .then(function (token) {
-            return reply.send({ token })
+      t.test('signer mode', function (t) {
+        t.plan(2)
+
+        const fastify = Fastify()
+        fastify.register(jwt, config)
+
+        fastify.post('/signSync', function (request, reply) {
+          reply.jwtSign(request.body)
+            .then(function (token) {
+              return reply.send({ token })
+            })
+        })
+
+        fastify.get('/verifySync', function (request, reply) {
+          return request.jwtVerify()
+        })
+
+        fastify.post('/signAsync', function (request, reply) {
+          reply.jwtSign(request.body, function (error, token) {
+            return reply.send(error || { token })
+          })
+        })
+
+        fastify.get('/verifyAsync', function (request, reply) {
+          request.jwtVerify(function (error, decodedToken) {
+            return reply.send(error || decodedToken)
+          })
+        })
+
+        fastify
+          .ready()
+          .then(function () {
+            t.test('synchronous', function (t) {
+              t.plan(3)
+
+              fastify.inject({
+                method: 'post',
+                url: '/signSync',
+                payload: { foo: 'bar' }
+              }).then(function (signResponse) {
+                const token = JSON.parse(signResponse.payload).token
+                t.ok(token)
+                signedToken = token
+
+                fastify.inject({
+                  method: 'get',
+                  url: '/verifySync',
+                  headers: {
+                    authorization: `Bearer ${token}`
+                  }
+                }).then(function (verifyResponse) {
+                  const decodedToken = JSON.parse(verifyResponse.payload)
+                  t.equal(decodedToken.foo, 'bar')
+                  t.equal(decodedToken.iss, 'test')
+                }).catch(function (error) {
+                  t.fail(error)
+                })
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            })
+
+            t.test('with callbacks', function (t) {
+              t.plan(3)
+
+              fastify.inject({
+                method: 'post',
+                url: '/signAsync',
+                payload: { foo: 'bar' }
+              }).then(function (signResponse) {
+                const token = JSON.parse(signResponse.payload).token
+                t.ok(token)
+
+                fastify.inject({
+                  method: 'get',
+                  url: '/verifyAsync',
+                  headers: {
+                    authorization: `Bearer ${token}`
+                  }
+                }).then(function (verifyResponse) {
+                  const decodedToken = JSON.parse(verifyResponse.payload)
+                  t.equal(decodedToken.foo, 'bar')
+                  t.equal(decodedToken.iss, 'test')
+                }).catch(function (error) {
+                  t.fail(error)
+                })
+              }).catch(function (error) {
+                t.fail(error)
+              })
+            })
           })
       })
 
-      fastify.get('/verifySync', function (request, reply) {
-        return request.jwtVerify()
-      })
-
-      fastify.post('/signAsync', function (request, reply) {
-        reply.jwtSign(request.body, function (error, token) {
-          return reply.send(error || { token })
+      t.test('verifier mode', function (t) {
+        t.plan(1)
+        const fastifyVerifier = Fastify()
+        fastifyVerifier.register(jwt, {
+          ...config,
+          secret: {
+            public: config.secret.public
+            // no private key
+          }
         })
-      })
 
-      fastify.get('/verifyAsync', function (request, reply) {
-        request.jwtVerify(function (error, decodedToken) {
-          return reply.send(error || decodedToken)
+        fastifyVerifier.post('/signSync', function (request, reply) {
+          reply.jwtSign(request.body)
+            .then(function (token) {
+              return reply.send({ token })
+            })
         })
-      })
 
-      fastify
-        .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
-            t.plan(3)
+        fastifyVerifier.get('/verifySync', function (request, reply) {
+          return request.jwtVerify()
+        })
 
-            fastify.inject({
-              method: 'post',
-              url: '/signSync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+        fastifyVerifier
+          .ready()
+          .then(function () {
+            t.test('synchronous verifier', function (t) {
+              t.plan(4)
 
-              fastify.inject({
+              fastifyVerifier.inject({
+                method: 'post',
+                url: '/signSync',
+                payload: { foo: 'bar' }
+              }).then(function (response) {
+                t.equal(response.statusCode, 500)
+                const payload = JSON.parse(response.payload)
+                t.equal(payload.message, 'unable to sign: secret is configured in verify mode')
+              })
+
+              fastifyVerifier.inject({
                 method: 'get',
                 url: '/verifySync',
                 headers: {
-                  authorization: `Bearer ${token}`
+                  authorization: `Bearer ${signedToken}`
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
@@ -693,40 +832,9 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               }).catch(function (error) {
                 t.fail(error)
               })
-            }).catch(function (error) {
-              t.fail(error)
             })
           })
-
-          t.test('with callbacks', function (t) {
-            t.plan(3)
-
-            fastify.inject({
-              method: 'post',
-              url: '/signAsync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
-
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.iss, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
-        })
+      })
     })
   })
 

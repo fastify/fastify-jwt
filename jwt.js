@@ -84,8 +84,8 @@ function fastifyJwt (fastify, options, next) {
   let secretOrPublicKey
 
   if (typeof secret === 'object' && !Buffer.isBuffer(secret)) {
-    if (!secret.private || !secret.public) {
-      return next(new Error('missing private key and/or public key'))
+    if (!secret.public) {
+      return next(new Error('missing public key'))
     }
     secretOrPrivateKey = secret.private
     secretOrPublicKey = secret.public
@@ -186,7 +186,10 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateReply(jwtSignName, replySign)
 
   const signerConfig = checkAndMergeSignOptions()
-  const signer = createSigner(signerConfig.options)
+  // no signer when configured in verify-mode
+  const signer = signerConfig.options.key
+    ? createSigner(signerConfig.options)
+    : null
   const decoder = createDecoder(decodeOptions)
   const verifierConfig = checkAndMergeVerifyOptions()
   const verifier = createVerifier(verifierConfig.options)
@@ -289,6 +292,9 @@ function fastifyJwt (fastify, options, next) {
 
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
+    // if a global signer was not created, sign mode is not supported
+    assert(signer, 'unable to sign: secret is configured in verify mode')
+
     let localSigner = signer
 
     const localOptions = convertTemporalProps(options)
@@ -328,6 +334,9 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function replySign (payload, options, next) {
+    // if a global signer was not created, sign mode is not supported
+    assert(signer, 'unable to sign: secret is configured in verify mode')
+
     let useLocalSigner = true
     if (typeof options === 'function') {
       next = options
