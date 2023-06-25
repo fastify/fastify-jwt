@@ -102,12 +102,14 @@ declare namespace fastifyJwt {
   }
 
   export interface FastifyJWTOptions {
-    secret: Secret | { public: Secret; private: Secret }
+    secret: Secret | {public: Secret; private?: Secret}
     decode?: Partial<DecoderOptions>
     sign?: Partial<SignOptions>
-    verify?: Partial<VerifyOptions> & { extractToken?: (request: FastifyRequest) => string | void }
+    verify?: Partial<VerifyOptions> & {
+      extractToken?: (request: FastifyRequest) => string | void
+    }
     cookie?: {
-      cookieName: string,
+      cookieName: string
       signed: boolean
     }
     messages?: {
@@ -120,8 +122,11 @@ declare namespace fastifyJwt {
       authorizationTokenUntrusted?: string
       authorizationTokenUnsigned?: string
     }
-    trusted?: (request: FastifyRequest, decodedToken: { [k: string]: any }) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
-    formatUser?: (payload: SignPayloadType) => UserType,
+    trusted?: (
+      request: FastifyRequest,
+      decodedToken: {[k: string]: any}
+    ) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
+    formatUser?: (payload: SignPayloadType) => UserType
     jwtDecode?: boolean | string
     namespace?: string
     jwtVerify?: string
