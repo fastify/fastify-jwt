@@ -119,12 +119,12 @@ Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwt
 
 #### Verify-only mode
 
-In cases when your incoming JWT tokens are issued by some trusted external
+In cases where your incoming JWT tokens are issued by a trusted external
 service, and you need only to verify their signature without issuing, there is
 an option to configure `fastify-jwt` in *verify-only* mode by passing the
 `secret` object containing only a public key: `{ public }`.
 
-When only a public key provided, decode and verification functions will work as
+When only a public key is provided, decode and verification functions will work as
 described below, but an exception will be thrown at an attempt to use any form
 of `sign` functionality.
 
