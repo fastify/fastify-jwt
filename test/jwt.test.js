@@ -35,7 +35,7 @@ test('export', function (t) {
 })
 
 test('register', function (t) {
-  t.plan(20)
+  t.plan(17)
 
   t.test('Expose jwt methods', function (t) {
     t.plan(8)
@@ -47,39 +47,6 @@ test('register', function (t) {
         cookieName: 'token',
         signed: false
       }
-    })
-
-    fastify.get('/methods', function (request, reply) {
-      t.notOk(request.jwtDecode)
-      t.ok(request.jwtVerify)
-      t.ok(reply.jwtSign)
-    })
-
-    fastify.ready(function () {
-      t.ok(fastify.jwt.decode)
-      t.ok(fastify.jwt.options)
-      t.ok(fastify.jwt.sign)
-      t.ok(fastify.jwt.verify)
-      t.ok(fastify.jwt.cookie)
-    })
-
-    fastify.inject({
-      method: 'get',
-      url: '/methods'
-    })
-  })
-
-  t.test('Expose jwt methods - 3.x.x conditional jwtDecode', function (t) {
-    t.plan(8)
-
-    const fastify = Fastify()
-    fastify.register(jwt, {
-      secret: 'test',
-      cookie: {
-        cookieName: 'token',
-        signed: false
-      },
-      jwtDecode: true
     })
 
     fastify.get('/methods', function (request, reply) {
@@ -283,80 +250,6 @@ test('register', function (t) {
         }
       }).ready(function (error) {
         t.equal(error, undefined)
-      })
-    })
-  })
-
-  t.test('RS/ES algorithm in sign options and secret as string', function (t) {
-    t.plan(2)
-
-    t.test('RS algorithm (Must return an error)', function (t) {
-      t.plan(1)
-
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: 'test',
-        sign: {
-          algorithm: 'RS256',
-          aud: 'Some audience',
-          iss: 'Some issuer',
-          sub: 'Some subject'
-        }
-      }).ready(function (error) {
-        t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-      })
-    })
-
-    t.test('ES algorithm (Must return an error)', function (t) {
-      t.plan(1)
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: 'test',
-        sign: {
-          algorithm: 'ES256',
-          aud: 'Some audience',
-          iss: 'Some issuer',
-          sub: 'Some subject'
-        }
-      }).ready(function (error) {
-        t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-      })
-    })
-  })
-
-  t.test('RS/ES algorithm in sign options and secret as a Buffer', function (t) {
-    t.plan(2)
-
-    t.test('RS algorithm (Must return an error)', function (t) {
-      t.plan(1)
-
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: Buffer.from('some secret', 'base64'),
-        sign: {
-          algorithm: 'RS256',
-          aud: 'Some audience',
-          iss: 'Some issuer',
-          sub: 'Some subject'
-        }
-      }).ready(function (error) {
-        t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-      })
-    })
-
-    t.test('ES algorithm (Must return an error)', function (t) {
-      t.plan(1)
-      const fastify = Fastify()
-      fastify.register(jwt, {
-        secret: Buffer.from('some secret', 'base64'),
-        sign: {
-          algorithm: 'ES256',
-          aud: 'Some audience',
-          iss: 'Some issuer',
-          sub: 'Some subject'
-        }
-      }).ready(function (error) {
-        t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
       })
     })
   })
@@ -2718,7 +2611,7 @@ test('expose decode token for plugin extension', function (t) {
   t.plan(3)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', jwtDecode: true })
+  fastify.register(jwt, { secret: 'test' })
 
   fastify.post('/sign', async function (request, reply) {
     const token = await reply.jwtSign(request.body)
@@ -2814,7 +2707,7 @@ test('support extended config contract', function (t) {
   }
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', jwtDecode: true })
+  fastify.register(jwt, { secret: 'test' })
 
   fastify.post('/sign', async function (request, reply) {
     const token = await reply.jwtSign(request.body, extConfig)
@@ -2955,8 +2848,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     },
     decode: {
       complete: true
-    },
-    jwtDecode: true
+    }
   }
 
   const oneDayInSeconds = 24 * 60 * 60
@@ -3066,8 +2958,7 @@ test('global user options should not be modified', async function (t) {
     },
     decode: {
       complete: true
-    },
-    jwtDecode: true
+    }
   }
 
   const fastify = Fastify()

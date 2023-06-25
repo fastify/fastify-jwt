@@ -432,10 +432,13 @@ fastify.get("/", async (request, reply) => {
 
 ### `namespace`
 
-To define multiple JWT validators on the same routes, you may use the `namespace` option.
-You can combine this with custom names for `jwtVerify` and `jwtSign`.
+To define multiple JWT validators on the same routes, you may use the
+`namespace` option. You can combine this with custom names for `jwtVerify`,
+`jwtDecode`, and `jwtSign`.
 
-When you omit the `jwtVerify` and `jwtSign` options, the default function name will be `<namespace>JwtVerify` and `<namespace>JwtSign`.
+When you omit the `jwtVerify`, `jwtDecode`, or `jwtSign` options, the default
+function name will be `<namespace>JwtVerify`, `<namespace>JwtDecode` and
+`<namespace>JwtSign` correspondingly.
 
 #### Example with namespace
 
@@ -445,12 +448,16 @@ const fastify = require('fastify')
 fastify.register(jwt, {
   secret: 'test',
   namespace: 'security',
+  // will decorate request with `securityVerify`, `securitySign`,
+  // and default `securityJwtDecode` since no custom alias provided
   jwtVerify: 'securityVerify',
   jwtSign: 'securitySign'
 })
 
 fastify.register(jwt, {
   secret: 'fastify',
+  // will decorate request with default `airDropJwtVerify`, `airDropJwtSign`,
+  // and `airDropJwtDecode` since no custom aliases provided
   namespace: 'airDrop'
 })
 
@@ -642,9 +649,7 @@ For your convenience, `request.jwtVerify()` will look for the token in the cooki
 
 ### request.jwtDecode([options,] callback)
 
-Decode a JWT without verifying
-
-As of 3.2.0, decorated when `options.jwtDecode` is truthy. Will become non-conditionally decorated in 4.0.0. This avoid breaking change that would effect fastify-auth0-verify.
+Decode a JWT without verifying.
 
 `options` must be an `Object` and can contain `verify` and `decode` options.
 
