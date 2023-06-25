@@ -61,7 +61,6 @@ const jwtOptions: FastifyJWTOptions = {
         : payload;
     return { name: objectPayload.userName }
   },
-  jwtDecode: true,
   namespace: 'security',
   jwtVerify: 'securityVerify',
   jwtSign: 'securitySign'
