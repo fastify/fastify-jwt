@@ -127,7 +127,7 @@ declare namespace fastifyJwt {
       decodedToken: {[k: string]: any}
     ) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
     formatUser?: (payload: SignPayloadType) => UserType
-    jwtDecode?: boolean | string
+    jwtDecode?: string
     namespace?: string
     jwtVerify?: string
     jwtSign?: string

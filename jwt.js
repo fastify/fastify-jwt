@@ -18,6 +18,10 @@ const messages = {
   authorizationTokenUnsigned: 'Unsigned authorization token'
 }
 
+function isString (x) {
+  return Object.prototype.toString.call(x) === '[object String]'
+}
+
 function wrapStaticSecretInCallback (secret) {
   return function (request, payload, cb) {
     return cb(null, secret)
@@ -54,13 +58,39 @@ function convertTemporalProps (options, isVerifyOptions) {
   return formatedOptions
 }
 
-function fastifyJwt (fastify, options, next) {
-  if (!options.secret) {
-    return next(new Error('missing secret'))
-  }
+function validateOptions (options) {
+  assert(options.secret, 'missing secret')
+  assert(!options.options, 'options prefix is deprecated')
 
-  if (options.options) {
-    return next(new Error('options prefix is deprecated'))
+  assert(!options.jwtVerify || isString(options.jwtVerify), 'Invalid options.jwtVerify')
+  assert(!options.jwtDecode || isString(options.jwtDecode), 'Invalid options.jwtDecode')
+  assert(!options.jwtSign || isString(options.jwtSign), 'Invalid options.jwtSign')
+
+  if (
+    options.sign &&
+    options.sign.algorithm &&
+    options.sign.algorithm.includes('RS') &&
+    (typeof options.secret === 'string' ||
+      options.secret instanceof Buffer)
+  ) {
+    throw new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+  }
+  if (
+    options.sign &&
+    options.sign.algorithm &&
+    options.sign.algorithm.includes('ES') &&
+    (typeof options.secret === 'string' ||
+      options.secret instanceof Buffer)
+  ) {
+    throw new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+  }
+}
+
+function fastifyJwt (fastify, options, next) {
+  try {
+    validateOptions(options)
+  } catch (e) {
+    return next(e)
   }
 
   const {
@@ -119,25 +149,6 @@ function fastifyJwt (fastify, options, next) {
   const BadRequestError = createError('FST_JWT_BAD_REQUEST', messagesOptions.badRequestErrorMessage, 400)
   const BadCookieRequestError = createError('FST_JWT_BAD_COOKIE_REQUEST', messagesOptions.badCookieRequestErrorMessage, 400)
 
-  if (
-    signOptions &&
-    signOptions.algorithm &&
-    signOptions.algorithm.includes('RS') &&
-    (typeof secret === 'string' ||
-      secret instanceof Buffer)
-  ) {
-    return next(new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
-  }
-  if (
-    signOptions &&
-    signOptions.algorithm &&
-    signOptions.algorithm.includes('ES') &&
-    (typeof secret === 'string' ||
-      secret instanceof Buffer)
-  ) {
-    return next(new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
-  }
-
   const jwtDecorator = {
     decode,
     options: {
@@ -156,6 +167,7 @@ function fastifyJwt (fastify, options, next) {
   let jwtDecodeName = 'jwtDecode'
   let jwtVerifyName = 'jwtVerify'
   let jwtSignName = 'jwtSign'
+
   if (namespace) {
     if (!fastify.jwt) {
       fastify.decorateRequest(decoratorName, null)
@@ -167,7 +179,7 @@ function fastifyJwt (fastify, options, next) {
     }
     fastify.jwt[namespace] = jwtDecorator
 
-    jwtDecodeName = jwtDecode ? (typeof jwtDecode === 'string' ? jwtDecode : 'jwtDecode') : `${namespace}JwtDecode`
+    jwtDecodeName = jwtDecode || `${namespace}JwtDecode`
     jwtVerifyName = jwtVerify || `${namespace}JwtVerify`
     jwtSignName = jwtSign || `${namespace}JwtSign`
   } else {
@@ -175,13 +187,7 @@ function fastifyJwt (fastify, options, next) {
     fastify.decorate('jwt', jwtDecorator)
   }
 
-  // Temporary conditional to prevent breaking changes by exposing `jwtDecode`,
-  // which already exists in fastify-auth0-verify.
-  // If jwtDecode has been requested, or plugin is configured to use a namespace.
-  // TODO Remove conditional when fastify-jwt >=4.x.x
-  if (jwtDecode || namespace) {
-    fastify.decorateRequest(jwtDecodeName, requestDecode)
-  }
+  fastify.decorateRequest(jwtDecodeName, requestDecode)
   fastify.decorateRequest(jwtVerifyName, requestVerify)
   fastify.decorateReply(jwtSignName, replySign)
 
