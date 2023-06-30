@@ -325,15 +325,15 @@ function fastifyJwt (fastify, options, next) {
     let localVerifier = verifier
 
     const localOptions = convertTemporalProps(options, true)
-    const veriferConfig = checkAndMergeVerifyOptions(localOptions, callback)
+    const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
-      localVerifier = createVerifier(veriferConfig.options)
+      localVerifier = createVerifier(verifierConfig.options)
     }
 
-    if (typeof veriferConfig.callback === 'function') {
+    if (typeof verifierConfig.callback === 'function') {
       const result = localVerifier(token)
-      veriferConfig.callback(null, result)
+      verifierConfig.callback(null, result)
     } else {
       return localVerifier(token)
     }
