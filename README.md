@@ -476,18 +476,17 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
 
 #### Example
-
 ```js
 const fastify = require('fastify')
 
 const myCustomMessages = {
   badRequestErrorMessage: 'Format is Authorization: Bearer [token]',
   badCookieRequestErrorMessage: 'Cookie could not be parsed in request',
-  noAuthorizationInHeaderMessage: 'Autorization header is missing!',
+  noAuthorizationInHeaderMessage: 'No Authorization was found in request.headers',
   noAuthorizationInCookieMessage: 'No Authorization was found in request.cookies',
   authorizationTokenExpiredMessage: 'Authorization token expired',
   authorizationTokenUntrusted: 'Untrusted authorization token',
-  authorizationTokenUnsigned: 'Unsigned authorization token
+  authorizationTokenUnsigned: 'Unsigned authorization token'
   // for the below message you can pass a sync function that must return a string as shown or a string
   authorizationTokenInvalid: (err) => {
     return `Authorization token is invalid: ${err.message}`
@@ -499,6 +498,44 @@ fastify.register(require('@fastify/jwt'), {
   messages: myCustomMessages
 })
 ```
+
+##### Error Code
+
+`ERR_ASSERTION` - Missing required parameter or option
+ * Error Status Code: `500`
+ * Error Message: `Missing ${required}`
+
+`FST_JWT_BAD_REQUEST` - Bad format in request authorization header. Example of correct format `Authorization: Bearer [token]`
+ * Error Status Code: `400`
+ * Error Message: `Format is Authorization: Bearer [token]`
+
+`FST_JWT_BAD_COOKIE_REQUEST` - Cookie could not be parsed in request object
+ * Error Status Code: `400`
+ * Error Message: `Cookie could not be parsed in request`
+
+`FST_JWT_NO_AUTHORIZATION_IN_HEADER` - No Authorization header was found in request.headers
+ * Error Status Code: `401`
+ * Error Message: `No Authorization was found in request.headers
+
+`FST_JWT_NO_AUTHORIZATION_IN_COOKIE` - No Authorization header was found in request.cookies
+ * Error Status Code: `401`
+ * Error Message: `No Authorization was found in request.cookies`
+
+`FST_JWT_AUTHORIZATION_TOKEN_EXPIRED` - Authorization token has expired
+ * Error Status Code: `401`
+ * Error Message: `Authorization token expired`
+
+`FST_JWT_AUTHORIZATION_TOKEN_INVALID` - Authorization token provided is invalid.
+ * Error Status Code: `401`
+ * Error Message: `Authorization token is invalid: ${err.message}`
+
+`FST_JWT_AUTHORIZATION_TOKEN_UNTRUSTED` - Untrusted authorization token was provided
+ * Error Status Code: `401`
+ * Error Message: `Untrusted authorization token`
+
+`FAST_JWT_MISSING_SIGNATURE` - Unsigned or missing authorization token
+ * Error Status Code: `401`
+ * Error Message: `Unsigned authorization token`
 
 ### `decoratorName`
 If this plugin is used together with fastify/passport, we might get an error as both plugins use the same name for a decorator. We can change the name of the decorator, or `user` will default
