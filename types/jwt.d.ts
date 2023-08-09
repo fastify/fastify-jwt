@@ -102,7 +102,7 @@ declare namespace fastifyJwt {
   }
 
   export interface FastifyJWTOptions {
-    secret: Secret | {public: Secret; private?: Secret}
+    secret: Secret | { public: Secret; private?: Secret }
     decode?: Partial<DecoderOptions>
     sign?: Partial<SignOptions>
     verify?: Partial<VerifyOptions> & {
@@ -124,7 +124,7 @@ declare namespace fastifyJwt {
     }
     trusted?: (
       request: FastifyRequest,
-      decodedToken: {[k: string]: any}
+      decodedToken: { [k: string]: any }
     ) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
     formatUser?: (payload: SignPayloadType) => UserType
     jwtDecode?: string

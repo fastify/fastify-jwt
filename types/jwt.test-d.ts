@@ -1,5 +1,5 @@
 import fastify from 'fastify';
-import fastifyJwt, { FastifyJWTOptions } from '../../jwt'
+import fastifyJwt, { FastifyJWTOptions } from '..'
 import { expectAssignable } from 'tsd'
 
 const app = fastify();
@@ -10,19 +10,19 @@ const secretOptions = {
     public: 'publicKey',
     private: 'privateKey'
   },
-  secretFnCallback: (_req, _token, cb) => { cb(null, 'supersecret') },
-  secretFnPromise: (_req, _token) => Promise.resolve('supersecret'),
-  secretFnAsync: async (_req, _token) => 'supersecret',
-  secretFnBufferCallback: (_req, _token, cb) => { cb(null, Buffer.from('some secret', 'base64')) },
-  secretFnBufferPromise: (_req, _token) => Promise.resolve(Buffer.from('some secret', 'base64')),
-  secretFnBufferAsync: async (_req, _token) => Buffer.from('some secret', 'base64'),
+  secretFnCallback: (_req: any, _token: any, cb: any) => { cb(null, 'supersecret') },
+  secretFnPromise: (_req: any, _token: any) => Promise.resolve('supersecret'),
+  secretFnAsync: async (_req: any, _token: any) => 'supersecret',
+  secretFnBufferCallback: (_req: any, _token: any, cb: any) => { cb(null, Buffer.from('some secret', 'base64')) },
+  secretFnBufferPromise: (_req: any, _token: any) => Promise.resolve(Buffer.from('some secret', 'base64')),
+  secretFnBufferAsync: async (_req: any, _token: any) => Buffer.from('some secret', 'base64'),
   publicPrivateKeyFn: {
-    public: (_req, _rep, cb) => { cb(null, 'publicKey') },
+    public: (_req: any, _rep: any, cb: any) => { cb(null, 'publicKey') },
     private: 'privateKey'
   },
   publicPrivateKeyFn2: {
     public: 'publicKey',
-    private: (_req, _rep, cb) => { cb(null, 'privateKey') },
+    private: (_req: any, _rep: any, cb: any) => { cb(null, 'privateKey') },
   }
 }
 
