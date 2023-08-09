@@ -304,7 +304,13 @@ fastify.get('/cookies', async (request, reply) => {
     .send('Cookie sent')
 })
 
-fastify.addHook('onRequest', (request) => request.jwtVerify())
+fastify.addHook('onRequest', async (request) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
 
 fastify.get('/verifycookie', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
@@ -359,10 +365,14 @@ fastify.get('/cookies', async (request, reply) => {
     .send({token})
 })
 
-fastify.addHook('onRequest', (request) => {
-    request.jwtVerify()
-    request.jwtVerify({onlyCookie: true})
-})
+fastify.addHook('onRequest', async (request) => {
+  try {
+    await request.jwtVerify()
+    await request.jwtVerify({onlyCookie: true})
+  } catch (err) {
+    reply.send(err);
+  }
+});
 
 fastify.get('/verifycookie', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
@@ -386,7 +396,13 @@ fastify.register(require('@fastify/jwt'), {
   trusted: validateToken
 })
 
-fastify.addHook('onRequest', (request) => request.jwtVerify())
+fastify.addHook('onRequest', async (request) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
 
 fastify.get('/', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
@@ -423,7 +439,13 @@ fastify.register(require('@fastify/jwt'), {
   secret: 'supersecret'
 });
 
-fastify.addHook('onRequest', (request, reply) =>  request.jwtVerify());
+fastify.addHook('onRequest', async (request) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
 
 fastify.get("/", async (request, reply) => {
   return `Hello, ${request.user.name} from ${request.user.departmentName}.`;
