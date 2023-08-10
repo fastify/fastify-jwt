@@ -474,7 +474,7 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 
 #### Typescript
 
-To simplify the usage of namespaces in typescript, you can use the `FastifyJwtNamespace` helper type:
+To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
 
 ```typescript
 declare module 'fastify' {
