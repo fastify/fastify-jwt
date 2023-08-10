@@ -42,14 +42,32 @@ type FastifyJwt = FastifyPluginCallback<fastifyJwt.FastifyJWTOptions>
 
 declare namespace fastifyJwt {
 
-  export type FastifyJwtNamespace<
-    Namespace extends string,
-    DecodeKey extends string = `${Namespace}JwtDecode`,
-    SignKey extends string = `${Namespace}JwtSign`,
-    VerifyKey extends string = `${Namespace}JwtVerify`> =
-      Record<DecodeKey, JWT['decode']> &
-      Record<SignKey, JWT['sign']> &
-      Record<VerifyKey, JWT['verify']> 
+  export type FastifyJwtNamespace<C extends {
+    namespace?: string;
+    jwtDecode?: string;
+    jwtVerify?: string;
+    jwtSign?: string;
+  }> =
+  Record<C extends { jwtDecode: string}
+    ? C['jwtDecode']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtDecode`
+      : never,
+  JWT['decode']>
+  &
+  Record<C extends { jwtSign: string}
+    ? C['jwtSign']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtSign`
+      : never,
+  JWT['sign']>
+  &
+  Record<C extends { jwtVerify: string}
+    ? C['jwtVerify']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtVerify`
+      : never,
+  JWT['verify']>
 
   /**
    * for declaration merging
