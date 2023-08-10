@@ -1,6 +1,6 @@
 import fastify from 'fastify';
-import fastifyJwt, { FastifyJWTOptions } from '..'
-import { expectAssignable } from 'tsd'
+import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT } from '..'
+import { expectAssignable, expectType } from 'tsd'
 
 const app = fastify();
 
@@ -137,3 +137,28 @@ app.post('/signup', async (req, reply) => {
 //     }
 //   }
 // }
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<'security'>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<'security'>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<'security'>).securityJwtVerify)
+
+declare module 'fastify' {
+  interface FastifyInstance extends FastifyJwtNamespace<'tsdTest'> {
+  }
+}
+
+expectType<JWT['decode']>(app.tsdTestJwtDecode)
+expectType<JWT['sign']>(app.tsdTestJwtSign)
+expectType<JWT['verify']>(app.tsdTestJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<'security', 'decode'>).decode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<'security', 'decode'>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<'security', 'decode'>).securityJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'sign'>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'sign'>).sign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'sign'>).securityJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'securityJwtSign', 'verify'>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'securityJwtSign', 'verify'>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<'security', 'securityJwtDecode', 'securityJwtSign', 'verify'>).verify)
