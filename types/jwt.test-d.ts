@@ -1,6 +1,6 @@
 import fastify from 'fastify';
-import fastifyJwt, { FastifyJWTOptions } from '../../jwt'
-import { expectAssignable } from 'tsd'
+import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT } from '..'
+import { expectAssignable, expectType } from 'tsd'
 
 const app = fastify();
 
@@ -10,19 +10,19 @@ const secretOptions = {
     public: 'publicKey',
     private: 'privateKey'
   },
-  secretFnCallback: (_req, _token, cb) => { cb(null, 'supersecret') },
-  secretFnPromise: (_req, _token) => Promise.resolve('supersecret'),
-  secretFnAsync: async (_req, _token) => 'supersecret',
-  secretFnBufferCallback: (_req, _token, cb) => { cb(null, Buffer.from('some secret', 'base64')) },
-  secretFnBufferPromise: (_req, _token) => Promise.resolve(Buffer.from('some secret', 'base64')),
-  secretFnBufferAsync: async (_req, _token) => Buffer.from('some secret', 'base64'),
+  secretFnCallback: (_req: any, _token: any, cb: any) => { cb(null, 'supersecret') },
+  secretFnPromise: (_req: any, _token: any) => Promise.resolve('supersecret'),
+  secretFnAsync: async (_req: any, _token: any) => 'supersecret',
+  secretFnBufferCallback: (_req: any, _token: any, cb: any) => { cb(null, Buffer.from('some secret', 'base64')) },
+  secretFnBufferPromise: (_req: any, _token: any) => Promise.resolve(Buffer.from('some secret', 'base64')),
+  secretFnBufferAsync: async (_req: any, _token: any) => Buffer.from('some secret', 'base64'),
   publicPrivateKeyFn: {
-    public: (_req, _rep, cb) => { cb(null, 'publicKey') },
+    public: (_req: any, _rep: any, cb: any) => { cb(null, 'publicKey') },
     private: 'privateKey'
   },
   publicPrivateKeyFn2: {
     public: 'publicKey',
-    private: (_req, _rep, cb) => { cb(null, 'privateKey') },
+    private: (_req: any, _rep: any, cb: any) => { cb(null, 'privateKey') },
   }
 }
 
@@ -137,3 +137,32 @@ app.post('/signup', async (req, reply) => {
 //     }
 //   }
 // }
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<{namespace: 'security'}>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<{namespace: 'security'}>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<{namespace: 'security'}>).securityJwtVerify)
+
+declare module 'fastify' {
+  interface FastifyInstance extends FastifyJwtNamespace<{namespace: 'tsdTest'}> {
+  }
+}
+
+expectType<JWT['decode']>(app.tsdTestJwtDecode)
+expectType<JWT['sign']>(app.tsdTestJwtSign)
+expectType<JWT['verify']>(app.tsdTestJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode'}>).decode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode'}>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode'}>).securityJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode'}>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'sign'}>).sign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode'}>).securityJwtVerify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify'}>).securityJwtDecode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify'}>).securityJwtSign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify'}>).verify)
+
+expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ jwtDecode: 'decode'}>).decode)
+expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ jwtSign: 'sign'}>).sign)
+expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ jwtVerify: 'verify'}>).verify)

@@ -472,6 +472,31 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 })
 ```
 
+#### Typescript
+
+To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
+
+```typescript
+declare module 'fastify' {
+  interface FastifyInstance extends 
+  FastifyJwtNamespace<{namespace: 'security'}> {
+  }
+}
+```
+
+Alternatively you can type each key explicitly:
+
+```typescript
+declare module 'fastify' {
+  interface FastifyInstance extends 
+  FastifyJwtNamespace<{
+    jwtDecode: 'securityJwtDecode',
+    jwtSign: 'securityJwtSign',
+    jwtVerify: 'securityJwtVerify',
+  }> { }
+}
+```
+
 ### `messages`
 For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
 
