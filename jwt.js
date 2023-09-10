@@ -2,7 +2,7 @@
 
 const fp = require('fastify-plugin')
 const { createSigner, createDecoder, createVerifier, TokenError } = require('fast-jwt')
-const assert = require('assert')
+const assert = require('node:assert')
 const steed = require('steed')
 const { parse } = require('@lukeed/ms')
 const createError = require('@fastify/error')

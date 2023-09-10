@@ -12,7 +12,7 @@ openssl rsa -in private.key -out public.key -outform PEM -pubout
 Code example
 
 ```js
-const { readFileSync } = require('fs')
+const { readFileSync } = require('node:fs')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 
@@ -41,7 +41,7 @@ openssl rsa -in private.pem -outform PEM -pubout -out public.pem
 Code example
 
 ```js
-const { readFileSync } = require('fs')
+const { readFileSync } = require('node:fs')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 
@@ -72,7 +72,7 @@ openssl ec -in privateECDSA.key -pubout -out publicECDSA.key
 Code example
 
 ```js
-const { readFileSync } = require('fs')
+const { readFileSync } = require('node:fs')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 
@@ -101,7 +101,7 @@ openssl ec -in privateECDSA.pem -pubout -out publicECDSA.pem
 Code example
 
 ```js
-const { readFileSync } = require('fs')
+const { readFileSync } = require('node:fs')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 
