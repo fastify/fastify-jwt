@@ -130,8 +130,8 @@ of `sign` functionality.
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 // secret as a string
@@ -191,8 +191,8 @@ Optionally you can define global default options that will be used by `@fastify/
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 fastify.register(jwt, {
@@ -640,8 +640,8 @@ For your convenience, the `decode`, `sign`, `verify` and `messages` options you 
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 fastify.register(jwt, {
