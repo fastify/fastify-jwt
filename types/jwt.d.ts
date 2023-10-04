@@ -42,6 +42,33 @@ type FastifyJwt = FastifyPluginCallback<fastifyJwt.FastifyJWTOptions>
 
 declare namespace fastifyJwt {
 
+  export type FastifyJwtNamespace<C extends {
+    namespace?: string;
+    jwtDecode?: string;
+    jwtVerify?: string;
+    jwtSign?: string;
+  }> =
+  Record<C extends { jwtDecode: string}
+    ? C['jwtDecode']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtDecode`
+      : never,
+  JWT['decode']>
+  &
+  Record<C extends { jwtSign: string}
+    ? C['jwtSign']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtSign`
+      : never,
+  JWT['sign']>
+  &
+  Record<C extends { jwtVerify: string}
+    ? C['jwtVerify']
+    : C extends {namespace: string} 
+      ? `${C['namespace']}JwtVerify`
+      : never,
+  JWT['verify']>
+
   /**
    * for declaration merging
    * @example
@@ -102,7 +129,7 @@ declare namespace fastifyJwt {
   }
 
   export interface FastifyJWTOptions {
-    secret: Secret | {public: Secret; private?: Secret}
+    secret: Secret | { public: Secret; private?: Secret }
     decode?: Partial<DecoderOptions>
     sign?: Partial<SignOptions>
     verify?: Partial<VerifyOptions> & {
@@ -124,7 +151,7 @@ declare namespace fastifyJwt {
     }
     trusted?: (
       request: FastifyRequest,
-      decodedToken: {[k: string]: any}
+      decodedToken: { [k: string]: any }
     ) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
     formatUser?: (payload: SignPayloadType) => UserType
     jwtDecode?: string

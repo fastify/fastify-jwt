@@ -130,8 +130,8 @@ of `sign` functionality.
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 // secret as a string
@@ -191,8 +191,8 @@ Optionally you can define global default options that will be used by `@fastify/
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 fastify.register(jwt, {
@@ -469,6 +469,31 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 })
 ```
 
+#### Typescript
+
+To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
+
+```typescript
+declare module 'fastify' {
+  interface FastifyInstance extends 
+  FastifyJwtNamespace<{namespace: 'security'}> {
+  }
+}
+```
+
+Alternatively you can type each key explicitly:
+
+```typescript
+declare module 'fastify' {
+  interface FastifyInstance extends 
+  FastifyJwtNamespace<{
+    jwtDecode: 'securityJwtDecode',
+    jwtSign: 'securityJwtSign',
+    jwtVerify: 'securityJwtVerify',
+  }> { }
+}
+```
+
 ### `messages`
 For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
 
@@ -612,8 +637,8 @@ For your convenience, the `decode`, `sign`, `verify` and `messages` options you 
 
 #### Example
 ```js
-const { readFileSync } = require('fs')
-const path = require('path')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
 const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 fastify.register(jwt, {
