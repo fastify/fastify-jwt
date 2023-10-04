@@ -359,10 +359,7 @@ fastify.get('/cookies', async (request, reply) => {
     .send({token})
 })
 
-fastify.addHook('onRequest', (request) => {
-    request.jwtVerify()
-    request.jwtVerify({onlyCookie: true})
-})
+fastify.addHook('onRequest', (request) => request.jwtVerify({onlyCookie: true}))
 
 fastify.get('/verifycookie', (request, reply) => {
   reply.send({ code: 'OK', message: 'it works!' })
