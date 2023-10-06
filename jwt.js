@@ -369,12 +369,12 @@ function fastifyJwt (fastify, options, next) {
       const localSignOptions = convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
       options = {
-        sign: mergeOptionsWithKey(Object.assign({ ...signOptions }, localSignOptions), true)
+        sign: mergeOptionsWithKey(Object.assign({}, signOptions, localSignOptions), true)
       }
     } else {
       const localOptions = convertTemporalProps(options)
       // Original contract, options supports only sign
-      options = mergeOptionsWithKey(Object.assign({ ...signOptions }, localOptions), true)
+      options = mergeOptionsWithKey(Object.assign({}, signOptions, localOptions), true)
     }
 
     if (!payload) {
