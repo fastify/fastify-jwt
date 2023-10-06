@@ -3008,3 +3008,44 @@ test('decorator name should work after being changed in the options', async func
   t.equal(user.baz, undefined)
   t.equal(user.foo, 'bar')
 })
+
+test('local sign options should not overwrite global sign options', async function (t) {
+  t.plan(2)
+
+  const options = {
+    secret: 'test',
+    sign: {
+      expiresIn: '15m'
+    }
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, options)
+
+  const tokensDifference = 85500
+
+  fastify.post('/sign', async function (request, reply) {
+    const { token, refreshToken } = request.body
+    const refreshTokenSigned = await reply.jwtSign(refreshToken, { expiresIn: '1d' })
+    const tokenSigned = await reply.jwtSign(token)
+    return reply.send({ tokenSigned, refreshTokenSigned })
+  })
+
+  await fastify.ready()
+
+  const signResponse = await fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { token: { foo: 'bar' }, refreshToken: { bar: 'foo' } }
+  })
+
+  const token = JSON.parse(signResponse.payload).tokenSigned
+  const refreshToken = JSON.parse(signResponse.payload).refreshTokenSigned
+  const decodedToken = fastify.jwt.verify(token)
+  const decodedRefreshToken = fastify.jwt.verify(refreshToken)
+  const calculatedDifference = decodedRefreshToken.exp - decodedToken.exp
+  // max 5 seconds of difference for safety
+  t.ok(calculatedDifference >= tokensDifference && calculatedDifference <= tokensDifference + 5)
+
+  t.equal(fastify.jwt.options.sign.expiresIn, '15m')
+})
