@@ -276,7 +276,7 @@ const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 
 fastify.register(jwt, {
-  secret: 'foobar'
+  secret: 'foobar',
   cookie: {
     cookieName: 'token',
     signed: false
