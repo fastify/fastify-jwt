@@ -121,13 +121,13 @@ declare namespace fastifyJwt {
   export interface SignOptions extends Omit<SignerOptions, "expiresIn" | "notBefore"> {
     expiresIn: number | string;
     notBefore: number | string;
-    key: string | Buffer
+    key?: string | Buffer
   }
 
   export interface VerifyOptions extends Omit<VerifierOptions, "maxAge"> {
     maxAge: number | string;
     onlyCookie: boolean;
-    key: string | Buffer
+    key?: string | Buffer
   }
 
   export interface FastifyJWTOptions {
