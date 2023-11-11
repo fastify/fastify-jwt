@@ -1,5 +1,5 @@
 import fastify from 'fastify';
-import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT } from '..'
+import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from '..'
 import { expectAssignable, expectType } from 'tsd'
 
 const app = fastify();
@@ -166,3 +166,39 @@ expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ namespace: 'security', jw
 expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ jwtDecode: 'decode'}>).decode)
 expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ jwtSign: 'sign'}>).sign)
 expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ jwtVerify: 'verify'}>).verify)
+
+let signOptions: SignOptions = {
+  key: "supersecret",
+  algorithm: "HS256",
+  mutatePayload: true,
+  expiresIn: 3600,
+  notBefore: 0,
+}
+
+signOptions = {
+  key: Buffer.from("supersecret", "utf-8"),
+  algorithm: "HS256",
+  mutatePayload: true,
+  expiresIn: 3600,
+  notBefore: 0,
+}
+
+let verifyOptions: VerifyOptions = {
+  key: "supersecret",
+  algorithms: ["HS256"],
+  complete: true,
+  cache: true,
+  cacheTTL: 3600,
+  maxAge: "1 hour",
+  onlyCookie: false,
+}
+
+verifyOptions = {
+  key: Buffer.from("supersecret", "utf-8"),
+  algorithms: ["HS256"],
+  complete: true,
+  cache: 3600,
+  cacheTTL: 3600,
+  maxAge: 3600,
+  onlyCookie: true,
+}
