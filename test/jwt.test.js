@@ -78,7 +78,7 @@ test('register', function (t) {
         public: publicKey
       }
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -88,7 +88,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: Buffer.from('some secret', 'base64')
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -98,7 +98,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: (request, token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -108,7 +108,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: (request, token) => Promise.resolve(Buffer.from('some secret', 'base64'))
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -118,7 +118,7 @@ test('register', function (t) {
     fastify.register(jwt, {
       secret: async (request, token) => Buffer.from('some secret', 'base64')
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -172,7 +172,7 @@ test('register', function (t) {
           sub: 'Some subject'
         }
       }).ready(function (error) {
-        t.equal(error, undefined)
+        t.error(error)
       })
     })
   })
@@ -194,7 +194,7 @@ test('register', function (t) {
         allowedAud: 'Some audience'
       }
     }).ready(function (error) {
-      t.equal(error, undefined)
+      t.error(error)
     })
   })
 
@@ -223,7 +223,7 @@ test('register', function (t) {
           allowedSub: 'Some subject'
         }
       }).ready(function (error) {
-        t.equal(error, undefined)
+        t.error(error)
       })
     })
 
@@ -249,7 +249,7 @@ test('register', function (t) {
           allowedSub: 'Some subject'
         }
       }).ready(function (error) {
-        t.equal(error, undefined)
+        t.error(error)
       })
     })
   })
