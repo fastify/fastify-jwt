@@ -471,7 +471,7 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 
 ### `extractToken`
 
-Setting this option will allow you to extract a token using function passed in for `extractToken` option. The function definition should be `(request: FastifyRequest) => token`. Fastify JWT will check if this option is set, if this option is set it will use the function defined in the option. When is this option is not set then it will follow the normal flow.
+Setting this option will allow you to extract a token using function passed in for `extractToken` option. The function definition should be `(request: FastifyRequest) => token`. Fastify JWT will check if this option is set, if this option is set it will use the function defined in the option. When this option is not set then it will follow the normal flow.
 
 ```js
 const fastify = require('fastify')
