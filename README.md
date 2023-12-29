@@ -469,6 +469,36 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 })
 ```
 
+### `extractToken`
+
+Setting this option will allow you to extract a token using function passed in for `extractToken` option. The function definition should be `(request: FastifyRequest) => token`. Fastify JWT will check if this option is set, if this option is set it will use the function defined in the option. When is this option is not set then it will follow the normal flow.
+
+```js
+const fastify = require('fastify')
+const jwt = require('@fastify/jwt')
+
+fastify.register(jwt, { secret: 'test', verify: { extractToken: (request) => request.headers.customauthheader } })
+
+fastify.post('/sign', function (request, reply) {
+  return reply.jwtSign(request.body)
+    .then(function (token) {
+      return { token }
+    })
+})
+
+fastify.get('/verify', function (request, reply) {
+  // token avaiable via `request.headers.customauthheader` as defined in fastify.register above
+  return request.jwtVerify()
+    .then(function (decodedToken) {
+      return reply.send(decodedToken)
+    })
+})
+
+fastify.listen(3000, function (err) {
+  if (err) throw err
+})
+```
+
 #### Typescript
 
 To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
