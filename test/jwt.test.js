@@ -1617,20 +1617,19 @@ test('errors', function (t) {
           t.equal(response.statusCode, 401)
         })
       })
-
-      t.test('authorization header format error', function (t) {
+      t.test('no bearer authorization header error', function (t) {
         t.plan(2)
 
         fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
-            authorization: 'Invalid Format'
+            authorization: 'Another Format'
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Format is Authorization: Bearer [token]')
-          t.equal(response.statusCode, 400)
+          t.equal(error.message, 'No Authorization was found in request.headers')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -2390,12 +2389,12 @@ test('custom response messages', function (t) {
           method: 'get',
           url: '/verify',
           headers: {
-            authorization: 'Invalid Format'
+            authorization: 'Another Format'
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Format is Authorization: Bearer [token]')
-          t.equal(response.statusCode, 400)
+          t.equal(error.message, 'auth header missing')
+          t.equal(response.statusCode, 401)
         })
       })
 
