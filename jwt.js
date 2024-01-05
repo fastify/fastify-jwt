@@ -243,7 +243,6 @@ function fastifyJwt (fastify, options, next) {
     } else if ((request.headers && request.headers.authorization && /^Bearer/i.test(request.headers.authorization)) && (!onlyCookie)) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
-        const scheme = parts[0]
         token = parts[1]
       } else {
         throw new BadRequestError()
