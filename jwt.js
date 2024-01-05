@@ -241,7 +241,6 @@ function fastifyJwt (fastify, options, next) {
         throw new BadRequestError()
       }
     } else if ((request.headers && request.headers.authorization && /^Bearer/i.test(request.headers.authorization)) && (!onlyCookie)) {
-      
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         const scheme = parts[0]
