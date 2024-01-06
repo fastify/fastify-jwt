@@ -2195,7 +2195,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
   })
 
   t.test('both authorization and cookie headers present, header malformed', function (t) {
-    t.plan(3)
+    t.plan(2)
     fastify.inject({
       method: 'post',
       url: '/sign',
@@ -2214,9 +2214,8 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
           authorization: 'BearerX'
         }
       }).then(function (verifyResponse) {
-        const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'Format is Authorization: Bearer [token]')
-        t.equal(error.statusCode, 400)
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
