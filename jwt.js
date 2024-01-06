@@ -240,7 +240,7 @@ function fastifyJwt (fastify, options, next) {
       if (!token) {
         throw new BadRequestError()
       }
-    } else if ((request.headers && request.headers.authorization && /^Bearer/i.test(request.headers.authorization)) && (!onlyCookie)) {
+    } else if (request.headers?.authorization && /^Bearer\s/i.test(request.headers.authorization) && !onlyCookie) {
       const parts = request.headers.authorization.split(' ')
       if (parts.length === 2) {
         token = parts[1]
