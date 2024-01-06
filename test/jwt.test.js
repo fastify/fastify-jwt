@@ -1624,7 +1624,7 @@ test('errors', function (t) {
           method: 'get',
           url: '/verify',
           headers: {
-            authorization: 'Another Format'
+            authorization: 'Invalid Format'
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
@@ -2389,7 +2389,7 @@ test('custom response messages', function (t) {
           method: 'get',
           url: '/verify',
           headers: {
-            authorization: 'Another Format'
+            authorization: 'Invalid Format'
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
