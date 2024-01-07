@@ -1617,8 +1617,7 @@ test('errors', function (t) {
           t.equal(response.statusCode, 401)
         })
       })
-
-      t.test('authorization header format error', function (t) {
+      t.test('no bearer authorization header error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1629,8 +1628,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Format is Authorization: Bearer [token]')
-          t.equal(response.statusCode, 400)
+          t.equal(error.message, 'No Authorization was found in request.headers')
+          t.equal(response.statusCode, 401)
         })
       })
 
@@ -2196,7 +2195,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
   })
 
   t.test('both authorization and cookie headers present, header malformed', function (t) {
-    t.plan(3)
+    t.plan(2)
     fastify.inject({
       method: 'post',
       url: '/sign',
@@ -2215,9 +2214,8 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
           authorization: 'BearerX'
         }
       }).then(function (verifyResponse) {
-        const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'Format is Authorization: Bearer [token]')
-        t.equal(error.statusCode, 400)
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.equal(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2394,8 +2392,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Format is Authorization: Bearer [token]')
-          t.equal(response.statusCode, 400)
+          t.equal(error.message, 'auth header missing')
+          t.equal(response.statusCode, 401)
         })
       })
 
