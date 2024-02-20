@@ -3047,3 +3047,37 @@ test('local sign options should not overwrite global sign options', async functi
 
   t.equal(fastify.jwt.options.sign.expiresIn, '15m')
 })
+
+test('local sign options.key should take effect', async function (t) {
+  t.plan(1)
+
+  const options = {
+    secret: 'test'
+  }
+
+  const fastify = Fastify()
+  fastify.register(jwt, options)
+
+  fastify.post('/sign', async function (request, reply) {
+    const { token, refreshToken } = request.body
+    const refreshTokenSigned = await reply.jwtSign(refreshToken, { key: 'something-else' }) // signing by different key
+    const tokenSigned = await reply.jwtSign(token)
+    return reply.send({ tokenSigned, refreshTokenSigned })
+  })
+
+  await fastify.ready()
+
+  const signResponse = await fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { token: { foo: 'bar' }, refreshToken: { bar: 'foo' } }
+  })
+
+  const token = JSON.parse(signResponse.payload).tokenSigned
+  const refreshToken = JSON.parse(signResponse.payload).refreshTokenSigned
+
+  fastify.jwt.verify(token, { key: 'test' })
+  fastify.jwt.verify(refreshToken, { key: 'something-else' }) // should not throw
+
+  t.ok(true)
+})
