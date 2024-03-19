@@ -11,7 +11,7 @@
     "test": "npm run lint && npm run test:unit && npm run test:typescript",
     "test:typescript": "tsd",
     "test:unit": "tap",
-    "test:unit:report": "tap --cov --coverage-report=html",
+    "test:unit:report": "tap --coverage-report=html",
     "test:unit:verbose": "tap -Rspec"
   },
   "repository": {
@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@fastify/cookie": "^9.3.1",
-    "@fastify/pre-commit": "^2.1.0",
+    "@fastify/pre-commit": "^2.0.2",
     "@types/node": "^20.11.29",
     "fastify": "^4.26.2",
     "standard": "^17.1.0",
