@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@fastify/cookie": "^9.3.1",
-    "@fastify/pre-commit": "^2.0.2",
+    "@fastify/pre-commit": "^2.1.0",
     "@types/node": "^20.11.29",
     "fastify": "^4.26.2",
     "standard": "^17.1.0",
