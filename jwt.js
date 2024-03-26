@@ -216,14 +216,13 @@ function fastifyJwt (fastify, options, next) {
     } catch (error) {
       // Ignoring the else branch because it's not possible to test it,
       // it's just a safeguard for future changes in the fast-jwt library
-      /* istanbul ignore next */
       if (error.code === TokenError.codes.malformed) {
         throw new AuthorizationTokenInvalidError(error.message)
       } else if (error.code === TokenError.codes.invalidType) {
         throw new AuthorizationTokenInvalidError(error.message)
-      } else {
+      } /* c8 ignore start */ else {
         throw error
-      }
+      } /* c8 ignore stop */
     }
   }
 
