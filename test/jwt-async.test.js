@@ -4,7 +4,7 @@ const test = require('tap').test
 const Fastify = require('fastify')
 const jwt = require('../jwt')
 
-test('Async key provider should be resolved internaly', async function (t) {
+test('Async key provider should be resolved internally', async function (t) {
   const fastify = Fastify()
   fastify.register(jwt, {
     secret: {
@@ -34,7 +34,7 @@ test('Async key provider should be resolved internaly', async function (t) {
   t.equal(response.payload, 'function')
 })
 
-test('Async key provider errors should be resolved internaly', async function (t) {
+test('Async key provider errors should be resolved internally', async function (t) {
   const fastify = Fastify()
   fastify.register(jwt, {
     secret: {
