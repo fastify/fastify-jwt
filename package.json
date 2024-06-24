@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/fastify/fastify-jwt#readme",
   "dependencies": {
-    "@fastify/error": "^3.0.0",
+    "@fastify/error": "^4.0.0",
     "@lukeed/ms": "^2.0.0",
     "fast-jwt": "^4.0.0",
     "fastify-plugin": "^4.0.0",
