@@ -3,6 +3,7 @@
 const test = require('tap').test
 const Fastify = require('fastify')
 const jwt = require('../jwt')
+const { createSigner } = require('fast-jwt')
 
 test('Async key provider should be resolved internally', async function (t) {
   const fastify = Fastify()
@@ -46,8 +47,8 @@ test('Async key provider errors should be resolved internally', async function (
     }
   })
   fastify.get('/', async function (request, reply) {
-    request.headers.jwt =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+    const signSync = createSigner({ key: 'invalid signature error' })
+    request.headers.jwt = signSync({ sub: '1234567890', name: 'John Doe', iat: 1516239022 })
     // call to local verifier without cache
     await request.jwtVerify()
     return reply.send(typeof request.user.then)
@@ -64,6 +65,7 @@ test('Async key provider should be resolved internally with cache', async functi
   const fastify = Fastify()
   fastify.register(jwt, {
     secret: {
+      private: 'this secret reused from cache',
       public: async () => false
     },
     verify: {
@@ -72,7 +74,8 @@ test('Async key provider should be resolved internally with cache', async functi
     }
   })
   fastify.get('/', async function (request, reply) {
-    request.headers.jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.hQOxra1Zo9z61vCqe6_86kVfLqKI0WxDnkiJ_upW0sM'
+    const signSync = createSigner({ key: 'this secret reused from cache' })
+    request.headers.jwt = signSync({ sub: '1234567890', name: 'John Doe', iat: 1516239022 })
     await new Promise((resolve, reject) => request.jwtVerify((err, payload) => {
       if (err) {
         reject(err)
@@ -109,8 +112,10 @@ test('Async key provider errors should be resolved internally with cache', async
     }
   })
   fastify.get('/', async function (request, reply) {
-    request.headers.jwt =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+    const signSync = createSigner({ key: 'invalid signature error' })
+    request.headers.jwt = signSync({ sub: '1234567890', name: 'John Doe', iat: 1516239022 })
+    // request.headers.jwt =
+    //   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
     // call to plugin root level verifier
     await new Promise((resolve, reject) => request.jwtVerify((err, payload) => {
       if (err) {
