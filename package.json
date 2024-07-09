@@ -1,6 +1,6 @@
 {
   "name": "@fastify/jwt",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "JWT utils for Fastify",
   "main": "jwt.js",
   "type": "commonjs",
@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/fastify/fastify-jwt#readme",
   "dependencies": {
-    "@fastify/error": "^3.4.1",
+    "@fastify/error": "^4.0.0",
     "@lukeed/ms": "^2.0.2",
     "fast-jwt": "^4.0.0",
     "fastify-plugin": "^4.5.1",
@@ -45,7 +45,7 @@
     "fastify": "^4.26.2",
     "standard": "^17.1.0",
     "tap": "^18.7.1",
-    "tsd": "^0.30.7"
+    "tsd": "^0.31.0"
   },
   "publishConfig": {
     "access": "public"
