@@ -891,7 +891,7 @@ declare module "@fastify/jwt" {
       id: number,
       name: string,
       age: number
-      } // user type is return type of `request.user` object
+    } // user type is return type of `request.user` object
   }
 }
 
