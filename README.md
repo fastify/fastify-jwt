@@ -8,8 +8,10 @@ JWT utils for Fastify, internally it uses [fast-jwt](https://github.com/nearform
 
 **NOTE:** The plugin has been migrated from using `jsonwebtoken` to `fast-jwt`. Even though `fast-jwt` has 1:1 feature implementation with `jsonwebtoken`, some _exotic_ implementations might break. In that case please open an issue with details of your implementation. See [Upgrading notes](UPGRADING.md) for more details about what changes this migration introduced.
 
-`@fastify/jwt` supports Fastify@3.
-`@fastify/jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
+- `@fastify/jwt` >= v9 supports Fastify@5.
+- `@fastify/jwt` < v9 supports Fastify@4.
+- `@fastify/jwt` < v6 supports Fastify@3.
+- `@fastify/jwt` [v1.x](https://github.com/fastify/fastify-jwt/tree/1.x)
 supports both Fastify@2.
 
 ## Install
