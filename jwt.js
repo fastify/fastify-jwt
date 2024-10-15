@@ -486,34 +486,21 @@ function fastifyJwt (fastify, options, next) {
       },
       function verify (secretOrPublicKey, callback) {
         try {
+          let verifyResult
           if (useLocalVerifier) {
             const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
             const localVerifier = createVerifier(verifierOptions)
-            const verifyResult = localVerifier(token)
-            callback(null, verifyResult)
+            verifyResult = localVerifier(token)
           } else {
-            const verifyResult = verifier(token)
+            verifyResult = verifier(token)
+          }
+          if (verifyResult && typeof verifyResult.then === 'function') {
+            verifyResult.then(result => callback(null, result), error => wrapError(error, callback))
+          } else {
             callback(null, verifyResult)
           }
         } catch (error) {
-          if (error.code === TokenError.codes.expired) {
-            return callback(new AuthorizationTokenExpiredError())
-          }
-
-          if (error.code === TokenError.codes.invalidKey ||
-              error.code === TokenError.codes.invalidSignature ||
-              error.code === TokenError.codes.invalidClaimValue
-          ) {
-            return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
-              ? new AuthorizationTokenInvalidError(error.message)
-              : new AuthorizationTokenInvalidError())
-          }
-
-          if (error.code === TokenError.codes.missingSignature) {
-            return callback(new AuthorizationTokenUnsignedError())
-          }
-
-          return callback(error)
+          return wrapError(error, callback)
         }
       },
       function checkIfIsTrusted (result, callback) {
@@ -541,6 +528,27 @@ function fastifyJwt (fastify, options, next) {
         next(null, user)
       }
     })
+  }
+
+  function wrapError (error, callback) {
+    if (error.code === TokenError.codes.expired) {
+      return callback(new AuthorizationTokenExpiredError())
+    }
+
+    if (error.code === TokenError.codes.invalidKey ||
+        error.code === TokenError.codes.invalidSignature ||
+        error.code === TokenError.codes.invalidClaimValue
+    ) {
+      return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
+        ? new AuthorizationTokenInvalidError(error.message)
+        : new AuthorizationTokenInvalidError())
+    }
+
+    if (error.code === TokenError.codes.missingSignature) {
+      return callback(new AuthorizationTokenUnsignedError())
+    }
+
+    return callback(error)
   }
 }
 
