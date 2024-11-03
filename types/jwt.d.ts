@@ -50,21 +50,21 @@ declare namespace fastifyJwt {
   }> =
   Record<C extends { jwtDecode: string}
     ? C['jwtDecode']
-    : C extends {namespace: string} 
+    : C extends {namespace: string}
       ? `${C['namespace']}JwtDecode`
       : never,
   JWT['decode']>
   &
   Record<C extends { jwtSign: string}
     ? C['jwtSign']
-    : C extends {namespace: string} 
+    : C extends {namespace: string}
       ? `${C['namespace']}JwtSign`
       : never,
   JWT['sign']>
   &
   Record<C extends { jwtVerify: string}
     ? C['jwtVerify']
-    : C extends {namespace: string} 
+    : C extends {namespace: string}
       ? `${C['namespace']}JwtVerify`
       : never,
   JWT['verify']>

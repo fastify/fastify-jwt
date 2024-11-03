@@ -507,7 +507,7 @@ To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNames
 
 ```typescript
 declare module 'fastify' {
-  interface FastifyInstance extends 
+  interface FastifyInstance extends
   FastifyJwtNamespace<{namespace: 'security'}> {
   }
 }
@@ -517,7 +517,7 @@ Alternatively you can type each key explicitly:
 
 ```typescript
 declare module 'fastify' {
-  interface FastifyInstance extends 
+  interface FastifyInstance extends
   FastifyJwtNamespace<{
     jwtDecode: 'securityJwtDecode',
     jwtSign: 'securityJwtSign',
