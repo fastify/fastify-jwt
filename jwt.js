@@ -18,6 +18,9 @@ const messages = {
   authorizationTokenUnsigned: 'Unsigned authorization token'
 }
 
+const validatorCache = new Map()
+const maxCacheSize = 1000
+
 function isString (x) {
   return Object.prototype.toString.call(x) === '[object String]'
 }
@@ -84,6 +87,20 @@ function validateOptions (options) {
   ) {
     throw new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
   }
+}
+
+function getVerifier (options) {
+  const cacheKey = JSON.stringify(options)
+  let verifier = validatorCache.get(cacheKey)
+  if (!verifier) {
+    verifier = createVerifier(options)
+    validatorCache.set(cacheKey, verifier)
+
+    if (validatorCache.size > maxCacheSize) {
+      validatorCache.delete(validatorCache.keys().next().value) // Remove the oldest cached verifier
+    }
+  }
+  return verifier
 }
 
 function fastifyJwt (fastify, options, next) {
@@ -322,7 +339,7 @@ function fastifyJwt (fastify, options, next) {
     const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
-      localVerifier = createVerifier(verifierConfig.options)
+      localVerifier = getVerifier(verifierConfig.options)
     }
 
     if (typeof verifierConfig.callback === 'function') {
@@ -489,7 +506,7 @@ function fastifyJwt (fastify, options, next) {
           let verifyResult
           if (useLocalVerifier) {
             const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
-            const localVerifier = createVerifier(verifierOptions)
+            const localVerifier = getVerifier(verifierOptions)
             verifyResult = localVerifier(token)
           } else {
             verifyResult = verifier(token)
