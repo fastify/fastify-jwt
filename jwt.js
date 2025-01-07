@@ -23,7 +23,7 @@ function isString (x) {
 }
 
 function wrapStaticSecretInCallback (secret) {
-  return function (request, payload, cb) {
+  return function (_request, _payload, cb) {
     return cb(null, secret)
   }
 }

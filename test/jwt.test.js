@@ -96,7 +96,7 @@ test('register', function (t) {
     t.plan(1)
     const fastify = Fastify()
     fastify.register(jwt, {
-      secret: (request, token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
+      secret: (_request, _token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
     }).ready(function (error) {
       t.error(error)
     })
@@ -106,7 +106,7 @@ test('register', function (t) {
     t.plan(1)
     const fastify = Fastify()
     fastify.register(jwt, {
-      secret: (request, token) => Promise.resolve(Buffer.from('some secret', 'base64'))
+      secret: () => Promise.resolve(Buffer.from('some secret', 'base64'))
     }).ready(function (error) {
       t.error(error)
     })
@@ -116,7 +116,7 @@ test('register', function (t) {
     t.plan(1)
     const fastify = Fastify()
     fastify.register(jwt, {
-      secret: async (request, token) => Buffer.from('some secret', 'base64')
+      secret: async () => Buffer.from('some secret', 'base64')
     }).ready(function (error) {
       t.error(error)
     })
@@ -263,7 +263,7 @@ test('register', function (t) {
       return reply.send({ token })
     })
 
-    fastify.get('/verify', function (request, reply) {
+    fastify.get('/verify', function (request) {
       return request.jwtVerify()
     })
 
@@ -290,37 +290,37 @@ test('register', function (t) {
   }
 
   t.test('secret as a function with callback', t => {
-    return runWithSecret(t, function (request, token, callback) {
+    return runWithSecret(t, function (_request, _token, callback) {
       callback(null, 'some-secret')
     })
   })
 
   t.test('secret as a function returning a promise', t => {
-    return runWithSecret(t, function (request, token) {
+    return runWithSecret(t, function () {
       return Promise.resolve('some-secret')
     })
   })
 
   t.test('secret as an async function', t => {
-    return runWithSecret(t, async function (request, token) {
+    return runWithSecret(t, async function () {
       return 'some-secret'
     })
   })
 
   t.test('secret as a function with callback returning a Buffer', t => {
-    return runWithSecret(t, function (request, token, callback) {
+    return runWithSecret(t, function (_request, _token, callback) {
       callback(null, Buffer.from('some-secret', 'base64'))
     })
   })
 
   t.test('secret as a function returning a promise with a Buffer', t => {
-    return runWithSecret(t, function (request, token) {
+    return runWithSecret(t, function () {
       return Promise.resolve(Buffer.from('some secret', 'base64'))
     })
   })
 
   t.test('secret as an async function returning a Buffer', t => {
-    return runWithSecret(t, async function (request, token) {
+    return runWithSecret(t, async function () {
       return Buffer.from('some secret', 'base64')
     })
   })
@@ -386,7 +386,7 @@ test('sign and verify with HS-secret', function (t) {
       })
     })
 
-    fastify.get('/verifySync', function (request, reply) {
+    fastify.get('/verifySync', function (request) {
       return request.jwtVerify()
     })
 
@@ -554,7 +554,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             t.plan(4)
 
             try {
-              fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error, token) {
+              fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error) {
                 // as for now, verifier-only error is not propagated here
                 t.error('SHOULD NOT BE HERE')
                 t.error(error)
@@ -594,7 +594,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             })
         })
 
-        fastify.get('/verifySync', function (request, reply) {
+        fastify.get('/verifySync', function (request) {
           return request.jwtVerify()
         })
 
@@ -692,7 +692,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             })
         })
 
-        fastifyVerifier.get('/verifySync', function (request, reply) {
+        fastifyVerifier.get('/verifySync', function (request) {
           return request.jwtVerify()
         })
 
@@ -807,7 +807,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           })
       })
 
-      fastify.get('/verifySync', function (request, reply) {
+      fastify.get('/verifySync', function (request) {
         return request.jwtVerify()
       })
 
@@ -962,7 +962,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           })
       })
 
-      fastify.get('/verifySync', function (request, reply) {
+      fastify.get('/verifySync', function (request) {
         return request.jwtVerify()
       })
 
@@ -1117,7 +1117,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           })
       })
 
-      fastify.get('/verifySync', function (request, reply) {
+      fastify.get('/verifySync', function (request) {
         return request.jwtVerify()
       })
 
@@ -1276,7 +1276,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           })
       })
 
-      fastify.get('/verifySync', function (request, reply) {
+      fastify.get('/verifySync', function (request) {
         return request.jwtVerify()
       })
 
@@ -1361,7 +1361,7 @@ test('sign and verify with trusted token', function (t) {
     t.plan(2)
 
     const f = Fastify()
-    f.register(jwt, { secret: 'test', trusted: (request, { jti }) => jti !== 'untrusted' })
+    f.register(jwt, { secret: 'test', trusted: (_request, { jti }) => jti !== 'untrusted' })
     f.get('/', (request, reply) => {
       request.jwtVerify()
         .then(function (decodedToken) {
@@ -1391,7 +1391,7 @@ test('sign and verify with trusted token', function (t) {
     t.plan(2)
 
     const f = Fastify()
-    f.register(jwt, { secret: 'test', trusted: (request, { jti }) => Promise.resolve(jti !== 'untrusted') })
+    f.register(jwt, { secret: 'test', trusted: (_request, { jti }) => Promise.resolve(jti !== 'untrusted') })
     f.get('/', (request, reply) => {
       request.jwtVerify()
         .then(function (decodedToken) {
@@ -1503,7 +1503,7 @@ test('errors', function (t) {
   const fastify = Fastify()
   fastify.register(jwt, {
     secret: 'test',
-    trusted: (request, { jti }) => jti !== 'untrusted',
+    trusted: (_request, { jti }) => jti !== 'untrusted',
     decode: { checkTyp: 'JWT' }
   })
 
@@ -1747,7 +1747,7 @@ test('errors', function (t) {
         t.plan(2)
 
         const f = Fastify()
-        f.register(jwt, { secret: 'test', trusted: (request, { jti }) => Promise.resolve(jti !== 'untrusted') })
+        f.register(jwt, { secret: 'test', trusted: (_request, { jti }) => Promise.resolve(jti !== 'untrusted') })
         f.get('/', (request, reply) => {
           request.jwtVerify()
             .then(function (decodedToken) {
@@ -2353,7 +2353,7 @@ test('custom response messages', function (t) {
   t.plan(6)
 
   const fastify = Fastify()
-  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token', authorizationTokenUnsigned: 'unsigned token' }, trusted: (request, { jti }) => jti !== 'untrusted' })
+  fastify.register(jwt, { secret: 'test', messages: { noAuthorizationInHeaderMessage: 'auth header missing', authorizationTokenExpiredMessage: 'token expired', authorizationTokenInvalid: 'invalid token', authorizationTokenUntrusted: 'untrusted token', authorizationTokenUnsigned: 'unsigned token' }, trusted: (_request, { jti }) => jti !== 'untrusted' })
 
   fastify.get('/verify', function (request, reply) {
     request.jwtVerify()
