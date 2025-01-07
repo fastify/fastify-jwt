@@ -75,7 +75,7 @@ test('Options validation', function (t) {
         secret: 'sec',
         jwtSign: {}
       }).ready((error) => {
-        t.equal(error && error.message, 'Invalid options.jwtSign')
+        t.equal(error?.message, 'Invalid options.jwtSign')
       })
     })
 
@@ -111,7 +111,7 @@ test('Options validation', function (t) {
             sub: 'Some subject'
           }
         }).ready(function (error) {
-          t.equal(error && error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+          t.equal(error?.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
         })
       })
 
@@ -127,7 +127,7 @@ test('Options validation', function (t) {
             sub: 'Some subject'
           }
         }).ready(function (error) {
-          t.equal(error && error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
+          t.equal(error?.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
         })
       })
     })

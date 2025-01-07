@@ -67,18 +67,14 @@ function validateOptions (options) {
   assert(!options.jwtSign || isString(options.jwtSign), 'Invalid options.jwtSign')
 
   if (
-    options.sign &&
-    options.sign.algorithm &&
-    options.sign.algorithm.includes('RS') &&
+    options.sign?.algorithm?.includes('RS') &&
     (typeof options.secret === 'string' ||
       options.secret instanceof Buffer)
   ) {
     throw new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
   }
   if (
-    options.sign &&
-    options.sign.algorithm &&
-    options.sign.algorithm.includes('ES') &&
+    options.sign?.algorithm?.includes('ES') &&
     (typeof options.secret === 'string' ||
       options.secret instanceof Buffer)
   ) {
@@ -509,7 +505,7 @@ function fastifyJwt (fastify, options, next) {
         } else {
           const maybePromise = trusted(request, result)
 
-          if (maybePromise && maybePromise.then) {
+          if (maybePromise?.then) {
             maybePromise
               .then(trusted => trusted ? callback(null, result) : callback(new AuthorizationTokenUntrustedError()))
           } else if (maybePromise) {
