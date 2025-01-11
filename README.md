@@ -20,7 +20,7 @@ npm i @fastify/jwt
 ```
 
 ## Usage
-Register as a plugin. This will decorate your `fastify` instance with the following methods: `decode`, `sign`, and `verify`; refer to their documentation to find how to use the utilities. It will also register `request.jwtVerify` and `reply.jwtSign`. You must pass a `secret` when registering the plugin.
+Register as a plugin. This will decorate your `fastify` instance with the following methods: `decode`, `sign`, and `verify`; refer to their documentation to find out how to use the utilities. It will also register `request.jwtVerify` and `reply.jwtSign`. You must pass a `secret` when registering the plugin.
 
 ```js
 const fastify = require('fastify')()
@@ -56,7 +56,7 @@ fastify.addHook("onRequest", async (request, reply) => {
 })
 ```
 
-Afterwards, just use `request.user` in order to retrieve the user information:
+Afterwards, just use `request.user` to retrieve the user information:
 
 ```js
 module.exports = async function(fastify, opts) {
@@ -113,7 +113,7 @@ If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fasti
 ### `secret` (required)
 You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
-In this object `{ private, public }` the `private` key is a string, buffer or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
+In this object `{ private, public }` the `private` key is a string, buffer, or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
@@ -320,7 +320,7 @@ fastify.listen({ port: 3000 }, err => {
 
 ### `onlyCookie`
 
-Setting this options to `true` will decode only the cookie in the request. This is useful for refreshToken implementations where the request typically has two tokens: token and refreshToken. The main authentication token usually has a shorter timeout and the refresh token normally stored in the cookie has a longer timeout. This allows you to check to make sure that the cookie token is still valid, as it could have a different expiring time than the main token. The payloads of the two different tokens could also be different.
+Setting this option to `true` will decode only the cookie in the request. This is useful for refreshToken implementations where the request typically has two tokens: token and refreshToken. The main authentication token usually has a shorter timeout and the refresh token normally stored in the cookie has a longer timeout. This allows you to check to make sure that the cookie token is still valid, as it could have a different expiring time than the main token. The payloads of the two different tokens could also be different.
 
 ```js
 const fastify = require('fastify')()
@@ -606,7 +606,7 @@ fastify.register(require('@fastify/jwt'), {
 
 ### `decode`
 
-* `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
+* `complete`: Return an object with the decoded header, payload, signature, and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
 * `checkTyp`: When validating the decoded header, setting this option forces the check of the typ property against this value. Example: `checkTyp: 'JWT'`. Default is `undefined`.
 
 ### `sign`
@@ -624,9 +624,9 @@ fastify.register(require('@fastify/jwt'), {
 * `key`: A string or a buffer containing the secret for `HS*` algorithms or the PEM encoded public key for `RS*`, `PS*`, `ES*` and `EdDSA` algorithms. The key can also be a function accepting a Node style callback or a function returning a promise. If provided, it will override the value of [secret](#secret-required) provided in the options.
 * `algorithms`: List of strings with the names of the allowed algorithms. By default, all algorithms are accepted.
 * `complete`: Return an object with the decoded header, payload, signature and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
-* `cache`: A positive number specifying the size of the verified tokens cache (using LRU strategy). Setting this to `true` is equivalent to provide the size 1000. When enabled the  performance is dramatically improved. By default the cache is disabled.
-* `cacheTTL`: The maximum time to live of a cache entry (in milliseconds). If the token has a earlier expiration or the verifier has a shorter `maxAge`, the earlier takes precedence. The default is `600000`, which is 10 minutes.
-* `maxAge`: The maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span (E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`). A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`). By default this is not checked.
+* `cache`: A positive number specifying the size of the verified tokens cache (using LRU strategy). Setting this to `true` is equivalent to provide the size 1000. When enabled the performance is dramatically improved. By default the cache is disabled.
+* `cacheTTL`: The maximum time to live of a cache entry (in milliseconds). If the token has an earlier expiration or the verifier has a shorter `maxAge`, the earlier takes precedence. The default is `600000`, which is 10 minutes.
+* `maxAge`: The maximum allowed age for tokens to still be valid. It is expressed in seconds or a string describing a time span (E.g.: `60`, `"2 days"`, `"10h"`, `"7d"`). A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc.), otherwise milliseconds unit is used by default (`"120"` is equal to `"120ms"`). By default, this is not checked.
 * ... the rest of the **verify** options can be found [here](https://github.com/nearform/fast-jwt#createverifier).
 
 ## API Spec
@@ -645,7 +645,7 @@ This method is used to verify provided token. It accepts a `token` (as `Buffer` 
 const token = fastify.jwt.sign({ foo: 'bar' })
 // synchronously
 const decoded = fastify.jwt.verify(token)
-// asycnhronously
+// asynchronously
 fastify.jwt.verify(token, (err, decoded) => {
   if (err) fastify.log.error(err)
   fastify.log.info(`Token verified. Foo is ${decoded.foo}`)
@@ -665,7 +665,7 @@ fastify.log.info(`Decoded JWT: ${decoded}`)
 ```
 
 ### fastify.jwt.options
-For your convenience, the `decode`, `sign`, `verify` and `messages` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify, messages }` containing your options.
+For your convenience, the `decode`, `sign`, `verify`, and `messages` options you specify during `.register` are made available via `fastify.jwt.options` that will return an object  `{ decode, sign, verify, messages }` containing your options.
 
 #### Example
 ```js
@@ -771,7 +771,7 @@ You can find the list [here](https://github.com/nearform/fast-jwt#algorithms-sup
 
 #### Certificates Generation
 
-[Here](./example/UsingCertificates.md) some example on how to generate certificates and use them, with or without passphrase.
+[Here](./example/UsingCertificates.md) are some examples of how to generate certificates and use them, with or without passphrase.
 
 #### Signing and verifying (jwtSign, jwtVerify)
 ```js
@@ -909,7 +909,7 @@ fastify.get('/', async (request, reply) => {
 
 ```
 
-## Acknowledgements
+## Acknowledgments
 
 This project is kindly sponsored by:
 - [LetzDoIt](https://www.letzdoitapp.com/)
