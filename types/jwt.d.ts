@@ -27,9 +27,12 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: fastifyJwt.FastifyJwtVerifyOptions): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: fastifyJwt.FastifyJwtVerifyOptions, callback: VerifierCallback): void
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: Partial<fastifyJwt.VerifyOptions>): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: Partial<fastifyJwt.VerifyOptions>, callback: VerifierCallback): void
     jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options?: fastifyJwt.FastifyJwtDecodeOptions): Promise<Decoded>
     jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(callback: fastifyJwt.DecodeCallback<Decoded>): void
@@ -48,23 +51,23 @@ declare namespace fastifyJwt {
     jwtVerify?: string;
     jwtSign?: string;
   }> =
-  Record<C extends { jwtDecode: string}
+  Record<C extends { jwtDecode: string }
     ? C['jwtDecode']
-    : C extends {namespace: string}
+    : C extends { namespace: string }
       ? `${C['namespace']}JwtDecode`
       : never,
   JWT['decode']>
   &
-  Record<C extends { jwtSign: string}
+  Record<C extends { jwtSign: string }
     ? C['jwtSign']
-    : C extends {namespace: string}
+    : C extends { namespace: string }
       ? `${C['namespace']}JwtSign`
       : never,
   JWT['sign']>
   &
-  Record<C extends { jwtVerify: string}
+  Record<C extends { jwtVerify: string }
     ? C['jwtVerify']
-    : C extends {namespace: string}
+    : C extends { namespace: string }
       ? `${C['namespace']}JwtVerify`
       : never,
   JWT['verify']>
@@ -97,8 +100,8 @@ declare namespace fastifyJwt {
 
   export type SignPayloadType = FastifyJWT extends { payload: infer T }
     ? T extends string | object | Buffer
-    ? T
-    : string | object | Buffer
+      ? T
+      : string | object | Buffer
     : string | object | Buffer
 
   export type UserType = FastifyJWT extends { user: infer T }
@@ -118,13 +121,13 @@ declare namespace fastifyJwt {
     (err: Error, decoded: Decoded): void
   }
 
-  export interface SignOptions extends Omit<SignerOptions, "expiresIn" | "notBefore"> {
+  export interface SignOptions extends Omit<SignerOptions, 'expiresIn' | 'notBefore'> {
     expiresIn: number | string;
     notBefore: number | string;
     key?: string | Buffer
   }
 
-  export interface VerifyOptions extends Omit<VerifierOptions, "maxAge"> {
+  export interface VerifyOptions extends Omit<VerifierOptions, 'maxAge'> {
     maxAge: number | string;
     onlyCookie: boolean;
     key?: string | Buffer
@@ -179,7 +182,9 @@ declare namespace fastifyJwt {
     sign(payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
 
     verify<Decoded extends VerifyPayloadType>(token: string, options?: Partial<VerifyOptions>): Decoded
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     verify<Decoded extends VerifyPayloadType>(token: string, callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     verify<Decoded extends VerifyPayloadType>(token: string, options: Partial<VerifyOptions>, callback: VerifierCallback): void
 
     decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded
@@ -207,5 +212,5 @@ declare namespace fastifyJwt {
   export { fastifyJwt as default }
 }
 
-declare function fastifyJwt(...params: Parameters<FastifyJwt>): ReturnType<FastifyJwt>
+declare function fastifyJwt (...params: Parameters<FastifyJwt>): ReturnType<FastifyJwt>
 export = fastifyJwt
