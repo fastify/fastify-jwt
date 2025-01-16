@@ -27,9 +27,12 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: fastifyJwt.FastifyJwtVerifyOptions): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: fastifyJwt.FastifyJwtVerifyOptions, callback: VerifierCallback): void
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: Partial<fastifyJwt.VerifyOptions>): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: Partial<fastifyJwt.VerifyOptions>, callback: VerifierCallback): void
     jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options?: fastifyJwt.FastifyJwtDecodeOptions): Promise<Decoded>
     jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(callback: fastifyJwt.DecodeCallback<Decoded>): void
@@ -179,7 +182,9 @@ declare namespace fastifyJwt {
     sign(payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
 
     verify<Decoded extends VerifyPayloadType>(token: string, options?: Partial<VerifyOptions>): Decoded
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     verify<Decoded extends VerifyPayloadType>(token: string, callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     verify<Decoded extends VerifyPayloadType>(token: string, options: Partial<VerifyOptions>, callback: VerifierCallback): void
 
     decode<Decoded extends DecodePayloadType>(token: string, options?: Partial<DecoderOptions>): null | Decoded

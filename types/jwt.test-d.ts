@@ -111,8 +111,6 @@ app.addHook('preHandler', async (request, reply) => {
 
 app.post('/signup', async (req, reply) => {
   const token = app.jwt.sign({ user: 'userName' })
-  const data = await app.jwt.verify(token)
-  const user = req.user
   reply.send({ token })
 })
 
@@ -174,6 +172,7 @@ let signOptions: SignOptions = {
   notBefore: 0,
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 signOptions = {
   key: Buffer.from('supersecret', 'utf-8'),
   algorithm: 'HS256',
@@ -192,6 +191,7 @@ let verifyOptions: VerifyOptions = {
   onlyCookie: false,
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 verifyOptions = {
   key: Buffer.from('supersecret', 'utf-8'),
   algorithms: ['HS256'],
