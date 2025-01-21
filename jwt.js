@@ -18,9 +18,6 @@ const messages = {
   authorizationTokenUnsigned: 'Unsigned authorization token'
 }
 
-const validatorCache = new Map()
-const maxCacheSize = 1000
-
 function isString (x) {
   return Object.prototype.toString.call(x) === '[object String]'
 }
@@ -89,20 +86,6 @@ function validateOptions (options) {
   }
 }
 
-function getVerifier (options) {
-  const cacheKey = JSON.stringify(options)
-  let verifier = validatorCache.get(cacheKey)
-  if (!verifier) {
-    verifier = createVerifier(options)
-    validatorCache.set(cacheKey, verifier)
-
-    if (validatorCache.size > maxCacheSize) {
-      validatorCache.delete(validatorCache.keys().next().value) // Remove the oldest cached verifier
-    }
-  }
-  return verifier
-}
-
 function fastifyJwt (fastify, options, next) {
   try {
     validateOptions(options)
@@ -127,6 +110,8 @@ function fastifyJwt (fastify, options, next) {
     ...pluginOptions
   } = options
 
+  const validatorCache = new Map()
+
   let secretOrPrivateKey
   let secretOrPublicKey
 
@@ -140,6 +125,7 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
+  let hasStaticPublicKey = false
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
   if (typeof secretCallbackSign !== 'function') {
@@ -147,6 +133,7 @@ function fastifyJwt (fastify, options, next) {
   }
   if (typeof secretCallbackVerify !== 'function') {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
+    hasStaticPublicKey = true
   }
 
   const signOptions = convertTemporalProps(initialSignOptions)
@@ -219,12 +206,28 @@ function fastifyJwt (fastify, options, next) {
 
   next()
 
+  function getVerifier (options, globalOptions) {
+    const useGlobalOptions = globalOptions ?? options === verifierConfig.options
+    // Use global verifier if using global options with static key
+    if (useGlobalOptions && hasStaticPublicKey) return verifier
+    // Only cache verifier when using default options (except for key)
+    if (useGlobalOptions && options.key && typeof options.key === 'string') {
+      let verifier = validatorCache.get(options.key)
+      if (!verifier) {
+        verifier = createVerifier(options)
+        validatorCache.set(options.key, verifier)
+      }
+      return verifier
+    }
+    return createVerifier(options)
+  }
+
   function decode (token, options) {
     assert(token, 'missing token')
 
     let selectedDecoder = decoder
 
-    if (options && typeof options !== 'function') {
+    if (options && options !== decodeOptions && typeof options !== 'function') {
       selectedDecoder = createDecoder(options)
     }
 
@@ -449,17 +452,25 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function requestVerify (options, next) {
-    let useLocalVerifier = true
+    const request = this
 
-    if (typeof options === 'function' && !next) {
+    if (next === undefined) {
+      return new Promise(function (resolve, reject) {
+        request[jwtVerifyName](options, function (err, val) {
+          err ? reject(err) : resolve(val)
+        })
+      })
+    }
+
+    const useGlobalOptions = !options
+
+    if (typeof options === 'function') {
       next = options
       options = {}
-      useLocalVerifier = false
     } // support no options
 
     if (!options) {
       options = {}
-      useLocalVerifier = false
     }
 
     if (options.decode || options.verify) {
@@ -473,16 +484,6 @@ function fastifyJwt (fastify, options, next) {
       const localOptions = convertTemporalProps(options, true)
       // Original contract, options supports only verify
       options = Object.assign({}, verifyOptions, localOptions)
-    }
-
-    const request = this
-
-    if (next === undefined) {
-      return new Promise(function (resolve, reject) {
-        request[jwtVerifyName](options, function (err, val) {
-          err ? reject(err) : resolve(val)
-        })
-      })
     }
 
     let token
@@ -503,14 +504,9 @@ function fastifyJwt (fastify, options, next) {
       },
       function verify (secretOrPublicKey, callback) {
         try {
-          let verifyResult
-          if (useLocalVerifier) {
-            const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
-            const localVerifier = getVerifier(verifierOptions)
-            verifyResult = localVerifier(token)
-          } else {
-            verifyResult = verifier(token)
-          }
+          const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
+          const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
+          const verifyResult = localVerifier(token)
           if (verifyResult && typeof verifyResult.then === 'function') {
             verifyResult.then(result => callback(null, result), error => wrapError(error, callback))
           } else {
