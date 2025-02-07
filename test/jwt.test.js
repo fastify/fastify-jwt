@@ -15,22 +15,22 @@ const { privateKey: privateKeyProtectedECDSA, publicKey: publicKeyProtectedECDSA
 const { privateKey, publicKey } = helper.generateKeyPair()
 const { privateKey: privateKeyECDSA, publicKey: publicKeyECDSA } = helper.generateKeyPairECDSA()
 
-test('export', function (t) {
+test('export', async function (t) {
   t.plan(3)
 
-  t.test('module export', function (t) {
+  await t.test('module export', function (t) {
     t.plan(1)
-    t.equal(typeof jwt, 'function')
+    t.assert.deepStrictEqual(typeof jwt, 'function')
   })
 
-  t.test('default export', function (t) {
+  await t.test('default export', function (t) {
     t.plan(1)
-    t.equal(typeof defaultExport, 'function')
+    t.assert.deepStrictEqual(typeof defaultExport, 'function')
   })
 
-  t.test('named export', function (t) {
+  await t.test('named export', function (t) {
     t.plan(1)
-    t.equal(typeof namedExport, 'function')
+    t.assert.deepStrictEqual(typeof namedExport, 'function')
   })
 })
 
