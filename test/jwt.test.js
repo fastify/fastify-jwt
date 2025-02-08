@@ -34,7 +34,7 @@ test('export', async function (t) {
   })
 })
 
-test.only('register', async function (t) {
+test('register', async function (t) {
   t.plan(17)
 
   await t.test('Expose jwt methods', async function (t) {
