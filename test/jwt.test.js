@@ -34,10 +34,10 @@ test('export', async function (t) {
   })
 })
 
-test('register', function (t) {
+test.only('register', async function (t) {
   t.plan(17)
 
-  t.test('Expose jwt methods', function (t) {
+  await t.test('Expose jwt methods', async function (t) {
     t.plan(8)
 
     const fastify = Fastify()
@@ -50,100 +50,84 @@ test('register', function (t) {
     })
 
     fastify.get('/methods', function (request, reply) {
-      t.ok(request.jwtDecode)
-      t.ok(request.jwtVerify)
-      t.ok(reply.jwtSign)
+      t.assert.ok(request.jwtDecode)
+      t.assert.ok(request.jwtVerify)
+      t.assert.ok(reply.jwtSign)
+      return {}
     })
 
-    fastify.ready(function () {
-      t.ok(fastify.jwt.decode)
-      t.ok(fastify.jwt.options)
-      t.ok(fastify.jwt.sign)
-      t.ok(fastify.jwt.verify)
-      t.ok(fastify.jwt.cookie)
-    })
+    await fastify.ready()
 
-    fastify.inject({
+    t.assert.ok(fastify.jwt.decode)
+    t.assert.ok(fastify.jwt.options)
+    t.assert.ok(fastify.jwt.sign)
+    t.assert.ok(fastify.jwt.verify)
+    t.assert.ok(fastify.jwt.cookie)
+
+    return fastify.inject({
       method: 'get',
       url: '/methods'
     })
   })
 
-  t.test('secret as an object', function (t) {
-    t.plan(1)
+  await t.test('secret as an object', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: {
         private: privateKey,
         public: publicKey
       }
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('secret as a Buffer', function (t) {
-    t.plan(1)
+  await t.test('secret as a Buffer', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: Buffer.from('some secret', 'base64')
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('secret as a function with a callback returning a Buffer', function (t) {
-    t.plan(1)
+  await t.test('secret as a function with a callback returning a Buffer', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: (_request, _token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('secret as a function returning a promise with Buffer', function (t) {
-    t.plan(1)
+  await t.test('secret as a function returning a promise with Buffer', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: () => Promise.resolve(Buffer.from('some secret', 'base64'))
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('secret as an async function returning a Buffer', function (t) {
-    t.plan(1)
+  await t.test('secret as an async function returning a Buffer', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: async () => Buffer.from('some secret', 'base64')
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('deprecated use of options prefix', function (t) {
+  await t.test('deprecated use of options prefix', async function (t) {
     t.plan(1)
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await t.assert.rejects(() => fastify.register(jwt, {
       secret: {
         private: privateKey,
         public: publicKey
       },
       options: { algorithme: 'RS256' }
-    }).ready(function (error) {
-      t.equal(error.message, 'options prefix is deprecated')
-    })
+    }).ready(), undefined, 'options prefix is deprecated')
   })
 
-  t.test('secret as a malformed object', function (t) {
+  await t.test('secret as a malformed object', async function (t) {
     t.plan(2)
 
-    t.test('only private key (Must return an error)', function (t) {
+    await t.test('only private key (Must return an error)', async function (t) {
       t.plan(1)
 
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await t.assert.rejects(() => fastify.register(jwt, {
         secret: {
           private: privateKey
         },
@@ -153,15 +137,12 @@ test('register', function (t) {
           iss: 'Some issuer',
           sub: 'Some subject'
         }
-      }).ready(function (error) {
-        t.equal(error.message, 'missing public key')
-      })
+      }).ready(), undefined, 'missing public key')
     })
 
-    t.test('only public key (Must not return an error)', function (t) {
-      t.plan(1)
+    await t.test('only public key (Must not return an error)', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: {
           public: publicKey
         },
@@ -171,16 +152,13 @@ test('register', function (t) {
           iss: 'Some issuer',
           sub: 'Some subject'
         }
-      }).ready(function (error) {
-        t.error(error)
-      })
+      }).ready()
     })
   })
 
-  t.test('decode, sign and verify global options (with default HS algorithm)', function (t) {
-    t.plan(1)
+  await t.test('decode, sign and verify global options (with default HS algorithm)', async function (t) {
     const fastify = Fastify()
-    fastify.register(jwt, {
+    await fastify.register(jwt, {
       secret: 'test',
       decode: { complete: true },
       sign: {
@@ -193,18 +171,15 @@ test('register', function (t) {
         allowedSub: 'Some subject',
         allowedAud: 'Some audience'
       }
-    }).ready(function (error) {
-      t.error(error)
-    })
+    }).ready()
   })
 
-  t.test('decode, sign and verify global options and secret as an object', function (t) {
+  await t.test('decode, sign and verify global options and secret as an object', async function (t) {
     t.plan(2)
 
-    t.test('RS algorithm signed certificates', function (t) {
-      t.plan(1)
+    await t.test('RS algorithm signed certificates', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: {
           private: privateKey,
           public: publicKey
@@ -222,15 +197,12 @@ test('register', function (t) {
           allowedIss: 'Some issuer',
           allowedSub: 'Some subject'
         }
-      }).ready(function (error) {
-        t.error(error)
-      })
+      }).ready()
     })
 
-    t.test('ES algorithm signed certificates', function (t) {
-      t.plan(1)
+    await t.test('ES algorithm signed certificates', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: {
           private: privateKeyECDSA,
           public: publicKeyECDSA
@@ -248,9 +220,7 @@ test('register', function (t) {
           allowedIss: 'Some issuer',
           allowedSub: 'Some subject'
         }
-      }).ready(function (error) {
-        t.error(error)
-      })
+      }).ready()
     })
   })
 
@@ -276,7 +246,7 @@ test('register', function (t) {
     })
 
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const verifyResponse = await fastify.inject({
       method: 'get',
@@ -286,55 +256,51 @@ test('register', function (t) {
       }
     })
     const decodedToken = JSON.parse(verifyResponse.payload)
-    t.equal(decodedToken.foo, 'bar')
+    t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   }
 
-  t.test('secret as a function with callback', t => {
+  await t.test('secret as a function with callback', t => {
     return runWithSecret(t, function (_request, _token, callback) {
       callback(null, 'some-secret')
     })
   })
 
-  t.test('secret as a function returning a promise', t => {
+  await t.test('secret as a function returning a promise', t => {
     return runWithSecret(t, function () {
       return Promise.resolve('some-secret')
     })
   })
 
-  t.test('secret as an async function', t => {
+  await t.test('secret as an async function', t => {
     return runWithSecret(t, async function () {
       return 'some-secret'
     })
   })
 
-  t.test('secret as a function with callback returning a Buffer', t => {
+  await t.test('secret as a function with callback returning a Buffer', t => {
     return runWithSecret(t, function (_request, _token, callback) {
       callback(null, Buffer.from('some-secret', 'base64'))
     })
   })
 
-  t.test('secret as a function returning a promise with a Buffer', t => {
+  await t.test('secret as a function returning a promise with a Buffer', t => {
     return runWithSecret(t, function () {
       return Promise.resolve(Buffer.from('some secret', 'base64'))
     })
   })
 
-  t.test('secret as an async function returning a Buffer', t => {
+  await t.test('secret as an async function returning a Buffer', t => {
     return runWithSecret(t, async function () {
       return Buffer.from('some secret', 'base64')
     })
   })
 
-  t.test('fail without secret', function (t) {
-    t.plan(1)
-
+  await t.test('fail without secret', async function (t) {
     const fastify = Fastify()
 
-    fastify
+    await t.assert.rejects(() => fastify
       .register(jwt)
-      .ready(function (error) {
-        t.equal(error.message, 'missing secret')
-      })
+      .ready(), undefined, 'missing secret')
   })
 })
 
@@ -356,7 +322,7 @@ test('sign and verify with HS-secret', function (t) {
           const token = fastify.jwt.sign({ foo: 'bar' })
           const decoded = fastify.jwt.verify(token)
 
-          t.equal(decoded.foo, 'bar')
+          t.assert.deepStrictEqual(decoded.foo, 'bar')
         })
 
         t.test('with callbacks', function (t) {
@@ -367,7 +333,7 @@ test('sign and verify with HS-secret', function (t) {
 
             fastify.jwt.verify(token, function (error, decoded) {
               t.error(error)
-              t.equal(decoded.foo, 'bar')
+              t.assert.deepStrictEqual(decoded.foo, 'bar')
             })
           })
         })
@@ -414,7 +380,7 @@ test('sign and verify with HS-secret', function (t) {
             payload: { foo: 'bar' }
           }).then(function (signResponse) {
             const token = JSON.parse(signResponse.payload).token
-            t.ok(token)
+            t.assert.ok(token)
 
             fastify.inject({
               method: 'get',
@@ -424,7 +390,7 @@ test('sign and verify with HS-secret', function (t) {
               }
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
-              t.equal(decodedToken.foo, 'bar')
+              t.assert.deepStrictEqual(decodedToken.foo, 'bar')
             }).catch(function (error) {
               t.fail(error)
             })
@@ -442,7 +408,7 @@ test('sign and verify with HS-secret', function (t) {
             payload: { foo: 'bar' }
           }).then(function (signResponse) {
             const token = JSON.parse(signResponse.payload).token
-            t.ok(token)
+            t.assert.ok(token)
 
             fastify.inject({
               method: 'get',
@@ -452,7 +418,7 @@ test('sign and verify with HS-secret', function (t) {
               }
             }).then(function (verifyResponse) {
               const decodedToken = JSON.parse(verifyResponse.payload)
-              t.equal(decodedToken.foo, 'bar')
+              t.assert.deepStrictEqual(decodedToken.foo, 'bar')
             }).catch(function (error) {
               t.fail(error)
             })
@@ -504,8 +470,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               signedToken = fastifySigner.jwt.sign({ foo: 'bar' })
               const decoded = fastifySigner.jwt.verify(signedToken)
 
-              t.equal(decoded.foo, 'bar')
-              t.equal(decoded.iss, 'test')
+              t.assert.deepStrictEqual(decoded.foo, 'bar')
+              t.assert.deepStrictEqual(decoded.iss, 'test')
             })
 
             t.test('with callbacks', function (t) {
@@ -516,8 +482,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
                 fastifySigner.jwt.verify(token, function (error, decoded) {
                   t.error(error)
-                  t.equal(decoded.foo, 'bar')
-                  t.equal(decoded.iss, 'test')
+                  t.assert.deepStrictEqual(decoded.foo, 'bar')
+                  t.assert.deepStrictEqual(decoded.iss, 'test')
                 })
               })
             })
@@ -542,12 +508,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             try {
               fastifyVerifier.jwt.sign({ foo: 'baz' })
             } catch (error) {
-              t.equal(error.message, 'unable to sign: secret is configured in verify mode')
+              t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
             }
 
             const decoded = fastifyVerifier.jwt.verify(signedToken)
-            t.equal(decoded.foo, 'bar')
-            t.equal(decoded.iss, 'test')
+            t.assert.deepStrictEqual(decoded.foo, 'bar')
+            t.assert.deepStrictEqual(decoded.iss, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -560,15 +526,15 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 t.error(error)
               })
             } catch (error) {
-              t.equal(error.message, 'unable to sign: secret is configured in verify mode')
+              t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
             }
 
             fastifyVerifier.jwt.verify(
               signedToken,
               function (error, decoded) {
                 t.error(error)
-                t.equal(decoded.foo, 'bar')
-                t.equal(decoded.iss, 'test')
+                t.assert.deepStrictEqual(decoded.foo, 'bar')
+                t.assert.deepStrictEqual(decoded.iss, 'test')
               }
             )
           })
@@ -622,7 +588,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 payload: { foo: 'bar' }
               }).then(function (signResponse) {
                 const token = JSON.parse(signResponse.payload).token
-                t.ok(token)
+                t.assert.ok(token)
                 signedToken = token
 
                 fastify.inject({
@@ -633,8 +599,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                   }
                 }).then(function (verifyResponse) {
                   const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.equal(decodedToken.foo, 'bar')
-                  t.equal(decodedToken.iss, 'test')
+                  t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                  t.assert.deepStrictEqual(decodedToken.iss, 'test')
                 }).catch(function (error) {
                   t.fail(error)
                 })
@@ -652,7 +618,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 payload: { foo: 'bar' }
               }).then(function (signResponse) {
                 const token = JSON.parse(signResponse.payload).token
-                t.ok(token)
+                t.assert.ok(token)
 
                 fastify.inject({
                   method: 'get',
@@ -662,8 +628,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                   }
                 }).then(function (verifyResponse) {
                   const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.equal(decodedToken.foo, 'bar')
-                  t.equal(decodedToken.iss, 'test')
+                  t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                  t.assert.deepStrictEqual(decodedToken.iss, 'test')
                 }).catch(function (error) {
                   t.fail(error)
                 })
@@ -707,9 +673,9 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 url: '/signSync',
                 payload: { foo: 'bar' }
               }).then(function (response) {
-                t.equal(response.statusCode, 500)
+                t.assert.deepStrictEqual(response.statusCode, 500)
                 const payload = JSON.parse(response.payload)
-                t.equal(payload.message, 'unable to sign: secret is configured in verify mode')
+                t.assert.deepStrictEqual(payload.message, 'unable to sign: secret is configured in verify mode')
               })
 
               fastifyVerifier.inject({
@@ -720,8 +686,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.iss, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -762,8 +728,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.equal(decoded.foo, 'bar')
-            t.equal(decoded.sub, 'test')
+            t.assert.deepStrictEqual(decoded.foo, 'bar')
+            t.assert.deepStrictEqual(decoded.sub, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -774,8 +740,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.equal(decoded.foo, 'bar')
-                t.equal(decoded.sub, 'test')
+                t.assert.deepStrictEqual(decoded.foo, 'bar')
+                t.assert.deepStrictEqual(decoded.sub, 'test')
               })
             })
           })
@@ -835,7 +801,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -845,8 +811,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.sub, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -864,7 +830,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -874,8 +840,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.sub, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -917,8 +883,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.equal(decoded.aud, 'test')
-            t.equal(decoded.foo, 'bar')
+            t.assert.deepStrictEqual(decoded.aud, 'test')
+            t.assert.deepStrictEqual(decoded.foo, 'bar')
           })
 
           t.test('with callbacks', function (t) {
@@ -929,8 +895,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.equal(decoded.aud, 'test')
-                t.equal(decoded.foo, 'bar')
+                t.assert.deepStrictEqual(decoded.aud, 'test')
+                t.assert.deepStrictEqual(decoded.foo, 'bar')
               })
             })
           })
@@ -990,7 +956,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1000,8 +966,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.aud, 'test')
-                t.equal(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.aud, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1019,7 +985,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1029,8 +995,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.aud, 'test')
-                t.equal(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.aud, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1072,8 +1038,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' })
             const decoded = fastify.jwt.verify(token)
 
-            t.equal(decoded.foo, 'bar')
-            t.equal(decoded.sub, 'test')
+            t.assert.deepStrictEqual(decoded.foo, 'bar')
+            t.assert.deepStrictEqual(decoded.sub, 'test')
           })
 
           t.test('with callbacks', function (t) {
@@ -1084,8 +1050,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, function (error, decoded) {
                 t.error(error)
-                t.equal(decoded.foo, 'bar')
-                t.equal(decoded.sub, 'test')
+                t.assert.deepStrictEqual(decoded.foo, 'bar')
+                t.assert.deepStrictEqual(decoded.sub, 'test')
               })
             })
           })
@@ -1145,7 +1111,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1155,8 +1121,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.sub, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1174,7 +1140,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1184,8 +1150,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.sub, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.sub, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1230,8 +1196,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
             const decoded = fastify.jwt.verify(token, { iss: 'other' })
 
-            t.equal(decoded.foo, 'bar')
-            t.equal(decoded.iss, 'other')
+            t.assert.deepStrictEqual(decoded.foo, 'bar')
+            t.assert.deepStrictEqual(decoded.iss, 'other')
           })
 
           t.test('with callbacks', function (t) {
@@ -1244,8 +1210,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
               fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
                 t.error(error)
-                t.equal(decoded.foo, 'bar')
-                t.equal(decoded.iss, 'other')
+                t.assert.deepStrictEqual(decoded.foo, 'bar')
+                t.assert.deepStrictEqual(decoded.iss, 'other')
               })
             })
           })
@@ -1303,7 +1269,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1313,8 +1279,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.iss, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1331,7 +1297,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               payload: { foo: 'bar' }
             }).then(function (signResponse) {
               const token = JSON.parse(signResponse.payload).token
-              t.ok(token)
+              t.assert.ok(token)
 
               fastify.inject({
                 method: 'get',
@@ -1341,8 +1307,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
                 }
               }).then(function (verifyResponse) {
                 const decodedToken = JSON.parse(verifyResponse.payload)
-                t.equal(decodedToken.foo, 'bar')
-                t.equal(decodedToken.iss, 'test')
+                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+                t.assert.deepStrictEqual(decodedToken.iss, 'test')
               }).catch(function (error) {
                 t.fail(error)
               })
@@ -1383,7 +1349,7 @@ test('sign and verify with trusted token', function (t) {
         authorization: `Bearer ${trustedToken}`
       }
     }).then(function (response) {
-      t.equal(response.statusCode, 200)
+      t.assert.deepStrictEqual(response.statusCode, 200)
     })
   })
 
@@ -1413,7 +1379,7 @@ test('sign and verify with trusted token', function (t) {
         authorization: `Bearer ${trustedToken}`
       }
     }).then(function (response) {
-      t.equal(response.statusCode, 200)
+      t.assert.deepStrictEqual(response.statusCode, 200)
     })
   })
 })
@@ -1432,7 +1398,7 @@ test('decode', function (t) {
       fastify.ready(function () {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token)
-        t.equal(decoded.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
       })
     })
 
@@ -1446,9 +1412,9 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token, { complete: true })
 
-        t.equal(decoded.header.alg, 'HS256')
-        t.equal(decoded.header.typ, 'JWT')
-        t.equal(decoded.payload.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
+        t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
+        t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
       })
     })
   })
@@ -1469,9 +1435,9 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token)
 
-        t.equal(decoded.header.alg, 'HS256')
-        t.equal(decoded.header.typ, 'JWT')
-        t.equal(decoded.payload.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
+        t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
+        t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
       })
     })
 
@@ -1488,10 +1454,10 @@ test('decode', function (t) {
         const token = fastify.jwt.sign({ foo: 'bar' })
         const decoded = fastify.jwt.decode(token, { complete: false })
 
-        t.equal(decoded.header, undefined)
-        t.equal(decoded.payload, undefined)
-        t.equal(decoded.signature, undefined)
-        t.equal(decoded.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.header, undefined)
+        t.assert.deepStrictEqual(decoded.payload, undefined)
+        t.assert.deepStrictEqual(decoded.signature, undefined)
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
       })
     })
   })
@@ -1601,7 +1567,7 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'jwtSign requires a payload')
+          t.assert.deepStrictEqual(error.message, 'jwtSign requires a payload')
         })
       })
 
@@ -1613,8 +1579,8 @@ test('errors', function (t) {
           url: '/verify'
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'No Authorization was found in request.headers')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
       t.test('no bearer authorization header error', function (t) {
@@ -1628,8 +1594,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'No Authorization was found in request.headers')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1646,8 +1612,8 @@ test('errors', function (t) {
           })
           .then(function (response) {
             const error = JSON.parse(response.payload)
-            t.equal(response.statusCode, 401)
-            t.equal(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
+            t.assert.deepStrictEqual(response.statusCode, 401)
+            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
           })
       })
 
@@ -1664,8 +1630,8 @@ test('errors', function (t) {
           })
           .then(function (response) {
             const error = JSON.parse(response.payload)
-            t.equal(response.statusCode, 401)
-            t.equal(error.message, 'Authorization token is invalid: The type must be "JWT".')
+            t.assert.deepStrictEqual(response.statusCode, 401)
+            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The type must be "JWT".')
           })
       })
 
@@ -1680,8 +1646,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Format is Authorization: Bearer [token]')
-          t.equal(response.statusCode, 400)
+          t.assert.deepStrictEqual(error.message, 'Format is Authorization: Bearer [token]')
+          t.assert.deepStrictEqual(response.statusCode, 400)
         })
       })
 
@@ -1700,8 +1666,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Authorization token expired')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'Authorization token expired')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1719,8 +1685,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token signature is invalid.')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1738,8 +1704,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Untrusted authorization token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1768,8 +1734,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Untrusted authorization token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1787,8 +1753,8 @@ test('errors', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'Unsigned authorization token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'Unsigned authorization token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -1803,7 +1769,7 @@ test('errors', function (t) {
           }
         }).then(function (signResponse) {
           const token = JSON.parse(signResponse.payload).token
-          t.ok(token)
+          t.assert.ok(token)
 
           fastify.inject({
             method: 'get',
@@ -1813,8 +1779,8 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.equal(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
-            t.equal(verifyResponse.statusCode, 401)
+            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
+            t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
           })
         })
       })
@@ -1830,7 +1796,7 @@ test('errors', function (t) {
           }
         }).then(function (signResponse) {
           const token = JSON.parse(signResponse.payload).token
-          t.ok(token)
+          t.assert.ok(token)
 
           fastify.inject({
             method: 'get',
@@ -1840,8 +1806,8 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.equal(error.message, 'Authorization token is invalid: Invalid public key provided for algorithms invalid.')
-            t.equal(verifyResponse.statusCode, 401)
+            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: Invalid public key provided for algorithms invalid.')
+            t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
           })
         })
       })
@@ -1857,7 +1823,7 @@ test('errors', function (t) {
           }
         }).then(function (signResponse) {
           const token = JSON.parse(signResponse.payload).token
-          t.ok(token)
+          t.assert.ok(token)
 
           fastify.inject({
             method: 'get',
@@ -1867,8 +1833,8 @@ test('errors', function (t) {
             }
           }).then(function (verifyResponse) {
             const error = JSON.parse(verifyResponse.payload)
-            t.equal(error.message, 'The clockTimestamp option must be a positive number.')
-            t.equal(verifyResponse.statusCode, 500)
+            t.assert.deepStrictEqual(error.message, 'The clockTimestamp option must be a positive number.')
+            t.assert.deepStrictEqual(verifyResponse.statusCode, 500)
           })
         })
       })
@@ -1884,7 +1850,7 @@ test('errors', function (t) {
           }
         }).then(function (signResponse) {
           const token = JSON.parse(signResponse.payload).token
-          t.ok(token)
+          t.assert.ok(token)
 
           fastify.inject({
             method: 'get',
@@ -1894,7 +1860,7 @@ test('errors', function (t) {
             }
           }).then(function (response) {
             const result = JSON.parse(response.payload)
-            t.equal(result.count, 1)
+            t.assert.deepStrictEqual(result.count, 1)
           })
         })
       })
@@ -1935,7 +1901,7 @@ test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
     const cookieName = signResponse.cookies[0].name
     const signedCookie = signResponse.cookies[0].value
 
-    t.equal(cookieName, 'jwt')
+    t.assert.deepStrictEqual(cookieName, 'jwt')
 
     const response = await fastify.inject({
       method: 'get',
@@ -1946,7 +1912,7 @@ test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
     })
 
     const decodedToken = JSON.parse(response.payload)
-    t.equal(decodedToken.foo, 'bar')
+    t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
 })
 
@@ -1979,7 +1945,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -1989,7 +1955,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2002,8 +1968,8 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       cookies: {}
     }).then(function (verifyResponse) {
       const error = JSON.parse(verifyResponse.payload)
-      t.equal(error.message, 'No Authorization was found in request.cookies')
-      t.equal(error.statusCode, 401)
+      t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.cookies')
+      t.assert.deepStrictEqual(error.statusCode, 401)
     })
   })
 
@@ -2016,7 +1982,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2026,8 +1992,8 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'No Authorization was found in request.cookies')
-        t.equal(error.statusCode, 401)
+        t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.cookies')
+        t.assert.deepStrictEqual(error.statusCode, 401)
       })
     })
   })
@@ -2041,7 +2007,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2051,8 +2017,8 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'Authorization token is invalid: The token signature is invalid.')
-        t.equal(error.statusCode, 401)
+        t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token signature is invalid.')
+        t.assert.deepStrictEqual(error.statusCode, 401)
       })
     })
   })
@@ -2087,7 +2053,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2097,7 +2063,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2110,8 +2076,8 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       cookies: {}
     }).then(function (verifyResponse) {
       const error = JSON.parse(verifyResponse.payload)
-      t.equal(error.message, 'No Authorization was found in request.cookies')
-      t.equal(error.statusCode, 401)
+      t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.cookies')
+      t.assert.deepStrictEqual(error.statusCode, 401)
     })
   })
 
@@ -2123,7 +2089,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2136,7 +2102,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2149,7 +2115,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2162,7 +2128,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2175,7 +2141,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2188,8 +2154,8 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'No Authorization was found in request.cookies')
-        t.equal(error.statusCode, 401)
+        t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.cookies')
+        t.assert.deepStrictEqual(error.statusCode, 401)
       })
     })
   })
@@ -2202,7 +2168,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2215,7 +2181,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2249,7 +2215,7 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2259,8 +2225,8 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const error = JSON.parse(verifyResponse.payload)
-        t.equal(error.message, 'Cookie could not be parsed in request')
-        t.equal(error.statusCode, 400)
+        t.assert.deepStrictEqual(error.message, 'Cookie could not be parsed in request')
+        t.assert.deepStrictEqual(error.statusCode, 400)
       })
     })
   })
@@ -2273,7 +2239,7 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2286,7 +2252,7 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
         }
       }).then(function (verifyResponse) {
         const decodedToken = JSON.parse(verifyResponse.payload)
-        t.equal(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
       })
     })
   })
@@ -2329,7 +2295,7 @@ test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, d
     const payLoad = JSON.parse(signResponse.payload)
     const signedTokenHeader = payLoad.tokenSigned
 
-    t.equal(cookieName, 'refreshToken')
+    t.assert.deepStrictEqual(cookieName, 'refreshToken')
 
     const response = await fastify.inject({
       method: 'get',
@@ -2344,8 +2310,8 @@ test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, d
 
     const decodedToken = JSON.parse(response.payload)
 
-    t.equal(decodedToken.token.foo, 'bar')
-    t.equal(decodedToken.refreshToken.bar, 'foo')
+    t.assert.deepStrictEqual(decodedToken.token.foo, 'bar')
+    t.assert.deepStrictEqual(decodedToken.refreshToken.bar, 'foo')
   })
 })
 
@@ -2376,8 +2342,8 @@ test('custom response messages', function (t) {
           url: '/verify'
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'auth header missing')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'auth header missing')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -2392,8 +2358,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'auth header missing')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'auth header missing')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -2412,8 +2378,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'token expired')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'token expired')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -2431,8 +2397,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'invalid token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'invalid token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -2450,8 +2416,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'unsigned token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'unsigned token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
 
@@ -2468,8 +2434,8 @@ test('custom response messages', function (t) {
           }
         }).then(function (response) {
           const error = JSON.parse(response.payload)
-          t.equal(error.message, 'untrusted token')
-          t.equal(response.statusCode, 401)
+          t.assert.deepStrictEqual(error.message, 'untrusted token')
+          t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
     })
@@ -2503,7 +2469,7 @@ test('extract custom token', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
@@ -2512,7 +2478,7 @@ test('extract custom token', function (t) {
           customauthheader: token
         }
       }).then(function (verifyResponse) {
-        t.equal(verifyResponse.statusCode, 200)
+        t.assert.deepStrictEqual(verifyResponse.statusCode, 200)
       })
     })
   })
@@ -2525,13 +2491,13 @@ test('extract custom token', function (t) {
       payload: { foo: 'bar' }
     }).then(function (signResponse) {
       const token = JSON.parse(signResponse.payload).token
-      t.ok(token)
+      t.assert.ok(token)
 
       return fastify.inject({
         method: 'get',
         url: '/verify'
       }).then(function (verifyResponse) {
-        t.equal(verifyResponse.statusCode, 400)
+        t.assert.deepStrictEqual(verifyResponse.statusCode, 400)
       })
     })
   })
@@ -2567,7 +2533,7 @@ test('format user', function (t) {
       payload: { foo: 'bar' }
     })
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const response = await fastify.inject({
       method: 'get',
@@ -2577,8 +2543,8 @@ test('format user', function (t) {
       }
     })
     const user = JSON.parse(response.payload)
-    t.equal(user.foo, undefined)
-    t.equal(user.baz, 'bar')
+    t.assert.deepStrictEqual(user.foo, undefined)
+    t.assert.deepStrictEqual(user.baz, 'bar')
   })
 
   t.test('user is set to the result of formatUser', async function (t) {
@@ -2590,7 +2556,7 @@ test('format user', function (t) {
       payload: { foo: 'bar' }
     })
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const response = await fastify.inject({
       method: 'get',
@@ -2600,8 +2566,8 @@ test('format user', function (t) {
       }
     })
     const user = JSON.parse(response.payload)
-    t.equal(user.foo, undefined)
-    t.equal(user.baz, 'bar')
+    t.assert.deepStrictEqual(user.foo, undefined)
+    t.assert.deepStrictEqual(user.baz, 'bar')
   })
 })
 
@@ -2639,7 +2605,7 @@ test('expose decode token for plugin extension', function (t) {
       payload: { foo: 'bar' }
     })
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const decodeResponse = await fastify.inject({
       method: 'get',
@@ -2649,7 +2615,7 @@ test('expose decode token for plugin extension', function (t) {
       }
     })
     const decodedToken = JSON.parse(decodeResponse.payload)
-    t.equal(decodedToken.foo, 'bar')
+    t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
 
   t.test('should decode token with callback', async function (t) {
@@ -2661,7 +2627,7 @@ test('expose decode token for plugin extension', function (t) {
       payload: { foo: 'bar' }
     })
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const decodeResponse = await fastify.inject({
       method: 'get',
@@ -2671,7 +2637,7 @@ test('expose decode token for plugin extension', function (t) {
       }
     })
     const decodedToken = JSON.parse(decodeResponse.payload)
-    t.equal(decodedToken.foo, 'bar')
+    t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
 
   t.test('should handle decode error', async function (t) {
@@ -2683,7 +2649,7 @@ test('expose decode token for plugin extension', function (t) {
       headers: {}
     })
     const decodedToken = JSON.parse(decodeResponse.payload)
-    t.equal(decodedToken.statusCode, 401)
+    t.assert.deepStrictEqual(decodedToken.statusCode, 401)
   })
 })
 
@@ -2731,7 +2697,7 @@ test('support extended config contract', function (t) {
       payload: { foo: 'bar' }
     })
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const decodeResponse = await fastify.inject({
       method: 'get',
@@ -2741,10 +2707,10 @@ test('support extended config contract', function (t) {
       }
     })
     const decodedToken = JSON.parse(decodeResponse.payload)
-    t.ok(decodedToken)
-    t.equal(decodedToken.header.typ, 'JWT')
-    t.equal(decodedToken.payload.iss, extConfig.sign.iss)
-    t.equal(decodedToken.payload.foo, 'bar')
+    t.assert.ok(decodedToken)
+    t.assert.deepStrictEqual(decodedToken.header.typ, 'JWT')
+    t.assert.deepStrictEqual(decodedToken.payload.iss, extConfig.sign.iss)
+    t.assert.deepStrictEqual(decodedToken.payload.foo, 'bar')
 
     const verifyResponse = await fastify.inject({
       method: 'get',
@@ -2754,8 +2720,8 @@ test('support extended config contract', function (t) {
       }
     })
     const decodedAndVerifiedToken = JSON.parse(verifyResponse.payload)
-    t.equal(decodedAndVerifiedToken.iss, extConfig.sign.iss)
-    t.equal(decodedAndVerifiedToken.foo, 'bar')
+    t.assert.deepStrictEqual(decodedAndVerifiedToken.iss, extConfig.sign.iss)
+    t.assert.deepStrictEqual(decodedAndVerifiedToken.foo, 'bar')
   })
 })
 
@@ -2792,21 +2758,21 @@ test('support fast-jwt compatible config options', async function (t) {
     t.plan(4)
     fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
       t.error(err)
-      t.ok(token)
+      t.assert.ok(token)
 
       fastify.jwt.verify(token, (err, result) => {
         t.error(err)
-        t.ok(result)
+        t.assert.ok(result)
       })
     })
   })
 
   t.test('no options defined', async function (t) {
     const token = await fastify.jwt.sign({ foo: 'bar' })
-    t.ok(token)
+    t.assert.ok(token)
 
     const verifiedToken = await fastify.jwt.verify(token)
-    t.ok(verifiedToken)
+    t.assert.ok(verifiedToken)
   })
 
   t.test('options.sign defined and merged with signOptions', async function (t) {
@@ -2817,7 +2783,7 @@ test('support fast-jwt compatible config options', async function (t) {
     })
 
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
   })
 
   t.test('general options defined and merged with signOptions', async function (t) {
@@ -2828,7 +2794,7 @@ test('support fast-jwt compatible config options', async function (t) {
     })
 
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
   })
 })
 
@@ -2874,22 +2840,22 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
   t.test('initial options should not be modified', function (t) {
     t.plan(2)
 
-    t.equal(fastify.jwt.options.sign.expiresIn, '1d')
-    t.equal(fastify.jwt.options.verify.maxAge, 2000)
+    t.assert.deepStrictEqual(fastify.jwt.options.sign.expiresIn, '1d')
+    t.assert.deepStrictEqual(fastify.jwt.options.verify.maxAge, 2000)
   })
 
   t.test('options are functions', function (t) {
     t.plan(7)
     fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
       t.error(err)
-      t.ok(token)
+      t.assert.ok(token)
 
       fastify.jwt.verify(token, (err, result) => {
         t.error(err)
-        t.ok(result)
-        t.ok(result.exp)
-        t.equal(typeof result.exp, 'number')
-        t.equal(result.exp - result.iat, oneDayInSeconds)
+        t.assert.ok(result)
+        t.assert.ok(result.exp)
+        t.assert.deepStrictEqual(typeof result.exp, 'number')
+        t.assert.deepStrictEqual(result.exp - result.iat, oneDayInSeconds)
       })
     })
   })
@@ -2902,14 +2868,14 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     })
 
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
     fastify.jwt.verify(token, { secret: 'test' }, (err, result) => {
       t.error(err)
-      t.ok(result)
-      t.ok(result.exp)
-      t.equal(typeof result.exp, 'number')
-      t.equal(result.iss, 'foo')
-      t.equal(result.exp - result.iat, oneDayInSeconds)
+      t.assert.ok(result)
+      t.assert.ok(result.exp)
+      t.assert.deepStrictEqual(typeof result.exp, 'number')
+      t.assert.deepStrictEqual(result.iss, 'foo')
+      t.assert.deepStrictEqual(result.exp - result.iat, oneDayInSeconds)
     })
   })
 
@@ -2921,7 +2887,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     })
 
     const token = JSON.parse(signResponse.payload).token
-    t.ok(token)
+    t.assert.ok(token)
 
     const decodeResponse = await fastify.inject({
       method: 'get',
@@ -2932,12 +2898,12 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     })
 
     const decodedToken = JSON.parse(decodeResponse.payload)
-    t.ok(decodedToken)
-    t.ok(decodedToken.payload.exp)
-    t.equal(typeof decodedToken.payload.exp, 'number')
-    t.equal(decodedToken.payload.exp - decodedToken.payload.iat, oneDayInSeconds)
-    t.ok(decodedToken.payload.nbf)
-    t.equal(typeof decodedToken.payload.nbf, 'number')
+    t.assert.ok(decodedToken)
+    t.assert.ok(decodedToken.payload.exp)
+    t.assert.deepStrictEqual(typeof decodedToken.payload.exp, 'number')
+    t.assert.deepStrictEqual(decodedToken.payload.exp - decodedToken.payload.iat, oneDayInSeconds)
+    t.assert.ok(decodedToken.payload.nbf)
+    t.assert.deepStrictEqual(typeof decodedToken.payload.nbf, 'number')
   })
 })
 
@@ -2964,9 +2930,9 @@ test('global user options should not be modified', async function (t) {
 
   await fastify.ready()
 
-  t.equal(fastify.jwt.options.sign.expiresIn, '1d')
-  t.equal(fastify.jwt.options.sign.notBefore, '4 hours')
-  t.equal(fastify.jwt.options.verify.maxAge, 2000)
+  t.assert.deepStrictEqual(fastify.jwt.options.sign.expiresIn, '1d')
+  t.assert.deepStrictEqual(fastify.jwt.options.sign.notBefore, '4 hours')
+  t.assert.deepStrictEqual(fastify.jwt.options.verify.maxAge, 2000)
 })
 
 test('decorator name should work after being changed in the options', async function (t) {
@@ -2991,9 +2957,9 @@ test('decorator name should work after being changed in the options', async func
     payload: { foo: 'bar' }
   })
   const token = JSON.parse(signResponse.payload).token
-  t.ok(token)
-  t.ok(fastify.jwt.options.decoratorName)
-  t.equal(fastify.jwt.options.decoratorName, decoratorName)
+  t.assert.ok(token)
+  t.assert.ok(fastify.jwt.options.decoratorName)
+  t.assert.deepStrictEqual(fastify.jwt.options.decoratorName, decoratorName)
 
   const response = await fastify.inject({
     method: 'get',
@@ -3003,8 +2969,8 @@ test('decorator name should work after being changed in the options', async func
     }
   })
   const user = JSON.parse(response.payload)
-  t.equal(user.baz, undefined)
-  t.equal(user.foo, 'bar')
+  t.assert.deepStrictEqual(user.baz, undefined)
+  t.assert.deepStrictEqual(user.foo, 'bar')
 })
 
 test('local sign options should not overwrite global sign options', async function (t) {
@@ -3043,7 +3009,7 @@ test('local sign options should not overwrite global sign options', async functi
   const decodedRefreshToken = fastify.jwt.verify(refreshToken)
   const calculatedDifference = decodedRefreshToken.exp - decodedToken.exp
   // max 5 seconds of difference for safety
-  t.ok(calculatedDifference >= tokensDifference && calculatedDifference <= tokensDifference + 5)
+  t.assert.ok(calculatedDifference >= tokensDifference && calculatedDifference <= tokensDifference + 5)
 
-  t.equal(fastify.jwt.options.sign.expiresIn, '15m')
+  t.assert.deepStrictEqual(fastify.jwt.options.sign.expiresIn, '15m')
 })
