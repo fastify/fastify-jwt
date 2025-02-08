@@ -484,7 +484,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         })
       })
 
-      await t.test('verifier mode', function (t) {
+      await t.test('verifier mode', async function (t) {
         t.plan(2)
         const fastifyVerifier = Fastify()
         fastifyVerifier.register(jwt, {
@@ -495,43 +495,48 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
           }
         })
 
-        fastifyVerifier.ready().then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(3)
+        await fastifyVerifier.ready()
 
-            try {
-              fastifyVerifier.jwt.sign({ foo: 'baz' })
-            } catch (error) {
-              t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
+        await t.test('synchronous', function (t) {
+          t.plan(3)
+
+          try {
+            fastifyVerifier.jwt.sign({ foo: 'baz' })
+          } catch (error) {
+            t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
+          }
+
+          const decoded = fastifyVerifier.jwt.verify(signedToken)
+          t.assert.deepStrictEqual(decoded.foo, 'bar')
+          t.assert.deepStrictEqual(decoded.iss, 'test')
+        })
+
+        await t.test('with callbacks', function (t) {
+          t.plan(4)
+
+          try {
+            fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error) {
+              // as for now, verifier-only error is not propagated here
+              t.assert.ifError('SHOULD NOT BE HERE')
+              t.assert.ifError(error)
+            })
+          } catch (error) {
+            t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
+          }
+
+          const { promise, resolve } = helper.withResolvers()
+
+          fastifyVerifier.jwt.verify(
+            signedToken,
+            function (error, decoded) {
+              t.assert.ifError(error)
+              t.assert.deepStrictEqual(decoded.foo, 'bar')
+              t.assert.deepStrictEqual(decoded.iss, 'test')
+              resolve()
             }
+          )
 
-            const decoded = fastifyVerifier.jwt.verify(signedToken)
-            t.assert.deepStrictEqual(decoded.foo, 'bar')
-            t.assert.deepStrictEqual(decoded.iss, 'test')
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(4)
-
-            try {
-              fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error) {
-                // as for now, verifier-only error is not propagated here
-                t.assert.ifError('SHOULD NOT BE HERE')
-                t.assert.ifError(error)
-              })
-            } catch (error) {
-              t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
-            }
-
-            fastifyVerifier.jwt.verify(
-              signedToken,
-              function (error, decoded) {
-                t.assert.ifError(error)
-                t.assert.deepStrictEqual(decoded.foo, 'bar')
-                t.assert.deepStrictEqual(decoded.iss, 'test')
-              }
-            )
-          })
+          return promise
         })
       })
     })
@@ -541,7 +546,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
 
       let signedToken
 
-      await t.test('signer mode', function (t) {
+      await t.test('signer mode', async function (t) {
         t.plan(2)
 
         const fastify = Fastify()
@@ -570,71 +575,61 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
           })
         })
 
-        fastify
-          .ready()
-          .then(async function () {
-            await t.test('synchronous', function (t) {
-              t.plan(3)
+        await fastify.ready()
 
-              fastify.inject({
-                method: 'post',
-                url: '/signSync',
-                payload: { foo: 'bar' }
-              }).then(function (signResponse) {
-                const token = JSON.parse(signResponse.payload).token
-                t.assert.ok(token)
-                signedToken = token
+        await t.test('synchronous', async function (t) {
+          t.plan(3)
 
-                fastify.inject({
-                  method: 'get',
-                  url: '/verifySync',
-                  headers: {
-                    authorization: `Bearer ${token}`
-                  }
-                }).then(function (verifyResponse) {
-                  const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                  t.assert.deepStrictEqual(decodedToken.iss, 'test')
-                }).catch(function (error) {
-                  t.fail(error)
-                })
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            })
-
-            await t.test('with callbacks', function (t) {
-              t.plan(3)
-
-              fastify.inject({
-                method: 'post',
-                url: '/signAsync',
-                payload: { foo: 'bar' }
-              }).then(function (signResponse) {
-                const token = JSON.parse(signResponse.payload).token
-                t.assert.ok(token)
-
-                fastify.inject({
-                  method: 'get',
-                  url: '/verifyAsync',
-                  headers: {
-                    authorization: `Bearer ${token}`
-                  }
-                }).then(function (verifyResponse) {
-                  const decodedToken = JSON.parse(verifyResponse.payload)
-                  t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                  t.assert.deepStrictEqual(decodedToken.iss, 'test')
-                }).catch(function (error) {
-                  t.fail(error)
-                })
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            })
+          const signResponse = await fastify.inject({
+            method: 'post',
+            url: '/signSync',
+            payload: { foo: 'bar' }
           })
+
+          const token = JSON.parse(signResponse.payload).token
+          t.assert.ok(token)
+          signedToken = token
+
+          const verifyResponse = await fastify.inject({
+            method: 'get',
+            url: '/verifySync',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          })
+
+          const decodedToken = JSON.parse(verifyResponse.payload)
+          t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+          t.assert.deepStrictEqual(decodedToken.iss, 'test')
+        })
+
+        await t.test('with callbacks', async function (t) {
+          t.plan(3)
+
+          const signResponse = await fastify.inject({
+            method: 'post',
+            url: '/signAsync',
+            payload: { foo: 'bar' }
+          })
+
+          const token = JSON.parse(signResponse.payload).token
+          t.assert.ok(token)
+
+          const verifyResponse = await fastify.inject({
+            method: 'get',
+            url: '/verifyAsync',
+            headers: {
+              authorization: `Bearer ${token}`
+            }
+          })
+
+          const decodedToken = JSON.parse(verifyResponse.payload)
+          t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+          t.assert.deepStrictEqual(decodedToken.iss, 'test')
+        })
       })
 
-      await t.test('verifier mode', function (t) {
+      await t.test('verifier mode', async function (t) {
         t.plan(1)
         const fastifyVerifier = Fastify()
         fastifyVerifier.register(jwt, {
@@ -656,37 +651,33 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
           return request.jwtVerify()
         })
 
-        fastifyVerifier
-          .ready()
-          .then(async function () {
-            await t.test('synchronous verifier', function (t) {
-              t.plan(4)
+        await fastifyVerifier.ready()
 
-              fastifyVerifier.inject({
-                method: 'post',
-                url: '/signSync',
-                payload: { foo: 'bar' }
-              }).then(function (response) {
-                t.assert.deepStrictEqual(response.statusCode, 500)
-                const payload = JSON.parse(response.payload)
-                t.assert.deepStrictEqual(payload.message, 'unable to sign: secret is configured in verify mode')
-              })
+        await t.test('synchronous verifier', async function (t) {
+          t.plan(4)
 
-              fastifyVerifier.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${signedToken}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.iss, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            })
+          const response = await fastifyVerifier.inject({
+            method: 'post',
+            url: '/signSync',
+            payload: { foo: 'bar' }
           })
+
+          t.assert.deepStrictEqual(response.statusCode, 500)
+          const payload = JSON.parse(response.payload)
+          t.assert.deepStrictEqual(payload.message, 'unable to sign: secret is configured in verify mode')
+
+          const verifyResponse = await fastifyVerifier.inject({
+            method: 'get',
+            url: '/verifySync',
+            headers: {
+              authorization: `Bearer ${signedToken}`
+            }
+          })
+
+          const decodedToken = JSON.parse(verifyResponse.payload)
+          t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+          t.assert.deepStrictEqual(decodedToken.iss, 'test')
+        })
       })
     })
   })
@@ -694,7 +685,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
   await t.test('ECDSA certificates', async function (t) {
     t.plan(2)
 
-    await t.test('server methods', function (t) {
+    await t.test('server methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -713,36 +704,39 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         }
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(2)
+      await fastify.ready()
 
-            const token = fastify.jwt.sign({ foo: 'bar' })
-            const decoded = fastify.jwt.verify(token)
+      await t.test('synchronous', function (t) {
+        t.plan(2)
 
+        const token = fastify.jwt.sign({ foo: 'bar' })
+        const decoded = fastify.jwt.verify(token)
+
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.sub, 'test')
+      })
+
+      await t.test('with callbacks', function (t) {
+        t.plan(4)
+
+        const { promise, resolve } = helper.withResolvers()
+
+        fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+          t.assert.ifError(error)
+
+          fastify.jwt.verify(token, function (error, decoded) {
+            t.assert.ifError(error)
             t.assert.deepStrictEqual(decoded.foo, 'bar')
             t.assert.deepStrictEqual(decoded.sub, 'test')
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(4)
-
-            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.assert.ifError(error)
-
-              fastify.jwt.verify(token, function (error, decoded) {
-                t.assert.ifError(error)
-                t.assert.deepStrictEqual(decoded.foo, 'bar')
-                t.assert.deepStrictEqual(decoded.sub, 'test')
-              })
-            })
+            resolve()
           })
         })
+
+        return promise
+      })
     })
 
-    await t.test('route methods', function (t) {
+    await t.test('route methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -783,74 +777,64 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         })
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(3)
+      await fastify.ready()
 
-            fastify.inject({
-              method: 'post',
-              url: '/signSync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
+      await t.test('synchronous', async function (t) {
+        t.plan(3)
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.sub, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(3)
-
-            fastify.inject({
-              method: 'post',
-              url: '/signAsync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
-
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.sub, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signSync',
+          payload: { foo: 'bar' }
         })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifySync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.sub, 'test')
+      })
+
+      await t.test('with callbacks', async function (t) {
+        t.plan(3)
+
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signAsync',
+          payload: { foo: 'bar' }
+        })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifyAsync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.sub, 'test')
+      })
     })
   })
 
   await t.test('RSA certificates (passphrase protected)', async function (t) {
     t.plan(2)
 
-    await t.test('server methods', function (t) {
+    await t.test('server methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -868,36 +852,39 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         }
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(2)
+      await fastify.ready()
 
-            const token = fastify.jwt.sign({ foo: 'bar' })
-            const decoded = fastify.jwt.verify(token)
+      await t.test('synchronous', function (t) {
+        t.plan(2)
 
+        const token = fastify.jwt.sign({ foo: 'bar' })
+        const decoded = fastify.jwt.verify(token)
+
+        t.assert.deepStrictEqual(decoded.aud, 'test')
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
+      })
+
+      await t.test('with callbacks', function (t) {
+        t.plan(4)
+
+        const { promise, resolve } = helper.withResolvers()
+
+        fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+          t.assert.ifError(error)
+
+          fastify.jwt.verify(token, function (error, decoded) {
+            t.assert.ifError(error)
             t.assert.deepStrictEqual(decoded.aud, 'test')
             t.assert.deepStrictEqual(decoded.foo, 'bar')
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(4)
-
-            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.assert.ifError(error)
-
-              fastify.jwt.verify(token, function (error, decoded) {
-                t.assert.ifError(error)
-                t.assert.deepStrictEqual(decoded.aud, 'test')
-                t.assert.deepStrictEqual(decoded.foo, 'bar')
-              })
-            })
+            resolve()
           })
         })
+
+        return promise
+      })
     })
 
-    await t.test('route methods', function (t) {
+    await t.test('route methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -938,67 +925,57 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         })
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(3)
+      await fastify.ready()
 
-            fastify.inject({
-              method: 'post',
-              url: '/signSync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
+      await t.test('synchronous', async function (t) {
+        t.plan(3)
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.aud, 'test')
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(3)
-
-            fastify.inject({
-              method: 'post',
-              url: '/signAsync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
-
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.aud, 'test')
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signSync',
+          payload: { foo: 'bar' }
         })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifySync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.aud, 'test')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+      })
+
+      await t.test('with callbacks', async function (t) {
+        t.plan(3)
+
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signAsync',
+          payload: { foo: 'bar' }
+        })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifyAsync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.aud, 'test')
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+      })
     })
   })
 
@@ -1153,7 +1130,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
   await t.test('Overriding global options', async function (t) {
     t.plan(2)
 
-    await t.test('server methods', function (t) {
+    await t.test('server methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -1172,40 +1149,43 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         }
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(2)
-            const localOptions = Object.assign({}, fastify.jwt.options.sign)
-            localOptions.iss = 'other'
+      await fastify.ready()
 
-            const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
-            const decoded = fastify.jwt.verify(token, { iss: 'other' })
+      await t.test('synchronous', function (t) {
+        t.plan(2)
+        const localOptions = Object.assign({}, fastify.jwt.options.sign)
+        localOptions.iss = 'other'
 
+        const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
+        const decoded = fastify.jwt.verify(token, { iss: 'other' })
+
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.iss, 'other')
+      })
+
+      await t.test('with callbacks', function (t) {
+        t.plan(4)
+        const localOptions = Object.assign({}, fastify.jwt.options.sign)
+        localOptions.iss = 'other'
+
+        const { promise, resolve } = helper.withResolvers()
+
+        fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
+          t.assert.ifError(error)
+
+          fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
+            t.assert.ifError(error)
             t.assert.deepStrictEqual(decoded.foo, 'bar')
             t.assert.deepStrictEqual(decoded.iss, 'other')
-          })
-
-          await t.test('with callbacks', function (t) {
-            t.plan(4)
-            const localOptions = Object.assign({}, fastify.jwt.options.sign)
-            localOptions.iss = 'other'
-
-            fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
-              t.assert.ifError(error)
-
-              fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
-                t.assert.ifError(error)
-                t.assert.deepStrictEqual(decoded.foo, 'bar')
-                t.assert.deepStrictEqual(decoded.iss, 'other')
-              })
-            })
+            resolve()
           })
         })
+
+        return promise
+      })
     })
 
-    await t.test('route methods', function (t) {
+    await t.test('route methods', async function (t) {
       t.plan(2)
       const fastify = Fastify()
       fastify.register(jwt, {
@@ -1245,65 +1225,56 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         })
       })
 
-      fastify
-        .ready()
-        .then(async function () {
-          await t.test('synchronous', function (t) {
-            t.plan(3)
-            fastify.inject({
-              method: 'post',
-              url: '/signSync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
+      await fastify.ready()
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.iss, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
+      await t.test('synchronous', async function (t) {
+        t.plan(3)
 
-          await t.test('with callbacks', function (t) {
-            t.plan(3)
-            fastify.inject({
-              method: 'post',
-              url: '/signAsync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
-
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.iss, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signSync',
+          payload: { foo: 'bar' }
         })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifySync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.iss, 'test')
+      })
+
+      await t.test('with callbacks', async function (t) {
+        t.plan(3)
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signAsync',
+          payload: { foo: 'bar' }
+        })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifyAsync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.iss, 'test')
+      })
     })
   })
 })
