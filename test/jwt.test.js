@@ -1819,7 +1819,7 @@ test('errors', async function (t) {
   })
 })
 
-test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
+test('token in a signed cookie, with @fastify/cookie parsing', async function (t) {
   t.plan(2)
 
   const fastify = Fastify()
@@ -1845,27 +1845,27 @@ test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
       })
   })
 
-  fastify.inject({
+  const signResponse = await fastify.inject({
     method: 'post',
     url: '/sign',
     payload: { foo: 'bar' }
-  }).then(async function (signResponse) {
-    const cookieName = signResponse.cookies[0].name
-    const signedCookie = signResponse.cookies[0].value
-
-    t.assert.deepStrictEqual(cookieName, 'jwt')
-
-    const response = await fastify.inject({
-      method: 'get',
-      url: '/verify',
-      cookies: {
-        jwt: signedCookie
-      }
-    })
-
-    const decodedToken = JSON.parse(response.payload)
-    t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
+
+  const cookieName = signResponse.cookies[0].name
+  const signedCookie = signResponse.cookies[0].value
+
+  t.assert.deepStrictEqual(cookieName, 'jwt')
+
+  const response = await fastify.inject({
+    method: 'get',
+    url: '/verify',
+    cookies: {
+      jwt: signedCookie
+    }
+  })
+
+  const decodedToken = JSON.parse(response.payload)
+  t.assert.deepStrictEqual(decodedToken.foo, 'bar')
 })
 
 test('token in cookie only, when onlyCookie is passed to verifyJWT()', async function (t) {
@@ -1891,7 +1891,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', async fun
 
   await t.test('token present in cookie', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -1914,7 +1914,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', async fun
 
   await t.test('token absent in cookie', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'get',
       url: '/verify',
       cookies: {}
@@ -1928,7 +1928,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', async fun
   // should reject
   await t.test('authorization headers present but no cookie header. should reject as we only check for cookie header', function (t) {
     t.plan(3)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -1953,7 +1953,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', async fun
   // check here 1
   await t.test('malformed cookie header, should reject', function (t) {
     t.plan(3)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -1999,7 +1999,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('token present in cookie', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2022,7 +2022,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('token absent in cookie', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'get',
       url: '/verify',
       cookies: {}
@@ -2035,7 +2035,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('both authorization header and cookie present, both valid', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2061,7 +2061,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('both authorization and cookie headers present, cookie token value empty (header fallback)', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2087,7 +2087,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('both authorization and cookie headers present, both values empty', function (t) {
     t.plan(3)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2114,7 +2114,7 @@ test('token in cookie, with @fastify/cookie parsing', async function (t) {
 
   await t.test('both authorization and cookie headers present, header malformed', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2161,7 +2161,7 @@ test('token in cookie, without @fastify/cookie parsing', async function (t) {
 
   await t.test('token present in cookie, but unparsed', function (t) {
     t.plan(3)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2185,7 +2185,7 @@ test('token in cookie, without @fastify/cookie parsing', async function (t) {
 
   await t.test('both authorization and cookie headers present, cookie unparsed (header fallback)', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2236,7 +2236,7 @@ test('token and refreshToken in a signed cookie, with @fastify/cookie parsing, d
     return reply.send({ token, refreshToken })
   })
 
-  fastify.inject({
+  return fastify.inject({
     method: 'post',
     url: '/sign',
     payload: { token: { foo: 'bar' }, refreshToken: { bar: 'foo' } }
@@ -2283,13 +2283,13 @@ test('custom response messages', function (t) {
       })
   })
 
-  fastify
+  return fastify
     .ready()
     .then(async function () {
       await t.test('custom no authorization header error', function (t) {
         t.plan(2)
 
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify'
         }).then(function (response) {
@@ -2302,7 +2302,7 @@ test('custom response messages', function (t) {
       await t.test('fallback authorization header format error', function (t) {
         t.plan(2)
 
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
@@ -2322,7 +2322,7 @@ test('custom response messages', function (t) {
           exp: Math.floor(Date.now() / 1000) - 60,
           foo: 'bar'
         })
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
@@ -2341,7 +2341,7 @@ test('custom response messages', function (t) {
         const signer = createSigner({ key: Buffer.alloc(64) })
         const invalidSignatureToken = signer({ foo: 'bar' })
 
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
@@ -2360,7 +2360,7 @@ test('custom response messages', function (t) {
         const signer = createSigner({ algorithm: 'none' })
         const unsignedToken = signer({ foo: 'bar' })
 
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
@@ -2378,7 +2378,7 @@ test('custom response messages', function (t) {
 
         const signer = createSigner({ key: 'test', jti: 'untrusted' })
         const untrustedToken = signer({ foo: 'bar' })
-        fastify.inject({
+        return fastify.inject({
           method: 'get',
           url: '/verify',
           headers: {
@@ -2415,7 +2415,7 @@ test('extract custom token', async function (t) {
 
   await t.test('token can be extracted correctly', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
@@ -2437,7 +2437,7 @@ test('extract custom token', async function (t) {
 
   await t.test('token can not be extracted', function (t) {
     t.plan(2)
-    fastify.inject({
+    return fastify.inject({
       method: 'post',
       url: '/sign',
       payload: { foo: 'bar' }
