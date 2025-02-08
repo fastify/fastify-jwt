@@ -1419,7 +1419,7 @@ test('decode', async function (t) {
   })
 })
 
-test('errors', function (t) {
+test('errors', async function (t) {
   t.plan(15)
 
   const fastify = Fastify()
@@ -1509,318 +1509,314 @@ test('errors', function (t) {
       })
   })
 
-  fastify
-    .ready()
-    .then(async function () {
-      await t.test('no payload error', function (t) {
-        t.plan(1)
+  await fastify.ready()
 
-        fastify.inject({
-          method: 'post',
-          url: '/sign',
-          payload: {
-            payload: null
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'jwtSign requires a payload')
-        })
-      })
+  await t.test('no payload error', async function (t) {
+    t.plan(1)
 
-      await t.test('no authorization header error', function (t) {
-        t.plan(2)
-
-        fastify.inject({
-          method: 'get',
-          url: '/verify'
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-      await t.test('no bearer authorization header error', function (t) {
-        t.plan(2)
-
-        fastify.inject({
-          method: 'get',
-          url: '/verify',
-          headers: {
-            authorization: 'Invalid Format'
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('authorization header malformed error', function (t) {
-        t.plan(2)
-
-        fastify
-          .inject({
-            method: 'get',
-            url: '/verify',
-            headers: {
-              authorization: 'Bearer 1.2.3'
-            }
-          })
-          .then(function (response) {
-            const error = JSON.parse(response.payload)
-            t.assert.deepStrictEqual(response.statusCode, 401)
-            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
-          })
-      })
-
-      await t.test('authorization header invalid type error', function (t) {
-        t.plan(2)
-
-        fastify
-          .inject({
-            method: 'get',
-            url: '/verify',
-            headers: {
-              authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUiJ9.e30.ha5mKb-6aDOVHh5lRaUBNdDmMAYLOl1no3LQkV2mAMQ'
-            }
-          })
-          .then(function (response) {
-            const error = JSON.parse(response.payload)
-            t.assert.deepStrictEqual(response.statusCode, 401)
-            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The type must be "JWT".')
-          })
-      })
-
-      await t.test('Bearer authorization format error', function (t) {
-        t.plan(2)
-
-        fastify.inject({
-          method: 'get',
-          url: '/verify',
-          headers: {
-            authorization: 'Bearer Bad Format'
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Format is Authorization: Bearer [token]')
-          t.assert.deepStrictEqual(response.statusCode, 400)
-        })
-      })
-
-      await t.test('Expired token error', function (t) {
-        t.plan(2)
-
-        const expiredToken = fastify.jwt.sign({
-          exp: Math.floor(Date.now() / 1000) - 60,
-          foo: 'bar'
-        })
-        fastify.inject({
-          method: 'get',
-          url: '/verify',
-          headers: {
-            authorization: `Bearer ${expiredToken}`
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Authorization token expired')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('Invalid signature error', function (t) {
-        t.plan(2)
-
-        const signer = createSigner({ key: Buffer.alloc(64) })
-        const invalidSignatureToken = signer({ foo: 'bar' })
-
-        fastify.inject({
-          method: 'get',
-          url: '/verify',
-          headers: {
-            authorization: `Bearer ${invalidSignatureToken}`
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token signature is invalid.')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('Untrusted token error', function (t) {
-        t.plan(2)
-
-        const signer = createSigner({ key: 'test', jti: 'untrusted' })
-        const untrustedToken = signer({ foo: 'bar' })
-
-        fastify.inject({
-          method: 'get',
-          url: '/verifyFailUntrustedToken',
-          headers: {
-            authorization: `Bearer ${untrustedToken}`
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('Untrusted token error - async verification', function (t) {
-        t.plan(2)
-
-        const f = Fastify()
-        f.register(jwt, { secret: 'test', trusted: (_request, { jti }) => Promise.resolve(jti !== 'untrusted') })
-        f.get('/', (request, reply) => {
-          request.jwtVerify()
-            .then(function (decodedToken) {
-              return reply.send(decodedToken)
-            })
-            .catch(function (error) {
-              return reply.send(error)
-            })
-        })
-
-        const signer = createSigner({ key: 'test', jti: 'untrusted' })
-        const untrustedToken = signer({ foo: 'bar' })
-        f.inject({
-          method: 'get',
-          url: '/',
-          headers: {
-            authorization: `Bearer ${untrustedToken}`
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('Unsigned token error', function (t) {
-        t.plan(2)
-
-        const signer = createSigner({ algorithm: 'none' })
-        const unsignedToken = signer({ foo: 'bar' })
-
-        fastify.inject({
-          method: 'get',
-          url: '/verifyFailUnsignedToken',
-          headers: {
-            authorization: `Bearer ${unsignedToken}`
-          }
-        }).then(function (response) {
-          const error = JSON.parse(response.payload)
-          t.assert.deepStrictEqual(error.message, 'Unsigned authorization token')
-          t.assert.deepStrictEqual(response.statusCode, 401)
-        })
-      })
-
-      await t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
-        t.plan(3)
-
-        fastify.inject({
-          method: 'post',
-          url: '/sign',
-          payload: {
-            payload: { foo: 'bar' }
-          }
-        }).then(function (signResponse) {
-          const token = JSON.parse(signResponse.payload).token
-          t.assert.ok(token)
-
-          fastify.inject({
-            method: 'get',
-            url: '/verifyFailOnIss',
-            headers: {
-              authorization: `Bearer ${token}`
-            }
-          }).then(function (verifyResponse) {
-            const error = JSON.parse(verifyResponse.payload)
-            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
-            t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
-          })
-        })
-      })
-
-      await t.test('requestVerify function: algorithm mismatch error', function (t) {
-        t.plan(3)
-
-        fastify.inject({
-          method: 'post',
-          url: '/sign',
-          payload: {
-            payload: { foo: 'bar' }
-          }
-        }).then(function (signResponse) {
-          const token = JSON.parse(signResponse.payload).token
-          t.assert.ok(token)
-
-          fastify.inject({
-            method: 'get',
-            url: '/verifyFailOnAlgorithmMismatch',
-            headers: {
-              authorization: `Bearer ${token}`
-            }
-          }).then(function (verifyResponse) {
-            const error = JSON.parse(verifyResponse.payload)
-            t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: Invalid public key provided for algorithms invalid.')
-            t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
-          })
-        })
-      })
-
-      await t.test('requestVerify function: invalid timestamp', function (t) {
-        t.plan(3)
-
-        fastify.inject({
-          method: 'post',
-          url: '/sign',
-          payload: {
-            payload: { foo: 'bar' }
-          }
-        }).then(function (signResponse) {
-          const token = JSON.parse(signResponse.payload).token
-          t.assert.ok(token)
-
-          fastify.inject({
-            method: 'get',
-            url: '/verifyFailOnInvalidClockTimestamp',
-            headers: {
-              authorization: `Bearer ${token}`
-            }
-          }).then(function (verifyResponse) {
-            const error = JSON.parse(verifyResponse.payload)
-            t.assert.deepStrictEqual(error.message, 'The clockTimestamp option must be a positive number.')
-            t.assert.deepStrictEqual(verifyResponse.statusCode, 500)
-          })
-        })
-      })
-
-      await t.test('jwtVerify callback invoked once on error', function (t) {
-        t.plan(2)
-
-        fastify.inject({
-          method: 'post',
-          url: '/sign',
-          payload: {
-            payload: { foo: 'bar' }
-          }
-        }).then(function (signResponse) {
-          const token = JSON.parse(signResponse.payload).token
-          t.assert.ok(token)
-
-          fastify.inject({
-            method: 'get',
-            url: '/verifyErrorCallbackCount',
-            headers: {
-              authorization: `Bearer ${token}`
-            }
-          }).then(function (response) {
-            const result = JSON.parse(response.payload)
-            t.assert.deepStrictEqual(result.count, 1)
-          })
-        })
-      })
+    const response = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: null
+      }
     })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'jwtSign requires a payload')
+  })
+
+  await t.test('no authorization header error', async function (t) {
+    t.plan(2)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify'
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+  await t.test('no bearer authorization header error', async function (t) {
+    t.plan(2)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        authorization: 'Invalid Format'
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'No Authorization was found in request.headers')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('authorization header malformed error', async function (t) {
+    t.plan(2)
+
+    const response = await fastify
+      .inject({
+        method: 'get',
+        url: '/verify',
+        headers: {
+          authorization: 'Bearer 1.2.3'
+        }
+      })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(response.statusCode, 401)
+    t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token header is not a valid base64url serialized JSON.')
+  })
+
+  await t.test('authorization header invalid type error', async function (t) {
+    t.plan(2)
+
+    const response = await fastify
+      .inject({
+        method: 'get',
+        url: '/verify',
+        headers: {
+          authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUiJ9.e30.ha5mKb-6aDOVHh5lRaUBNdDmMAYLOl1no3LQkV2mAMQ'
+        }
+      })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(response.statusCode, 401)
+    t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The type must be "JWT".')
+  })
+
+  await t.test('Bearer authorization format error', async function (t) {
+    t.plan(2)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        authorization: 'Bearer Bad Format'
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Format is Authorization: Bearer [token]')
+    t.assert.deepStrictEqual(response.statusCode, 400)
+  })
+
+  await t.test('Expired token error', async function (t) {
+    t.plan(2)
+
+    const expiredToken = fastify.jwt.sign({
+      exp: Math.floor(Date.now() / 1000) - 60,
+      foo: 'bar'
+    })
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        authorization: `Bearer ${expiredToken}`
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Authorization token expired')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('Invalid signature error', async function (t) {
+    t.plan(2)
+
+    const signer = createSigner({ key: Buffer.alloc(64) })
+    const invalidSignatureToken = signer({ foo: 'bar' })
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        authorization: `Bearer ${invalidSignatureToken}`
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The token signature is invalid.')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('Untrusted token error', async function (t) {
+    t.plan(2)
+
+    const signer = createSigner({ key: 'test', jti: 'untrusted' })
+    const untrustedToken = signer({ foo: 'bar' })
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailUntrustedToken',
+      headers: {
+        authorization: `Bearer ${untrustedToken}`
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('Untrusted token error - async verification', async function (t) {
+    t.plan(2)
+
+    const f = Fastify()
+    f.register(jwt, { secret: 'test', trusted: (_request, { jti }) => Promise.resolve(jti !== 'untrusted') })
+    f.get('/', (request, reply) => {
+      request.jwtVerify()
+        .then(function (decodedToken) {
+          return reply.send(decodedToken)
+        })
+        .catch(function (error) {
+          return reply.send(error)
+        })
+    })
+
+    const signer = createSigner({ key: 'test', jti: 'untrusted' })
+    const untrustedToken = signer({ foo: 'bar' })
+    const response = await f.inject({
+      method: 'get',
+      url: '/',
+      headers: {
+        authorization: `Bearer ${untrustedToken}`
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Untrusted authorization token')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('Unsigned token error', async function (t) {
+    t.plan(2)
+
+    const signer = createSigner({ algorithm: 'none' })
+    const unsignedToken = signer({ foo: 'bar' })
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailUnsignedToken',
+      headers: {
+        authorization: `Bearer ${unsignedToken}`
+      }
+    })
+
+    const error = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(error.message, 'Unsigned authorization token')
+    t.assert.deepStrictEqual(response.statusCode, 401)
+  })
+
+  await t.test('requestVerify function: steed.waterfall error function loop test', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: { foo: 'bar' }
+      }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailOnIss',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const error = JSON.parse(verifyResponse.payload)
+    t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
+    t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
+  })
+
+  await t.test('requestVerify function: algorithm mismatch error', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: { foo: 'bar' }
+      }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailOnAlgorithmMismatch',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const error = JSON.parse(verifyResponse.payload)
+    t.assert.deepStrictEqual(error.message, 'Authorization token is invalid: Invalid public key provided for algorithms invalid.')
+    t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
+  })
+
+  await t.test('requestVerify function: invalid timestamp', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: { foo: 'bar' }
+      }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailOnInvalidClockTimestamp',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const error = JSON.parse(verifyResponse.payload)
+    t.assert.deepStrictEqual(error.message, 'The clockTimestamp option must be a positive number.')
+    t.assert.deepStrictEqual(verifyResponse.statusCode, 500)
+  })
+
+  await t.test('jwtVerify callback invoked once on error', async function (t) {
+    t.plan(2)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: { foo: 'bar' }
+      }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verifyErrorCallbackCount',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const result = JSON.parse(response.payload)
+    t.assert.deepStrictEqual(result.count, 1)
+  })
 })
 
 test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
