@@ -1,6 +1,6 @@
 'use strict'
 
-const test = require('tap').test
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const { createSigner } = require('fast-jwt')
 const jwt = require('../jwt')
