@@ -304,43 +304,45 @@ test.only('register', async function (t) {
   })
 })
 
-test('sign and verify with HS-secret', function (t) {
+test('sign and verify with HS-secret', async function (t) {
   t.plan(2)
 
-  t.test('server methods', function (t) {
+  await t.test('server methods', async function (t) {
     t.plan(2)
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test' })
 
-    fastify
-      .ready()
-      .then(function () {
-        t.test('synchronous', function (t) {
-          t.plan(1)
+    await fastify.ready()
 
-          const token = fastify.jwt.sign({ foo: 'bar' })
-          const decoded = fastify.jwt.verify(token)
+    await t.test('synchronous', function (t) {
+      t.plan(1)
 
+      const token = fastify.jwt.sign({ foo: 'bar' })
+      const decoded = fastify.jwt.verify(token)
+
+      t.assert.deepStrictEqual(decoded.foo, 'bar')
+    })
+
+    await t.test('with callbacks', function (t) {
+      t.plan(3)
+
+      const { promise, resolve } = helper.withResolvers()
+
+      fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+        t.assert.ifError(error)
+
+        fastify.jwt.verify(token, function (error, decoded) {
+          t.assert.ifError(error)
           t.assert.deepStrictEqual(decoded.foo, 'bar')
-        })
-
-        t.test('with callbacks', function (t) {
-          t.plan(3)
-
-          fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-            t.error(error)
-
-            fastify.jwt.verify(token, function (error, decoded) {
-              t.error(error)
-              t.assert.deepStrictEqual(decoded.foo, 'bar')
-            })
-          })
+          resolve()
         })
       })
+      return promise
+    })
   })
 
-  t.test('route methods', function (t) {
+  await t.test('route methods', async function (t) {
     t.plan(2)
 
     const fastify = Fastify()
@@ -368,72 +370,61 @@ test('sign and verify with HS-secret', function (t) {
       })
     })
 
-    fastify
-      .ready()
-      .then(function () {
-        t.test('synchronous', function (t) {
-          t.plan(2)
+    await fastify.ready()
 
-          fastify.inject({
-            method: 'post',
-            url: '/signSync',
-            payload: { foo: 'bar' }
-          }).then(function (signResponse) {
-            const token = JSON.parse(signResponse.payload).token
-            t.assert.ok(token)
+    await t.test('synchronous', async function (t) {
+      t.plan(2)
 
-            fastify.inject({
-              method: 'get',
-              url: '/verifySync',
-              headers: {
-                authorization: `Bearer ${token}`
-              }
-            }).then(function (verifyResponse) {
-              const decodedToken = JSON.parse(verifyResponse.payload)
-              t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          }).catch(function (error) {
-            t.fail(error)
-          })
-        })
-
-        t.test('with callbacks', function (t) {
-          t.plan(2)
-
-          fastify.inject({
-            method: 'post',
-            url: '/signAsync',
-            payload: { foo: 'bar' }
-          }).then(function (signResponse) {
-            const token = JSON.parse(signResponse.payload).token
-            t.assert.ok(token)
-
-            fastify.inject({
-              method: 'get',
-              url: '/verifyAsync',
-              headers: {
-                authorization: `Bearer ${token}`
-              }
-            }).then(function (verifyResponse) {
-              const decodedToken = JSON.parse(verifyResponse.payload)
-              t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          }).catch(function (error) {
-            t.fail(error)
-          })
-        })
+      const signResponse = await fastify.inject({
+        method: 'post',
+        url: '/signSync',
+        payload: { foo: 'bar' }
       })
+
+      const token = JSON.parse(signResponse.payload).token
+      t.assert.ok(token)
+
+      const verifyResponse = await fastify.inject({
+        method: 'get',
+        url: '/verifySync',
+        headers: {
+          authorization: `Bearer ${token}`
+        }
+      })
+
+      const decodedToken = JSON.parse(verifyResponse.payload)
+      t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+    })
+
+    await t.test('with callbacks', async function (t) {
+      t.plan(2)
+
+      const signResponse = await fastify.inject({
+        method: 'post',
+        url: '/signAsync',
+        payload: { foo: 'bar' }
+      })
+
+      const token = JSON.parse(signResponse.payload).token
+      t.assert.ok(token)
+
+      const verifyResponse = await fastify.inject({
+        method: 'get',
+        url: '/verifyAsync',
+        headers: {
+          authorization: `Bearer ${token}`
+        }
+      })
+      const decodedToken = JSON.parse(verifyResponse.payload)
+      t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+    })
   })
 })
 
-test('sign and verify with RSA/ECDSA certificates and global options', function (t) {
+test('sign and verify with RSA/ECDSA certificates and global options', async function (t) {
   t.plan(5)
 
-  t.test('RSA certificates', function (t) {
+  await t.test('RSA certificates', async function (t) {
     t.plan(2)
 
     const config = {
@@ -451,46 +442,49 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       }
     }
 
-    t.test('server methods', function (t) {
+    await t.test('server methods', async function (t) {
       t.plan(2)
 
       let signedToken
 
-      t.test('signer mode', function (t) {
+      await t.test('signer mode', async function (t) {
         t.plan(2)
         const fastifySigner = Fastify()
         fastifySigner.register(jwt, config)
 
-        fastifySigner
-          .ready()
-          .then(function () {
-            t.test('synchronous', function (t) {
-              t.plan(2)
+        await fastifySigner.ready()
 
-              signedToken = fastifySigner.jwt.sign({ foo: 'bar' })
-              const decoded = fastifySigner.jwt.verify(signedToken)
+        await t.test('synchronous', function (t) {
+          t.plan(2)
 
+          signedToken = fastifySigner.jwt.sign({ foo: 'bar' })
+          const decoded = fastifySigner.jwt.verify(signedToken)
+
+          t.assert.deepStrictEqual(decoded.foo, 'bar')
+          t.assert.deepStrictEqual(decoded.iss, 'test')
+        })
+
+        await t.test('with callbacks', function (t) {
+          t.plan(4)
+
+          const { promise, resolve } = helper.withResolvers()
+
+          fastifySigner.jwt.sign({ foo: 'bar' }, function (error, token) {
+            t.assert.ifError(error)
+
+            fastifySigner.jwt.verify(token, function (error, decoded) {
+              t.assert.ifError(error)
               t.assert.deepStrictEqual(decoded.foo, 'bar')
               t.assert.deepStrictEqual(decoded.iss, 'test')
-            })
-
-            t.test('with callbacks', function (t) {
-              t.plan(4)
-
-              fastifySigner.jwt.sign({ foo: 'bar' }, function (error, token) {
-                t.error(error)
-
-                fastifySigner.jwt.verify(token, function (error, decoded) {
-                  t.error(error)
-                  t.assert.deepStrictEqual(decoded.foo, 'bar')
-                  t.assert.deepStrictEqual(decoded.iss, 'test')
-                })
-              })
+              resolve()
             })
           })
+
+          return promise
+        })
       })
 
-      t.test('verifier mode', function (t) {
+      await t.test('verifier mode', function (t) {
         t.plan(2)
         const fastifyVerifier = Fastify()
         fastifyVerifier.register(jwt, {
@@ -501,8 +495,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           }
         })
 
-        fastifyVerifier.ready().then(function () {
-          t.test('synchronous', function (t) {
+        fastifyVerifier.ready().then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(3)
 
             try {
@@ -516,14 +510,14 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             t.assert.deepStrictEqual(decoded.iss, 'test')
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(4)
 
             try {
               fastifyVerifier.jwt.sign({ foo: 'baz' }, function (error) {
                 // as for now, verifier-only error is not propagated here
-                t.error('SHOULD NOT BE HERE')
-                t.error(error)
+                t.assert.ifError('SHOULD NOT BE HERE')
+                t.assert.ifError(error)
               })
             } catch (error) {
               t.assert.deepStrictEqual(error.message, 'unable to sign: secret is configured in verify mode')
@@ -532,7 +526,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             fastifyVerifier.jwt.verify(
               signedToken,
               function (error, decoded) {
-                t.error(error)
+                t.assert.ifError(error)
                 t.assert.deepStrictEqual(decoded.foo, 'bar')
                 t.assert.deepStrictEqual(decoded.iss, 'test')
               }
@@ -542,12 +536,12 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
       })
     })
 
-    t.test('route methods', function (t) {
+    await t.test('route methods', async function (t) {
       t.plan(2)
 
       let signedToken
 
-      t.test('signer mode', function (t) {
+      await t.test('signer mode', function (t) {
         t.plan(2)
 
         const fastify = Fastify()
@@ -578,8 +572,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
         fastify
           .ready()
-          .then(function () {
-            t.test('synchronous', function (t) {
+          .then(async function () {
+            await t.test('synchronous', function (t) {
               t.plan(3)
 
               fastify.inject({
@@ -609,7 +603,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
               })
             })
 
-            t.test('with callbacks', function (t) {
+            await t.test('with callbacks', function (t) {
               t.plan(3)
 
               fastify.inject({
@@ -640,7 +634,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
           })
       })
 
-      t.test('verifier mode', function (t) {
+      await t.test('verifier mode', function (t) {
         t.plan(1)
         const fastifyVerifier = Fastify()
         fastifyVerifier.register(jwt, {
@@ -664,8 +658,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
         fastifyVerifier
           .ready()
-          .then(function () {
-            t.test('synchronous verifier', function (t) {
+          .then(async function () {
+            await t.test('synchronous verifier', function (t) {
               t.plan(4)
 
               fastifyVerifier.inject({
@@ -697,10 +691,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
     })
   })
 
-  t.test('ECDSA certificates', function (t) {
+  await t.test('ECDSA certificates', async function (t) {
     t.plan(2)
 
-    t.test('server methods', function (t) {
+    await t.test('server methods', function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -721,8 +715,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(2)
 
             const token = fastify.jwt.sign({ foo: 'bar' })
@@ -732,14 +726,14 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             t.assert.deepStrictEqual(decoded.sub, 'test')
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(4)
 
             fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.error(error)
+              t.assert.ifError(error)
 
               fastify.jwt.verify(token, function (error, decoded) {
-                t.error(error)
+                t.assert.ifError(error)
                 t.assert.deepStrictEqual(decoded.foo, 'bar')
                 t.assert.deepStrictEqual(decoded.sub, 'test')
               })
@@ -748,7 +742,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
     })
 
-    t.test('route methods', function (t) {
+    await t.test('route methods', function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -791,8 +785,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(3)
 
             fastify.inject({
@@ -821,7 +815,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             })
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(3)
 
             fastify.inject({
@@ -853,10 +847,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
     })
   })
 
-  t.test('RSA certificates (passphrase protected)', function (t) {
+  await t.test('RSA certificates (passphrase protected)', async function (t) {
     t.plan(2)
 
-    t.test('server methods', function (t) {
+    await t.test('server methods', function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -876,8 +870,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(2)
 
             const token = fastify.jwt.sign({ foo: 'bar' })
@@ -887,14 +881,14 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             t.assert.deepStrictEqual(decoded.foo, 'bar')
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(4)
 
             fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.error(error)
+              t.assert.ifError(error)
 
               fastify.jwt.verify(token, function (error, decoded) {
-                t.error(error)
+                t.assert.ifError(error)
                 t.assert.deepStrictEqual(decoded.aud, 'test')
                 t.assert.deepStrictEqual(decoded.foo, 'bar')
               })
@@ -903,7 +897,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
     })
 
-    t.test('route methods', function (t) {
+    await t.test('route methods', function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -946,8 +940,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(3)
 
             fastify.inject({
@@ -976,7 +970,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             })
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(3)
 
             fastify.inject({
@@ -1008,10 +1002,10 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
     })
   })
 
-  t.test('ECDSA certificates (passphrase protected)', function (t) {
+  await t.test('ECDSA certificates (passphrase protected)', async function (t) {
     t.plan(2)
 
-    t.test('server methods', function (t) {
+    await t.test('server methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -1029,36 +1023,39 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         }
       })
 
-      fastify
-        .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
-            t.plan(2)
+      await fastify.ready()
 
-            const token = fastify.jwt.sign({ foo: 'bar' })
-            const decoded = fastify.jwt.verify(token)
+      await t.test('synchronous', function (t) {
+        t.plan(2)
 
+        const token = fastify.jwt.sign({ foo: 'bar' })
+        const decoded = fastify.jwt.verify(token)
+
+        t.assert.deepStrictEqual(decoded.foo, 'bar')
+        t.assert.deepStrictEqual(decoded.sub, 'test')
+      })
+
+      await t.test('with callbacks', function (t) {
+        t.plan(4)
+
+        const { promise, resolve } = helper.withResolvers()
+
+        fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+          t.assert.ifError(error)
+
+          fastify.jwt.verify(token, function (error, decoded) {
+            t.assert.ifError(error)
             t.assert.deepStrictEqual(decoded.foo, 'bar')
             t.assert.deepStrictEqual(decoded.sub, 'test')
-          })
-
-          t.test('with callbacks', function (t) {
-            t.plan(4)
-
-            fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
-              t.error(error)
-
-              fastify.jwt.verify(token, function (error, decoded) {
-                t.error(error)
-                t.assert.deepStrictEqual(decoded.foo, 'bar')
-                t.assert.deepStrictEqual(decoded.sub, 'test')
-              })
-            })
+            resolve()
           })
         })
+
+        return promise
+      })
     })
 
-    t.test('route methods', function (t) {
+    await t.test('route methods', async function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -1099,74 +1096,64 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
       })
 
-      fastify
-        .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
-            t.plan(3)
+      await fastify.ready()
 
-            fastify.inject({
-              method: 'post',
-              url: '/signSync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
+      await t.test('synchronous', async function (t) {
+        t.plan(3)
 
-              fastify.inject({
-                method: 'get',
-                url: '/verifySync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.sub, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
-
-          t.test('with callbacks', function (t) {
-            t.plan(3)
-
-            fastify.inject({
-              method: 'post',
-              url: '/signAsync',
-              payload: { foo: 'bar' }
-            }).then(function (signResponse) {
-              const token = JSON.parse(signResponse.payload).token
-              t.assert.ok(token)
-
-              fastify.inject({
-                method: 'get',
-                url: '/verifyAsync',
-                headers: {
-                  authorization: `Bearer ${token}`
-                }
-              }).then(function (verifyResponse) {
-                const decodedToken = JSON.parse(verifyResponse.payload)
-                t.assert.deepStrictEqual(decodedToken.foo, 'bar')
-                t.assert.deepStrictEqual(decodedToken.sub, 'test')
-              }).catch(function (error) {
-                t.fail(error)
-              })
-            }).catch(function (error) {
-              t.fail(error)
-            })
-          })
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signSync',
+          payload: { foo: 'bar' }
         })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifySync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.sub, 'test')
+      })
+
+      await t.test('with callbacks', async function (t) {
+        t.plan(3)
+
+        const signResponse = await fastify.inject({
+          method: 'post',
+          url: '/signAsync',
+          payload: { foo: 'bar' }
+        })
+
+        const token = JSON.parse(signResponse.payload).token
+        t.assert.ok(token)
+
+        const verifyResponse = await fastify.inject({
+          method: 'get',
+          url: '/verifyAsync',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        })
+
+        const decodedToken = JSON.parse(verifyResponse.payload)
+        t.assert.deepStrictEqual(decodedToken.foo, 'bar')
+        t.assert.deepStrictEqual(decodedToken.sub, 'test')
+      })
     })
   })
 
-  t.test('Overriding global options', function (t) {
+  await t.test('Overriding global options', async function (t) {
     t.plan(2)
 
-    t.test('server methods', function (t) {
+    await t.test('server methods', function (t) {
       t.plan(2)
 
       const fastify = Fastify()
@@ -1187,8 +1174,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(2)
             const localOptions = Object.assign({}, fastify.jwt.options.sign)
             localOptions.iss = 'other'
@@ -1200,16 +1187,16 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             t.assert.deepStrictEqual(decoded.iss, 'other')
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(4)
             const localOptions = Object.assign({}, fastify.jwt.options.sign)
             localOptions.iss = 'other'
 
             fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
-              t.error(error)
+              t.assert.ifError(error)
 
               fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
-                t.error(error)
+                t.assert.ifError(error)
                 t.assert.deepStrictEqual(decoded.foo, 'bar')
                 t.assert.deepStrictEqual(decoded.iss, 'other')
               })
@@ -1218,7 +1205,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
         })
     })
 
-    t.test('route methods', function (t) {
+    await t.test('route methods', function (t) {
       t.plan(2)
       const fastify = Fastify()
       fastify.register(jwt, {
@@ -1260,8 +1247,8 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
 
       fastify
         .ready()
-        .then(function () {
-          t.test('synchronous', function (t) {
+        .then(async function () {
+          await t.test('synchronous', function (t) {
             t.plan(3)
             fastify.inject({
               method: 'post',
@@ -1289,7 +1276,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
             })
           })
 
-          t.test('with callbacks', function (t) {
+          await t.test('with callbacks', function (t) {
             t.plan(3)
             fastify.inject({
               method: 'post',
@@ -1321,9 +1308,9 @@ test('sign and verify with RSA/ECDSA certificates and global options', function 
   })
 })
 
-test('sign and verify with trusted token', function (t) {
+test('sign and verify with trusted token', async function (t) {
   t.plan(2)
-  t.test('Trusted token verification', function (t) {
+  await t.test('Trusted token verification', function (t) {
     t.plan(2)
 
     const f = Fastify()
@@ -1353,7 +1340,7 @@ test('sign and verify with trusted token', function (t) {
     })
   })
 
-  t.test('Trusted token - async verification', function (t) {
+  await t.test('Trusted token - async verification', function (t) {
     t.plan(2)
 
     const f = Fastify()
@@ -1384,13 +1371,13 @@ test('sign and verify with trusted token', function (t) {
   })
 })
 
-test('decode', function (t) {
+test('decode', async function (t) {
   t.plan(2)
 
-  t.test('without global options', function (t) {
+  await t.test('without global options', async function (t) {
     t.plan(2)
 
-    t.test('without local options', function (t) {
+    await t.test('without local options', function (t) {
       t.plan(1)
       const fastify = Fastify()
       fastify.register(jwt, { secret: 'test' })
@@ -1402,7 +1389,7 @@ test('decode', function (t) {
       })
     })
 
-    t.test('with local options', function (t) {
+    await t.test('with local options', function (t) {
       t.plan(3)
 
       const fastify = Fastify()
@@ -1419,10 +1406,10 @@ test('decode', function (t) {
     })
   })
 
-  t.test('with global options', function (t) {
+  await t.test('with global options', async function (t) {
     t.plan(2)
 
-    t.test('without overriding global options', function (t) {
+    await t.test('without overriding global options', function (t) {
       t.plan(3)
 
       const fastify = Fastify()
@@ -1441,7 +1428,7 @@ test('decode', function (t) {
       })
     })
 
-    t.test('overriding global options', function (t) {
+    await t.test('overriding global options', function (t) {
       t.plan(4)
 
       const fastify = Fastify()
@@ -1555,8 +1542,8 @@ test('errors', function (t) {
 
   fastify
     .ready()
-    .then(function () {
-      t.test('no payload error', function (t) {
+    .then(async function () {
+      await t.test('no payload error', function (t) {
         t.plan(1)
 
         fastify.inject({
@@ -1571,7 +1558,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('no authorization header error', function (t) {
+      await t.test('no authorization header error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1583,7 +1570,7 @@ test('errors', function (t) {
           t.assert.deepStrictEqual(response.statusCode, 401)
         })
       })
-      t.test('no bearer authorization header error', function (t) {
+      await t.test('no bearer authorization header error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1599,7 +1586,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('authorization header malformed error', function (t) {
+      await t.test('authorization header malformed error', function (t) {
         t.plan(2)
 
         fastify
@@ -1617,7 +1604,7 @@ test('errors', function (t) {
           })
       })
 
-      t.test('authorization header invalid type error', function (t) {
+      await t.test('authorization header invalid type error', function (t) {
         t.plan(2)
 
         fastify
@@ -1635,7 +1622,7 @@ test('errors', function (t) {
           })
       })
 
-      t.test('Bearer authorization format error', function (t) {
+      await t.test('Bearer authorization format error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1651,7 +1638,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('Expired token error', function (t) {
+      await t.test('Expired token error', function (t) {
         t.plan(2)
 
         const expiredToken = fastify.jwt.sign({
@@ -1671,7 +1658,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('Invalid signature error', function (t) {
+      await t.test('Invalid signature error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ key: Buffer.alloc(64) })
@@ -1690,7 +1677,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('Untrusted token error', function (t) {
+      await t.test('Untrusted token error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ key: 'test', jti: 'untrusted' })
@@ -1709,7 +1696,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('Untrusted token error - async verification', function (t) {
+      await t.test('Untrusted token error - async verification', function (t) {
         t.plan(2)
 
         const f = Fastify()
@@ -1739,7 +1726,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('Unsigned token error', function (t) {
+      await t.test('Unsigned token error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ algorithm: 'none' })
@@ -1758,7 +1745,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
+      await t.test('requestVerify function: steed.waterfall error function loop test', function (t) {
         t.plan(3)
 
         fastify.inject({
@@ -1785,7 +1772,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('requestVerify function: algorithm mismatch error', function (t) {
+      await t.test('requestVerify function: algorithm mismatch error', function (t) {
         t.plan(3)
 
         fastify.inject({
@@ -1812,7 +1799,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('requestVerify function: invalid timestamp', function (t) {
+      await t.test('requestVerify function: invalid timestamp', function (t) {
         t.plan(3)
 
         fastify.inject({
@@ -1839,7 +1826,7 @@ test('errors', function (t) {
         })
       })
 
-      t.test('jwtVerify callback invoked once on error', function (t) {
+      await t.test('jwtVerify callback invoked once on error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -1916,7 +1903,7 @@ test('token in a signed cookie, with @fastify/cookie parsing', function (t) {
   })
 })
 
-test('token in cookie only, when onlyCookie is passed to verifyJWT()', function (t) {
+test('token in cookie only, when onlyCookie is passed to verifyJWT()', async function (t) {
   t.plan(4)
 
   const fastify = Fastify()
@@ -1937,7 +1924,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
       })
   })
 
-  t.test('token present in cookie', function (t) {
+  await t.test('token present in cookie', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -1960,7 +1947,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
     })
   })
 
-  t.test('token absent in cookie', function (t) {
+  await t.test('token absent in cookie', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'get',
@@ -1974,7 +1961,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
   })
 
   // should reject
-  t.test('authorization headers present but no cookie header. should reject as we only check for cookie header', function (t) {
+  await t.test('authorization headers present but no cookie header. should reject as we only check for cookie header', function (t) {
     t.plan(3)
     fastify.inject({
       method: 'post',
@@ -1999,7 +1986,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
   })
 
   // check here 1
-  t.test('malformed cookie header, should reject', function (t) {
+  await t.test('malformed cookie header, should reject', function (t) {
     t.plan(3)
     fastify.inject({
       method: 'post',
@@ -2024,7 +2011,7 @@ test('token in cookie only, when onlyCookie is passed to verifyJWT()', function 
   })
 })
 
-test('token in cookie, with @fastify/cookie parsing', function (t) {
+test('token in cookie, with @fastify/cookie parsing', async function (t) {
   t.plan(6)
 
   const fastify = Fastify()
@@ -2045,7 +2032,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
       })
   })
 
-  t.test('token present in cookie', function (t) {
+  await t.test('token present in cookie', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2068,7 +2055,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('token absent in cookie', function (t) {
+  await t.test('token absent in cookie', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'get',
@@ -2081,7 +2068,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization header and cookie present, both valid', function (t) {
+  await t.test('both authorization header and cookie present, both valid', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2107,7 +2094,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, cookie token value empty (header fallback)', function (t) {
+  await t.test('both authorization and cookie headers present, cookie token value empty (header fallback)', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2133,7 +2120,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, both values empty', function (t) {
+  await t.test('both authorization and cookie headers present, both values empty', function (t) {
     t.plan(3)
     fastify.inject({
       method: 'post',
@@ -2160,7 +2147,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, header malformed', function (t) {
+  await t.test('both authorization and cookie headers present, header malformed', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2187,7 +2174,7 @@ test('token in cookie, with @fastify/cookie parsing', function (t) {
   })
 })
 
-test('token in cookie, without @fastify/cookie parsing', function (t) {
+test('token in cookie, without @fastify/cookie parsing', async function (t) {
   t.plan(2)
 
   const fastify = Fastify()
@@ -2207,7 +2194,7 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
       })
   })
 
-  t.test('token present in cookie, but unparsed', function (t) {
+  await t.test('token present in cookie, but unparsed', function (t) {
     t.plan(3)
     fastify.inject({
       method: 'post',
@@ -2231,7 +2218,7 @@ test('token in cookie, without @fastify/cookie parsing', function (t) {
     })
   })
 
-  t.test('both authorization and cookie headers present, cookie unparsed (header fallback)', function (t) {
+  await t.test('both authorization and cookie headers present, cookie unparsed (header fallback)', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2333,8 +2320,8 @@ test('custom response messages', function (t) {
 
   fastify
     .ready()
-    .then(function () {
-      t.test('custom no authorization header error', function (t) {
+    .then(async function () {
+      await t.test('custom no authorization header error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -2347,7 +2334,7 @@ test('custom response messages', function (t) {
         })
       })
 
-      t.test('fallback authorization header format error', function (t) {
+      await t.test('fallback authorization header format error', function (t) {
         t.plan(2)
 
         fastify.inject({
@@ -2363,7 +2350,7 @@ test('custom response messages', function (t) {
         })
       })
 
-      t.test('custom expired token error', function (t) {
+      await t.test('custom expired token error', function (t) {
         t.plan(2)
 
         const expiredToken = fastify.jwt.sign({
@@ -2383,7 +2370,7 @@ test('custom response messages', function (t) {
         })
       })
 
-      t.test('custom invalid signature error', function (t) {
+      await t.test('custom invalid signature error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ key: Buffer.alloc(64) })
@@ -2402,7 +2389,7 @@ test('custom response messages', function (t) {
         })
       })
 
-      t.test('custom unsigned token error', function (t) {
+      await t.test('custom unsigned token error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ algorithm: 'none' })
@@ -2421,7 +2408,7 @@ test('custom response messages', function (t) {
         })
       })
 
-      t.test('custom untrusted token error', function (t) {
+      await t.test('custom untrusted token error', function (t) {
         t.plan(2)
 
         const signer = createSigner({ key: 'test', jti: 'untrusted' })
@@ -2441,7 +2428,7 @@ test('custom response messages', function (t) {
     })
 })
 
-test('extract custom token', function (t) {
+test('extract custom token', async function (t) {
   t.plan(2)
 
   const fastify = Fastify()
@@ -2461,7 +2448,7 @@ test('extract custom token', function (t) {
       })
   })
 
-  t.test('token can be extracted correctly', function (t) {
+  await t.test('token can be extracted correctly', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2483,7 +2470,7 @@ test('extract custom token', function (t) {
     })
   })
 
-  t.test('token can not be extracted', function (t) {
+  await t.test('token can not be extracted', function (t) {
     t.plan(2)
     fastify.inject({
       method: 'post',
@@ -2503,7 +2490,7 @@ test('extract custom token', function (t) {
   })
 })
 
-test('format user', function (t) {
+test('format user', async function (t) {
   t.plan(2)
 
   const fastify = Fastify()
@@ -2524,7 +2511,7 @@ test('format user', function (t) {
     return reply.send(request.user)
   })
 
-  t.test('result of jwtVerify is the result of formatUser', async function (t) {
+  await t.test('result of jwtVerify is the result of formatUser', async function (t) {
     t.plan(3)
 
     const signResponse = await fastify.inject({
@@ -2547,7 +2534,7 @@ test('format user', function (t) {
     t.assert.deepStrictEqual(user.baz, 'bar')
   })
 
-  t.test('user is set to the result of formatUser', async function (t) {
+  await t.test('user is set to the result of formatUser', async function (t) {
     t.plan(3)
 
     const signResponse = await fastify.inject({
@@ -2571,7 +2558,7 @@ test('format user', function (t) {
   })
 })
 
-test('expose decode token for plugin extension', function (t) {
+test('expose decode token for plugin extension', async function (t) {
   t.plan(3)
 
   const fastify = Fastify()
@@ -2596,7 +2583,7 @@ test('expose decode token for plugin extension', function (t) {
     })
   })
 
-  t.test('should decode token without verifying', async function (t) {
+  await t.test('should decode token without verifying', async function (t) {
     t.plan(2)
 
     const signResponse = await fastify.inject({
@@ -2618,7 +2605,7 @@ test('expose decode token for plugin extension', function (t) {
     t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
 
-  t.test('should decode token with callback', async function (t) {
+  await t.test('should decode token with callback', async function (t) {
     t.plan(2)
 
     const signResponse = await fastify.inject({
@@ -2640,7 +2627,7 @@ test('expose decode token for plugin extension', function (t) {
     t.assert.deepStrictEqual(decodedToken.foo, 'bar')
   })
 
-  t.test('should handle decode error', async function (t) {
+  await t.test('should handle decode error', async function (t) {
     t.plan(1)
 
     const decodeResponse = await fastify.inject({
@@ -2653,7 +2640,7 @@ test('expose decode token for plugin extension', function (t) {
   })
 })
 
-test('support extended config contract', function (t) {
+test('support extended config contract', async function (t) {
   t.plan(1)
   const extConfig = {
     sign: {
@@ -2688,7 +2675,7 @@ test('support extended config contract', function (t) {
     return reply.send(decodedAndVerifiedToken)
   })
 
-  t.test('configuration overrides properly passed through callable methods', async function (t) {
+  await t.test('configuration overrides properly passed through callable methods', async function (t) {
     t.plan(7)
 
     const signResponse = await fastify.inject({
@@ -2754,20 +2741,20 @@ test('support fast-jwt compatible config options', async function (t) {
 
   await fastify.ready()
 
-  t.test('options are functions', function (t) {
+  await t.test('options are functions', function (t) {
     t.plan(4)
     fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
-      t.error(err)
+      t.assert.ifError(err)
       t.assert.ok(token)
 
       fastify.jwt.verify(token, (err, result) => {
-        t.error(err)
+        t.assert.ifError(err)
         t.assert.ok(result)
       })
     })
   })
 
-  t.test('no options defined', async function (t) {
+  await t.test('no options defined', async function (t) {
     const token = await fastify.jwt.sign({ foo: 'bar' })
     t.assert.ok(token)
 
@@ -2775,7 +2762,7 @@ test('support fast-jwt compatible config options', async function (t) {
     t.assert.ok(verifiedToken)
   })
 
-  t.test('options.sign defined and merged with signOptions', async function (t) {
+  await t.test('options.sign defined and merged with signOptions', async function (t) {
     const signResponse = await fastify.inject({
       method: 'post',
       url: '/signWithSignOptions',
@@ -2786,7 +2773,7 @@ test('support fast-jwt compatible config options', async function (t) {
     t.assert.ok(token)
   })
 
-  t.test('general options defined and merged with signOptions', async function (t) {
+  await t.test('general options defined and merged with signOptions', async function (t) {
     const signResponse = await fastify.inject({
       method: 'post',
       url: '/signWithOptions',
@@ -2837,21 +2824,21 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
 
   await fastify.ready()
 
-  t.test('initial options should not be modified', function (t) {
+  await t.test('initial options should not be modified', function (t) {
     t.plan(2)
 
     t.assert.deepStrictEqual(fastify.jwt.options.sign.expiresIn, '1d')
     t.assert.deepStrictEqual(fastify.jwt.options.verify.maxAge, 2000)
   })
 
-  t.test('options are functions', function (t) {
+  await t.test('options are functions', function (t) {
     t.plan(7)
     fastify.jwt.sign({ foo: 'bar' }, (err, token) => {
-      t.error(err)
+      t.assert.ifError(err)
       t.assert.ok(token)
 
       fastify.jwt.verify(token, (err, result) => {
-        t.error(err)
+        t.assert.ifError(err)
         t.assert.ok(result)
         t.assert.ok(result.exp)
         t.assert.deepStrictEqual(typeof result.exp, 'number')
@@ -2860,7 +2847,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     })
   })
 
-  t.test('options.sign defined and merged with signOptions', async function (t) {
+  await t.test('options.sign defined and merged with signOptions', async function (t) {
     const signResponse = await fastify.inject({
       method: 'post',
       url: '/signWithSignOptions',
@@ -2870,7 +2857,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     const token = JSON.parse(signResponse.payload).token
     t.assert.ok(token)
     fastify.jwt.verify(token, { secret: 'test' }, (err, result) => {
-      t.error(err)
+      t.assert.ifError(err)
       t.assert.ok(result)
       t.assert.ok(result.exp)
       t.assert.deepStrictEqual(typeof result.exp, 'number')
@@ -2879,7 +2866,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
     })
   })
 
-  t.test('general options defined and merged with signOptions', async function (t) {
+  await t.test('general options defined and merged with signOptions', async function (t) {
     const signResponse = await fastify.inject({
       method: 'post',
       url: '/signWithOptions',
