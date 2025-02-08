@@ -1281,7 +1281,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
 
 test('sign and verify with trusted token', async function (t) {
   t.plan(2)
-  await t.test('Trusted token verification', function (t) {
+  await t.test('Trusted token verification', async function (t) {
     t.plan(2)
 
     const f = Fastify()
@@ -1290,7 +1290,7 @@ test('sign and verify with trusted token', async function (t) {
       request.jwtVerify()
         .then(function (decodedToken) {
           delete decodedToken?.iat
-          t.same(decodedToken, { foo: 'bar', jti: 'trusted' })
+          t.assert.deepStrictEqual(decodedToken, { foo: 'bar', jti: 'trusted' })
           return reply.send(decodedToken)
         })
         .catch(function (error) {
@@ -1300,18 +1300,18 @@ test('sign and verify with trusted token', async function (t) {
 
     const signer = createSigner({ key: 'test', jti: 'trusted' })
     const trustedToken = signer({ foo: 'bar' })
-    f.inject({
+    const response = await f.inject({
       method: 'get',
       url: '/',
       headers: {
         authorization: `Bearer ${trustedToken}`
       }
-    }).then(function (response) {
-      t.assert.deepStrictEqual(response.statusCode, 200)
     })
+
+    t.assert.deepStrictEqual(response.statusCode, 200)
   })
 
-  await t.test('Trusted token - async verification', function (t) {
+  await t.test('Trusted token - async verification', async function (t) {
     t.plan(2)
 
     const f = Fastify()
@@ -1320,7 +1320,7 @@ test('sign and verify with trusted token', async function (t) {
       request.jwtVerify()
         .then(function (decodedToken) {
           delete decodedToken?.iat
-          t.same(decodedToken, { foo: 'bar', jti: 'trusted' })
+          t.assert.deepStrictEqual(decodedToken, { foo: 'bar', jti: 'trusted' })
           return reply.send(decodedToken)
         })
         .catch(function (error) {
@@ -1330,15 +1330,15 @@ test('sign and verify with trusted token', async function (t) {
 
     const signer = createSigner({ key: 'test', jti: 'trusted' })
     const trustedToken = signer({ foo: 'bar' })
-    f.inject({
+    const response = await f.inject({
       method: 'get',
       url: '/',
       headers: {
         authorization: `Bearer ${trustedToken}`
       }
-    }).then(function (response) {
-      t.assert.deepStrictEqual(response.statusCode, 200)
     })
+
+    t.assert.deepStrictEqual(response.statusCode, 200)
   })
 })
 
