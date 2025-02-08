@@ -1348,39 +1348,39 @@ test('decode', async function (t) {
   await t.test('without global options', async function (t) {
     t.plan(2)
 
-    await t.test('without local options', function (t) {
+    await t.test('without local options', async function (t) {
       t.plan(1)
       const fastify = Fastify()
       fastify.register(jwt, { secret: 'test' })
 
-      fastify.ready(function () {
-        const token = fastify.jwt.sign({ foo: 'bar' })
-        const decoded = fastify.jwt.decode(token)
-        t.assert.deepStrictEqual(decoded.foo, 'bar')
-      })
+      await fastify.ready()
+
+      const token = fastify.jwt.sign({ foo: 'bar' })
+      const decoded = fastify.jwt.decode(token)
+      t.assert.deepStrictEqual(decoded.foo, 'bar')
     })
 
-    await t.test('with local options', function (t) {
+    await t.test('with local options', async function (t) {
       t.plan(3)
 
       const fastify = Fastify()
       fastify.register(jwt, { secret: 'test' })
 
-      fastify.ready(function () {
-        const token = fastify.jwt.sign({ foo: 'bar' })
-        const decoded = fastify.jwt.decode(token, { complete: true })
+      await fastify.ready()
 
-        t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
-        t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
-        t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
-      })
+      const token = fastify.jwt.sign({ foo: 'bar' })
+      const decoded = fastify.jwt.decode(token, { complete: true })
+
+      t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
+      t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
+      t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
     })
   })
 
   await t.test('with global options', async function (t) {
     t.plan(2)
 
-    await t.test('without overriding global options', function (t) {
+    await t.test('without overriding global options', async function (t) {
       t.plan(3)
 
       const fastify = Fastify()
@@ -1389,17 +1389,16 @@ test('decode', async function (t) {
         decode: { complete: true }
       })
 
-      fastify.ready(function () {
-        const token = fastify.jwt.sign({ foo: 'bar' })
-        const decoded = fastify.jwt.decode(token)
+      await fastify.ready()
+      const token = fastify.jwt.sign({ foo: 'bar' })
+      const decoded = fastify.jwt.decode(token)
 
-        t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
-        t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
-        t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
-      })
+      t.assert.deepStrictEqual(decoded.header.alg, 'HS256')
+      t.assert.deepStrictEqual(decoded.header.typ, 'JWT')
+      t.assert.deepStrictEqual(decoded.payload.foo, 'bar')
     })
 
-    await t.test('overriding global options', function (t) {
+    await t.test('overriding global options', async function (t) {
       t.plan(4)
 
       const fastify = Fastify()
@@ -1408,15 +1407,14 @@ test('decode', async function (t) {
         decode: { complete: true }
       })
 
-      fastify.ready(function () {
-        const token = fastify.jwt.sign({ foo: 'bar' })
-        const decoded = fastify.jwt.decode(token, { complete: false })
+      await fastify.ready()
+      const token = fastify.jwt.sign({ foo: 'bar' })
+      const decoded = fastify.jwt.decode(token, { complete: false })
 
-        t.assert.deepStrictEqual(decoded.header, undefined)
-        t.assert.deepStrictEqual(decoded.payload, undefined)
-        t.assert.deepStrictEqual(decoded.signature, undefined)
-        t.assert.deepStrictEqual(decoded.foo, 'bar')
-      })
+      t.assert.deepStrictEqual(decoded.header, undefined)
+      t.assert.deepStrictEqual(decoded.payload, undefined)
+      t.assert.deepStrictEqual(decoded.signature, undefined)
+      t.assert.deepStrictEqual(decoded.foo, 'bar')
     })
   })
 })
