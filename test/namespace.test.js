@@ -1,17 +1,16 @@
 'use strict'
 
-const test = require('tap').test
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const jwt = require('../jwt')
 
-test('Unable to add the namespace twice', function (t) {
+test('Unable to add the namespace twice', async function (t) {
   t.plan(1)
   const fastify = Fastify()
   fastify.register(jwt, { secret: 'test', namespace: 'security', jwtVerify: 'securityVerify', jwtSign: 'securitySign' })
-  fastify.register(jwt, { secret: 'hello', namespace: 'security', jwtVerify: 'secureVerify', jwtSign: 'secureSign' })
-    .ready(function (err) {
-      t.equal(err.message, 'JWT namespace already used "security"')
-    })
+
+  await t.assert.rejects(() => fastify.register(jwt, { secret: 'hello', namespace: 'security', jwtVerify: 'secureVerify', jwtSign: 'secureSign' })
+    .ready(), new Error('JWT namespace already used "security"'))
 })
 
 test('multiple namespace', async function (t) {
@@ -63,7 +62,7 @@ test('multiple namespace', async function (t) {
     payload: { foo: 'bar' }
   })
   const tokenA = signResponse.payload
-  t.ok(tokenA)
+  t.assert.ok(tokenA)
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -72,8 +71,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.equal(verifyResponse.statusCode, 200)
-  t.match(verifyResponse.json(), { foo: 'bar' })
+  t.assert.strictEqual(verifyResponse.statusCode, 200)
+  t.assert.strictEqual(verifyResponse.json().foo, 'bar')
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -82,7 +81,7 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.equal(verifyResponse.statusCode, 401)
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
 
   signResponse = await fastify.inject({
     method: 'post',
@@ -90,7 +89,7 @@ test('multiple namespace', async function (t) {
     payload: { foo: 'sky' }
   })
   const tokenB = signResponse.payload
-  t.ok(tokenB)
+  t.assert.ok(tokenB)
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -99,8 +98,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.equal(verifyResponse.statusCode, 200)
-  t.match(verifyResponse.json(), { foo: 'sky' })
+  t.assert.strictEqual(verifyResponse.statusCode, 200)
+  t.assert.strictEqual(verifyResponse.json().foo, 'sky')
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -109,7 +108,7 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.equal(verifyResponse.statusCode, 401)
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
 
   const decodeResponseAAA = await fastify.inject({
     method: 'get',
@@ -118,8 +117,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.equal(decodeResponseAAA.statusCode, 200)
-  t.match(decodeResponseAAA.json(), { foo: 'bar' })
+  t.assert.strictEqual(decodeResponseAAA.statusCode, 200)
+  t.assert.strictEqual(decodeResponseAAA.json().foo, 'bar')
 
   const verifyResponseBBB = await fastify.inject({
     method: 'get',
@@ -128,6 +127,6 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.equal(verifyResponseBBB.statusCode, 200)
-  t.match(verifyResponseBBB.json(), { foo: 'sky' })
+  t.assert.strictEqual(verifyResponseBBB.statusCode, 200)
+  t.assert.strictEqual(verifyResponseBBB.json().foo, 'sky')
 })
