@@ -71,8 +71,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.assert.deepStrictEqual(verifyResponse.statusCode, 200)
-  t.assert.deepStrictEqual(verifyResponse.json().foo, 'bar')
+  t.assert.strictEqual(verifyResponse.statusCode, 200)
+  t.assert.strictEqual(verifyResponse.json().foo, 'bar')
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -81,7 +81,7 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
 
   signResponse = await fastify.inject({
     method: 'post',
@@ -98,8 +98,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.assert.deepStrictEqual(verifyResponse.statusCode, 200)
-  t.assert.deepStrictEqual(verifyResponse.json().foo, 'sky')
+  t.assert.strictEqual(verifyResponse.statusCode, 200)
+  t.assert.strictEqual(verifyResponse.json().foo, 'sky')
 
   verifyResponse = await fastify.inject({
     method: 'get',
@@ -108,7 +108,7 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.assert.deepStrictEqual(verifyResponse.statusCode, 401)
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
 
   const decodeResponseAAA = await fastify.inject({
     method: 'get',
@@ -117,8 +117,8 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenA
     }
   })
-  t.assert.deepStrictEqual(decodeResponseAAA.statusCode, 200)
-  t.assert.deepStrictEqual(decodeResponseAAA.json().foo, 'bar')
+  t.assert.strictEqual(decodeResponseAAA.statusCode, 200)
+  t.assert.strictEqual(decodeResponseAAA.json().foo, 'bar')
 
   const verifyResponseBBB = await fastify.inject({
     method: 'get',
@@ -127,6 +127,6 @@ test('multiple namespace', async function (t) {
       customauthheader: tokenB
     }
   })
-  t.assert.deepStrictEqual(verifyResponseBBB.statusCode, 200)
-  t.assert.deepStrictEqual(verifyResponseBBB.json().foo, 'sky')
+  t.assert.strictEqual(verifyResponseBBB.statusCode, 200)
+  t.assert.strictEqual(verifyResponseBBB.json().foo, 'sky')
 })

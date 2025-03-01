@@ -31,7 +31,7 @@ test('Async key provider should be resolved internally', async function (t) {
     }
   })
   t.assert.ok(response)
-  t.assert.deepStrictEqual(response.json().user, 'test')
+  t.assert.strictEqual(response.json().user, 'test')
 })
 
 test('Async key provider errors should be resolved internally', async function (t) {
@@ -57,7 +57,7 @@ test('Async key provider errors should be resolved internally', async function (
     url: '/'
   })
 
-  t.assert.deepStrictEqual(response.statusCode, 401)
+  t.assert.strictEqual(response.statusCode, 401)
 })
 
 test('Async key provider should be resolved internally with cache', async function (t) {
@@ -95,8 +95,8 @@ test('Async key provider should be resolved internally with cache', async functi
     method: 'get',
     url: '/'
   })
-  t.assert.deepStrictEqual(response.statusCode, 200)
-  t.assert.deepStrictEqual(response.json().name, 'John Doe')
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.strictEqual(response.json().name, 'John Doe')
 })
 
 test('Async key provider errors should be resolved internally with cache', async function (t) {
@@ -130,5 +130,5 @@ test('Async key provider errors should be resolved internally with cache', async
     url: '/'
   })
 
-  t.assert.deepStrictEqual(response.statusCode, 401)
+  t.assert.strictEqual(response.statusCode, 401)
 })
