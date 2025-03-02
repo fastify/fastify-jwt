@@ -11,7 +11,7 @@
     "test": "npm run lint && npm run test:unit && npm run test:typescript",
     "test:typescript": "tsd",
     "test:unit": "c8 --100 node --test",
-    "test:unit:report": "tap --coverage-report=html",
+    "test:unit:report": "c8 -r html --100 node --test",
     "test:unit:verbose": "tap -Rspec"
   },
   "repository": {
