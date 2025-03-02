@@ -12,7 +12,6 @@
     "test:typescript": "tsd",
     "test:unit": "c8 --100 node --test",
     "test:unit:report": "c8 -r html --100 node --test",
-    "test:unit:verbose": "tap -Rspec"
   },
   "repository": {
     "type": "git",
