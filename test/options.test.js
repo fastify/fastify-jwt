@@ -1,108 +1,90 @@
 'use strict'
 
-const test = require('tap').test
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const jwt = require('../jwt')
+const { AssertionError } = require('assert')
 
-test('Options validation', function (t) {
+test('Options validation', async function (t) {
   t.plan(3)
 
-  t.test('Options are required', function (t) {
+  await t.test('Options are required', async function (t) {
     t.plan(1)
 
     const fastify = Fastify()
-    fastify.register(jwt).ready((error) => {
-      t.equal(error.message, 'missing secret')
-    })
+    await t.assert.rejects(() => fastify.register(jwt).ready(), new AssertionError({ expected: true, operator: '==', message: 'missing secret' }))
   })
 
-  t.test('Request method aliases', function (t) {
+  await t.test('Request method aliases', async function (t) {
     t.plan(6)
 
-    t.test('jwtDecode fail', function (t) {
+    await t.test('jwtDecode fail', async function (t) {
       t.plan(1)
 
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await t.assert.rejects(() => fastify.register(jwt, {
         secret: 'sec',
         jwtDecode: true
-      }).ready((error) => {
-        t.equal(error.message, 'Invalid options.jwtDecode')
-      })
+      }).ready(), new AssertionError({ expected: true, operator: '==', message: 'Invalid options.jwtDecode', actual: false }))
     })
 
-    t.test('jwtDecode success', function (t) {
-      t.plan(1)
-
+    await t.test('jwtDecode success', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: 'sec',
         jwtDecode: 'hello'
-      }).ready((error) => {
-        t.error(error)
       })
     })
 
-    t.test('jwtVerify fail', function (t) {
+    await t.test('jwtVerify fail', async function (t) {
       t.plan(1)
 
       const fastify = Fastify()
-      fastify.register(jwt, {
+
+      await t.assert.rejects(() => fastify.register(jwt, {
         secret: 'sec',
         jwtVerify: 123
-      }).ready((error) => {
-        t.equal(error.message, 'Invalid options.jwtVerify')
-      })
+      }).ready(), new AssertionError({ expected: true, operator: '==', message: 'Invalid options.jwtVerify', actual: false }))
     })
 
-    t.test('jwtVerify success', function (t) {
-      t.plan(1)
-
+    await t.test('jwtVerify success', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: 'sec',
         jwtVerify: String('hello')
-      }).ready((error) => {
-        t.error(error)
-      })
+      }).ready()
     })
 
-    t.test('jwtSign fail', function (t) {
+    await t.test('jwtSign fail', async function (t) {
       t.plan(1)
 
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await t.assert.rejects(() => fastify.register(jwt, {
         secret: 'sec',
         jwtSign: {}
-      }).ready((error) => {
-        t.equal(error?.message, 'Invalid options.jwtSign')
-      })
+      }).ready(), new AssertionError({ expected: true, operator: '==', message: 'Invalid options.jwtSign', actual: false }))
     })
 
-    t.test('jwtSign success', function (t) {
-      t.plan(1)
-
+    await t.test('jwtSign success', async function (t) {
       const fastify = Fastify()
-      fastify.register(jwt, {
+      await fastify.register(jwt, {
         secret: 'sec',
         jwtSign: ''
-      }).ready((error) => {
-        t.error(error)
-      })
+      }).ready()
     })
   })
 
-  t.test('Secret formats', function (t) {
+  await t.test('Secret formats', async function (t) {
     t.plan(2)
 
-    t.test('RS/ES algorithm in sign options and secret as string', function (t) {
+    await t.test('RS/ES algorithm in sign options and secret as string', async function (t) {
       t.plan(2)
 
-      t.test('RS algorithm (Must return an error)', function (t) {
+      await t.test('RS algorithm (Must return an error)', async function (t) {
         t.plan(1)
 
         const fastify = Fastify()
-        fastify.register(jwt, {
+        await t.assert.rejects(() => fastify.register(jwt, {
           secret: 'test',
           sign: {
             algorithm: 'RS256',
@@ -110,15 +92,13 @@ test('Options validation', function (t) {
             iss: 'Some issuer',
             sub: 'Some subject'
           }
-        }).ready(function (error) {
-          t.equal(error?.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-        })
+        }).ready(), new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
       })
 
-      t.test('ES algorithm (Must return an error)', function (t) {
+      await t.test('ES algorithm (Must return an error)', async function (t) {
         t.plan(1)
         const fastify = Fastify()
-        fastify.register(jwt, {
+        await t.assert.rejects(() => fastify.register(jwt, {
           secret: 'test',
           sign: {
             algorithm: 'ES256',
@@ -126,20 +106,18 @@ test('Options validation', function (t) {
             iss: 'Some issuer',
             sub: 'Some subject'
           }
-        }).ready(function (error) {
-          t.equal(error?.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-        })
+        }).ready(), new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
       })
     })
 
-    t.test('RS/ES algorithm in sign options and secret as a Buffer', function (t) {
+    await t.test('RS/ES algorithm in sign options and secret as a Buffer', async function (t) {
       t.plan(2)
 
-      t.test('RS algorithm (Must return an error)', function (t) {
+      await t.test('RS algorithm (Must return an error)', async function (t) {
         t.plan(1)
 
         const fastify = Fastify()
-        fastify.register(jwt, {
+        await t.assert.rejects(() => fastify.register(jwt, {
           secret: Buffer.from('some secret', 'base64'),
           sign: {
             algorithm: 'RS256',
@@ -147,15 +125,14 @@ test('Options validation', function (t) {
             iss: 'Some issuer',
             sub: 'Some subject'
           }
-        }).ready(function (error) {
-          t.equal(error.message, 'RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-        })
+        }).ready(), new Error('RSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
       })
 
-      t.test('ES algorithm (Must return an error)', function (t) {
+      await t.test('ES algorithm (Must return an error)', async function (t) {
         t.plan(1)
         const fastify = Fastify()
-        fastify.register(jwt, {
+
+        await t.assert.rejects(() => fastify.register(jwt, {
           secret: Buffer.from('some secret', 'base64'),
           sign: {
             algorithm: 'ES256',
@@ -163,9 +140,7 @@ test('Options validation', function (t) {
             iss: 'Some issuer',
             sub: 'Some subject'
           }
-        }).ready(function (error) {
-          t.equal(error.message, 'ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret')
-        })
+        }).ready(), new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
       })
     })
   })
