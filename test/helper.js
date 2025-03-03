@@ -36,6 +36,15 @@ function generateKeyPairProtected (passphrase) {
   return crypto.generateKeyPairSync('rsa', options)
 }
 
+function withResolvers () {
+  let promiseResolve, promiseReject
+  const promise = new Promise((resolve, reject) => {
+    promiseResolve = resolve
+    promiseReject = reject
+  })
+  return { promise, resolve: promiseResolve, reject: promiseReject }
+}
+
 function generateKeyPairECDSA () {
   const options = {
     modulusLength: 2048,
@@ -74,5 +83,6 @@ module.exports = {
   generateKeyPair,
   generateKeyPairProtected,
   generateKeyPairECDSA,
-  generateKeyPairECDSAProtected
+  generateKeyPairECDSAProtected,
+  withResolvers
 }
