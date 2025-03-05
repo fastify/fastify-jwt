@@ -1459,6 +1459,16 @@ test('errors', async function (t) {
       })
   })
 
+  fastify.get('/verifyFailMissingRequiredClaim', function (request, reply) {
+    request.jwtVerify({ verify: { requiredClaims: ['bar'] } })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
   fastify.get('/verifyFailOnAlgorithmMismatch', function (request, reply) {
     request.jwtVerify({ verify: { algorithms: ['invalid'] } })
       .then(function (decodedToken) {
