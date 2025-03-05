@@ -1420,7 +1420,7 @@ test('decode', async function (t) {
 })
 
 test('errors', async function (t) {
-  t.plan(15)
+  t.plan(16)
 
   const fastify = Fastify()
   fastify.register(jwt, {
@@ -1451,6 +1451,16 @@ test('errors', async function (t) {
 
   fastify.get('/verifyFailOnIss', function (request, reply) {
     request.jwtVerify({ verify: { allowedIss: 'bar' } })
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (error) {
+        return reply.send(error)
+      })
+  })
+
+  fastify.get('/verifyFailMissingRequiredClaim', function (request, reply) {
+    request.jwtVerify({ verify: { requiredClaims: ['bar'] } })
       .then(function (decodedToken) {
         return reply.send(decodedToken)
       })
@@ -1735,6 +1745,33 @@ test('errors', async function (t) {
 
     const error = JSON.parse(verifyResponse.payload)
     t.assert.strictEqual(error.message, 'Authorization token is invalid: The iss claim value is not allowed.')
+    t.assert.strictEqual(verifyResponse.statusCode, 401)
+  })
+
+  await t.test('requestVerify function: wrap missing required claims', async function (t) {
+    t.plan(3)
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: {
+        payload: { foo: 'bar' }
+      }
+    })
+
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verifyFailMissingRequiredClaim',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    const error = JSON.parse(verifyResponse.payload)
+    t.assert.strictEqual(error.message, 'Authorization token is invalid: The bar claim is required.')
     t.assert.strictEqual(verifyResponse.statusCode, 401)
   })
 
