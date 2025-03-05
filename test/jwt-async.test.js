@@ -1,6 +1,6 @@
 'use strict'
 
-const test = require('tap').test
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const jwt = require('../jwt')
 const { createSigner } = require('fast-jwt')
@@ -30,9 +30,8 @@ test('Async key provider should be resolved internally', async function (t) {
       jwt: 'supersecret'
     }
   })
-  t.ok(response)
-  t.comment("Should be 'undefined'")
-  t.match(response.json(), { user: 'test' })
+  t.assert.ok(response)
+  t.assert.strictEqual(response.json().user, 'test')
 })
 
 test('Async key provider errors should be resolved internally', async function (t) {
@@ -58,7 +57,7 @@ test('Async key provider errors should be resolved internally', async function (
     url: '/'
   })
 
-  t.equal(response.statusCode, 401)
+  t.assert.strictEqual(response.statusCode, 401)
 })
 
 test('Async key provider should be resolved internally with cache', async function (t) {
@@ -96,8 +95,8 @@ test('Async key provider should be resolved internally with cache', async functi
     method: 'get',
     url: '/'
   })
-  t.equal(response.statusCode, 200)
-  t.match(response.json(), { name: 'John Doe' })
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.strictEqual(response.json().name, 'John Doe')
 })
 
 test('Async key provider errors should be resolved internally with cache', async function (t) {
@@ -131,5 +130,5 @@ test('Async key provider errors should be resolved internally with cache', async
     url: '/'
   })
 
-  t.equal(response.statusCode, 401)
+  t.assert.strictEqual(response.statusCode, 401)
 })
