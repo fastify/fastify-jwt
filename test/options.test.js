@@ -3,7 +3,7 @@
 const { test } = require('node:test')
 const Fastify = require('fastify')
 const jwt = require('../jwt')
-const { AssertionError } = require('assert')
+const { AssertionError } = require('node:assert')
 
 test('Options validation', async function (t) {
   t.plan(3)
