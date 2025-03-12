@@ -546,7 +546,8 @@ function fastifyJwt (fastify, options, next) {
 
     if (error.code === TokenError.codes.invalidKey ||
         error.code === TokenError.codes.invalidSignature ||
-        error.code === TokenError.codes.invalidClaimValue
+        error.code === TokenError.codes.invalidClaimValue ||
+        error.code === TokenError.codes.missingRequiredClaim
     ) {
       return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
         ? new AuthorizationTokenInvalidError(error.message)
