@@ -100,7 +100,7 @@ function fastifyJwt (fastify, options, next) {
     sign: initialSignOptions = {},
     trusted,
     decoratorName = 'user',
-    validate,
+    validateDecoded,
     // TODO: disable on next major
     // enable errorCacheTTL to prevent breaking change
     verify: initialVerifyOptions = { errorCacheTTL: 600000 },
@@ -149,6 +149,7 @@ function fastifyJwt (fastify, options, next) {
   , 401)
   const BadRequestError = createError('FST_JWT_BAD_REQUEST', messagesOptions.badRequestErrorMessage, 400)
   const BadCookieRequestError = createError('FST_JWT_BAD_COOKIE_REQUEST', messagesOptions.badCookieRequestErrorMessage, 400)
+  const AuthorizationTokenValidationError = createError('FST_JWT_VALIDATION_FAILED', 'Token payload validation failed', 400)
 
   const jwtDecorator = {
     decode,
@@ -514,20 +515,20 @@ function fastifyJwt (fastify, options, next) {
         }
       },
       function validateClaims (result, callback) {
-        if (!validate) return callback(null, result)
+        if (!validateDecoded) return callback(null, result)
 
         try {
-          const maybePromise = validate(result)
+          const maybePromise = validateDecoded(result)
 
           if (maybePromise?.then) {
             maybePromise
               .then(() => callback(null, result))
-              .catch(callback)
+              .catch(err => callback(new AuthorizationTokenValidationError(err.message)))
           } else {
             callback(null, result)
           }
         } catch (err) {
-          callback(err)
+          callback(new AuthorizationTokenValidationError(err.message))
         }
       },
       function checkIfIsTrusted (result, callback) {

@@ -405,6 +405,37 @@ async function validateToken(request, decodedToken) {
 }
 ```
 
+#### validateDecoded
+
+`validateDecoded` allows you to validate the decoded payload of the JWT before it is considered trusted. This is useful for custom validation logic such as checking specific claims, types, or applying JSON Schema-based validations.
+
+This function can be **synchronous** or return a **Promise**. If it throws or rejects, Fastify will return a `400 Bad Request` with the error message.
+
+```js
+fastify.register(jwt, {
+  secret: 'supersecret',
+  validateDecoded: (payload) => {
+    if (!payload.isVerified) {
+      throw new Error('User is not verified')
+    }
+  }
+})
+```
+
+You can also use an async function:
+```js
+fastify.register(jwt, {
+  secret: 'supersecret',
+  validateDecoded: async (payload) => {
+    const isAllowed = await checkInDatabase(payload.userId)
+    if (!isAllowed) {
+      throw new Error('Not allowed')
+    }
+  }
+})
+```
+
+
 ### `formatUser`
 
 #### Example with formatted user
@@ -907,6 +938,22 @@ fastify.get('/', async (request, reply) => {
   });
 })
 
+```
+
+### Token Payload Validation (`validateDecoded`)
+
+You can use the `validateDecoded` option to validate the decoded payload after the token is verified but before the request is processed.
+
+Example:
+```js
+fastify.register(require('@fastify/jwt'), {
+  secret: 'supersecret',
+  validateDecoded: async (payload) => {
+    if (!payload.role || payload.role !== 'admin') {
+      throw new Error('Token must include admin role')
+    }
+  }
+})
 ```
 
 ## Acknowledgments
