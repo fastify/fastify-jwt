@@ -100,6 +100,7 @@ function fastifyJwt (fastify, options, next) {
     sign: initialSignOptions = {},
     trusted,
     decoratorName = 'user',
+    validate,
     // TODO: disable on next major
     // enable errorCacheTTL to prevent breaking change
     verify: initialVerifyOptions = { errorCacheTTL: 600000 },
@@ -510,6 +511,23 @@ function fastifyJwt (fastify, options, next) {
           }
         } catch (error) {
           return wrapError(error, callback)
+        }
+      },
+      function validateClaims (result, callback) {
+        if (!validate) return callback(null, result)
+
+        try {
+          const maybePromise = validate(result)
+
+          if (maybePromise?.then) {
+            maybePromise
+              .then(() => callback(null, result))
+              .catch(callback)
+          } else {
+            callback(null, result)
+          }
+        } catch (err) {
+          callback(err)
         }
       },
       function checkIfIsTrusted (result, callback) {
