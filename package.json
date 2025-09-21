@@ -68,7 +68,6 @@
   },
   "devDependencies": {
     "@fastify/cookie": "^11.0.1",
-    "@fastify/pre-commit": "^2.1.0",
     "@types/node": "^24.0.10",
     "c8": "^10.1.3",
     "eslint": "^9.17.0",
@@ -78,9 +77,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "pre-commit": [
-    "lint",
-    "test"
-  ]
+  }
 }
