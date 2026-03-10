@@ -501,30 +501,34 @@ fastify.listen(3000, function (err) {
 })
 ```
 
-#### Typescript
+#### TypeScript
 
-To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
+To describe namespaced JWT decorators in TypeScript you can use the
+`FastifyJwtNamespace` helper type directly:
 
 ```typescript
-declare module 'fastify' {
-  interface FastifyInstance extends
-  FastifyJwtNamespace<{namespace: 'security'}> {
-  }
-}
+type SecurityJwt = FastifyJwtNamespace<{ namespace: 'security' }>
+
+declare const securityJwt: SecurityJwt
+
+securityJwt.securityJwtDecode
+securityJwt.securityJwtSign
+securityJwt.securityJwtVerify
 ```
 
 Alternatively you can type each key explicitly:
 
 ```typescript
-declare module 'fastify' {
-  interface FastifyInstance extends
-  FastifyJwtNamespace<{
-    jwtDecode: 'securityJwtDecode',
-    jwtSign: 'securityJwtSign',
-    jwtVerify: 'securityJwtVerify',
-  }> { }
-}
+type SecurityJwt = FastifyJwtNamespace<{
+  jwtDecode: 'securityJwtDecode',
+  jwtSign: 'securityJwtSign',
+  jwtVerify: 'securityJwtVerify',
+}>
 ```
+
+When you rename JWT decorators with `namespace`, `decoratorName`, `jwtVerify`,
+`jwtDecode`, or `jwtSign`, declare those renamed properties explicitly in your
+own local types.
 
 ### `messages`
 For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
@@ -871,6 +875,8 @@ fastify.listen({ port: 3000 })
 ## TypeScript
 
 This plugin has two available exports, the default plugin function `fastifyJwt` and the plugin options object `FastifyJWTOptions`.
+
+When you register `@fastify/jwt` with the default decorator names, Fastify can also infer `fastify.jwt`, `request.jwtVerify()`, `request.jwtDecode()`, and `reply.jwtSign()` from that registered instance. If you customize `namespace`, `decoratorName`, `jwtVerify`, `jwtDecode`, or `jwtSign`, keep using declaration merging helpers for the renamed decorators.
 
 Import them like so:
 

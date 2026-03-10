@@ -1,6 +1,17 @@
 import fastify from 'fastify'
-import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from '..'
-import { expectAssignable, expectType } from 'tsd'
+import {
+  expectAssignable,
+  expectType
+} from 'tsd'
+import fastifyJwt, {
+  FastifyJWTOptions,
+  FastifyJwtNamespace,
+  FastifyJwtPlugin,
+  FastifyJwtPluginDecorators,
+  JWT,
+  SignOptions,
+  VerifyOptions
+} from '..'
 
 const app = fastify()
 
@@ -60,13 +71,12 @@ const jwtOptions: FastifyJWTOptions = {
         ? JSON.parse(payload.toString())
         : payload
     return { name: objectPayload.userName }
-  },
-  namespace: 'security',
-  jwtVerify: 'securityVerify',
-  jwtSign: 'securitySign'
+  }
 }
 
-app.register(fastifyJwt, jwtOptions)
+expectType<FastifyJwtPlugin>(fastifyJwt)
+
+const registeredApp = fastify().register(fastifyJwt, jwtOptions)
 
 Object.values(secretOptions).forEach((value) => {
   app.register(fastifyJwt, { ...jwtOptions, secret: value })
@@ -87,20 +97,18 @@ app.register(fastifyJwt, {
 
 app.register(fastifyJwt, { ...jwtOptions, decoratorName: 'token' })
 
-// expect jwt and its subsequent methods have merged with the fastify instance
-expectAssignable<object>(app.jwt)
-expectAssignable<Function>(app.jwt.sign)
-expectAssignable<Function>(app.jwt.verify)
-expectAssignable<Function>(app.jwt.decode)
-expectAssignable<Function>(app.jwt.lookupToken)
-expectAssignable<FastifyJWTOptions['cookie']>(app.jwt.cookie)
+expectType<FastifyJwtPluginDecorators['fastify']['jwt']>(registeredApp.jwt)
+expectAssignable<Function>(registeredApp.jwt.sign)
+expectAssignable<Function>(registeredApp.jwt.verify)
+expectAssignable<Function>(registeredApp.jwt.decode)
+expectAssignable<Function>(registeredApp.jwt.lookupToken)
+expectAssignable<FastifyJWTOptions['cookie']>(registeredApp.jwt.cookie)
 
-app.addHook('preHandler', async (request, reply) => {
-  // assert request and reply specific interface merges
-  expectAssignable<Function>(request.jwtVerify)
-  expectAssignable<Function>(request.jwtDecode)
+registeredApp.get('/verify', async (request, reply) => {
+  expectType<FastifyJwtPluginDecorators['request']['jwtVerify']>(request.jwtVerify)
+  expectType<FastifyJwtPluginDecorators['request']['jwtDecode']>(request.jwtDecode)
   expectAssignable<object | string | Buffer>(request.user)
-  expectAssignable<Function>(reply.jwtSign)
+  expectType<FastifyJwtPluginDecorators['reply']['jwtSign']>(reply.jwtSign)
 
   try {
     await request.jwtVerify()
@@ -109,8 +117,8 @@ app.addHook('preHandler', async (request, reply) => {
   }
 })
 
-app.post('/signup', async (req, reply) => {
-  const token = app.jwt.sign({ user: 'userName' })
+registeredApp.post('/signup', async (req, reply) => {
+  const token = registeredApp.jwt.sign({ user: 'userName' })
   reply.send({ token })
 })
 
@@ -138,15 +146,6 @@ app.post('/signup', async (req, reply) => {
 expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtDecode)
 expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtSign)
 expectType<JWT['verify']>(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtVerify)
-
-declare module 'fastify' {
-  interface FastifyInstance extends FastifyJwtNamespace<{ namespace: 'tsdTest' }> {
-  }
-}
-
-expectType<JWT['decode']>(app.tsdTestJwtDecode)
-expectType<JWT['sign']>(app.tsdTestJwtSign)
-expectType<JWT['verify']>(app.tsdTestJwtVerify)
 
 expectType<JWT['decode']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>).decode)
 expectType<JWT['sign']>(({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>).securityJwtSign)
