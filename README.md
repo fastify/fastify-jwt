@@ -199,7 +199,7 @@ const fastify = require('fastify')()
 const jwt = require('@fastify/jwt')
 fastify.register(jwt, {
   secret: {
-    private: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`, 'utf8')
+    private: readFileSync(`${path.join(__dirname, 'certs')}/private.pem`, 'utf8'),
     public: readFileSync(`${path.join(__dirname, 'certs')}/public.pem`, 'utf8')
   },
   // Global default decoding method options
