@@ -471,6 +471,62 @@ fastify.post('/sign/:namespace', async function (request, reply) {
 })
 ```
 
+#### Changes to `fastify.jwt` when using namespaces
+
+When you register the plugin **without** a namespace, `fastify.jwt` is decorated
+with the JWT utility object directly. You can call `fastify.jwt.sign(payload)`,
+`fastify.jwt.verify(token)`, etc.
+
+When you register with the `namespace` option, `fastify.jwt` becomes a plain
+object where each namespace is a key. Each key holds its own independent JWT
+utility object with `sign`, `verify`, `decode`, `options`, `cookie`, and
+`lookupToken`.
+
+```js
+const fastify = require('fastify')()
+const jwt = require('@fastify/jwt')
+
+fastify.register(jwt, {
+  secret: 'secret-for-access',
+  namespace: 'access',
+  sign: { expiresIn: '15m' }
+})
+
+fastify.register(jwt, {
+  secret: 'secret-for-refresh',
+  namespace: 'refresh',
+  sign: { expiresIn: '7d' }
+})
+
+fastify.post('/login', async function (request, reply) {
+  const payload = { userId: 123 }
+
+  // sign tokens using the fastify.jwt.<namespace> object
+  const accessToken = fastify.jwt.access.sign(payload)
+  const refreshToken = fastify.jwt.refresh.sign(payload)
+
+  return { accessToken, refreshToken }
+})
+
+fastify.get('/protected', async function (request, reply) {
+  // verify using the namespace-specific request decorator
+  await request.accessJwtVerify()
+  return { user: request.user }
+})
+
+fastify.post('/refresh', async function (request, reply) {
+  // verify the refresh token directly via the fastify.jwt object
+  const decoded = fastify.jwt.refresh.verify(request.body.refreshToken)
+
+  // issue a new access token
+  const accessToken = fastify.jwt.access.sign({ userId: decoded.userId })
+  return { accessToken }
+})
+```
+
+Each namespace is fully isolated, so tokens signed with one namespace cannot be
+verified by another (they use different secrets and options).
+
 ### `extractToken`
 
 Setting this option will allow you to extract a token using function passed in for `extractToken` option. The function definition should be `(request: FastifyRequest) => token`. Fastify JWT will check if this option is set, if this option is set it will use the function defined in the option. When this option is not set then it will follow the normal flow.
