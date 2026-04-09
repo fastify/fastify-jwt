@@ -8,40 +8,14 @@ import {
   VerifierOptions
 } from 'fast-jwt'
 import {
+  AnyFastifyInstance,
+  ApplyDecorators,
   FastifyPluginCallback,
-  FastifyRequest
+  FastifyRequest,
+  UnEncapsulatedPlugin
 } from 'fastify'
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    jwt: fastifyJwt.JWT
-  }
-
-  interface FastifyReply {
-    jwtSign(payload: fastifyJwt.SignPayloadType, options?: fastifyJwt.FastifyJwtSignOptions): Promise<string>
-    jwtSign(payload: fastifyJwt.SignPayloadType, callback: SignerCallback): void
-    jwtSign(payload: fastifyJwt.SignPayloadType, options: fastifyJwt.FastifyJwtSignOptions, callback: SignerCallback): void
-    jwtSign(payload: fastifyJwt.SignPayloadType, options?: Partial<fastifyJwt.SignOptions>): Promise<string>
-    jwtSign(payload: fastifyJwt.SignPayloadType, options: Partial<fastifyJwt.SignOptions>, callback: SignerCallback): void
-  }
-
-  interface FastifyRequest {
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: fastifyJwt.FastifyJwtVerifyOptions): Promise<Decoded>
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(callback: VerifierCallback): void
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: fastifyJwt.FastifyJwtVerifyOptions, callback: VerifierCallback): void
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: Partial<fastifyJwt.VerifyOptions>): Promise<Decoded>
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: Partial<fastifyJwt.VerifyOptions>, callback: VerifierCallback): void
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options?: fastifyJwt.FastifyJwtDecodeOptions): Promise<Decoded>
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(callback: fastifyJwt.DecodeCallback<Decoded>): void
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options: fastifyJwt.FastifyJwtDecodeOptions, callback: fastifyJwt.DecodeCallback<Decoded>): void
-    user: fastifyJwt.UserType
-  }
-}
-
-type FastifyJwt = FastifyPluginCallback<fastifyJwt.FastifyJWTOptions>
+type FastifyJwt = fastifyJwt.FastifyJwtPlugin
 
 declare namespace fastifyJwt {
 
@@ -71,6 +45,47 @@ declare namespace fastifyJwt {
       ? `${C['namespace']}JwtVerify`
       : never,
   JWT['verify']>
+
+  export interface FastifyJwtReplyDecorators {
+    jwtSign(payload: fastifyJwt.SignPayloadType, options?: fastifyJwt.FastifyJwtSignOptions): Promise<string>
+    jwtSign(payload: fastifyJwt.SignPayloadType, callback: SignerCallback): void
+    jwtSign(payload: fastifyJwt.SignPayloadType, options: fastifyJwt.FastifyJwtSignOptions, callback: SignerCallback): void
+    jwtSign(payload: fastifyJwt.SignPayloadType, options?: Partial<fastifyJwt.SignOptions>): Promise<string>
+    jwtSign(payload: fastifyJwt.SignPayloadType, options: Partial<fastifyJwt.SignOptions>, callback: SignerCallback): void
+  }
+
+  export interface FastifyJwtRequestDecorators {
+    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: fastifyJwt.FastifyJwtVerifyOptions): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: fastifyJwt.FastifyJwtVerifyOptions, callback: VerifierCallback): void
+    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: Partial<fastifyJwt.VerifyOptions>): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: Partial<fastifyJwt.VerifyOptions>, callback: VerifierCallback): void
+    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options?: fastifyJwt.FastifyJwtDecodeOptions): Promise<Decoded>
+    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(callback: fastifyJwt.DecodeCallback<Decoded>): void
+    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options: fastifyJwt.FastifyJwtDecodeOptions, callback: fastifyJwt.DecodeCallback<Decoded>): void
+    user: fastifyJwt.UserType
+  }
+
+  export interface FastifyJwtInstanceDecorators {
+    jwt: fastifyJwt.JWT
+  }
+
+  export type FastifyJwtPluginDecorators = {
+    fastify: FastifyJwtInstanceDecorators;
+    request: FastifyJwtRequestDecorators;
+    reply: FastifyJwtReplyDecorators;
+  }
+
+  export type FastifyJwtPlugin<TInstance extends AnyFastifyInstance = AnyFastifyInstance> = UnEncapsulatedPlugin<
+    FastifyPluginCallback<
+      fastifyJwt.FastifyJWTOptions,
+      TInstance,
+      ApplyDecorators<TInstance, FastifyJwtPluginDecorators>
+    >
+  >
 
   /**
    * for declaration merging
