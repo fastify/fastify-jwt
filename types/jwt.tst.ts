@@ -1,8 +1,13 @@
 import fastify from 'fastify'
 import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from './jwt'
 import { expect } from 'tstyche'
+import fastifyRateLimit from '@fastify/rate-limit'
 
 const app = fastify()
+app.register(fastifyRateLimit, {
+  max: 100,
+  timeWindow: '1 minute'
+})
 
 const secretOptions = {
   secret: 'supersecret',
@@ -105,11 +110,19 @@ app.addHook('preHandler', async (request, reply) => {
   try {
     await request.jwtVerify()
   } catch (err) {
-    reply.send(err)
+    reply.code(401).send({ message: 'Unauthorized' })
   }
 })
 
-app.post('/signup', async (req, reply) => {
+app.post('/signup', {
+  preHandler: app.rateLimit(),
+  config: {
+    rateLimit: {
+      max: 100,
+      timeWindow: '1 minute'
+    }
+  }
+}, async (req, reply) => {
   const token = app.jwt.sign({ user: 'userName' })
   reply.send({ token })
 })
