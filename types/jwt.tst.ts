@@ -148,9 +148,9 @@ app.post('/signup', {
 //   }
 // }
 
-expect(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtDecode).type.toBe<JWT['decode']>()
-expect(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtSign).type.toBe<JWT['sign']>()
-expect(({} as FastifyJwtNamespace<{ namespace: 'security' }>).securityJwtVerify).type.toBe<JWT['verify']>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtDecode']>().type.toBe<JWT['decode']>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtSign']>().type.toBe<JWT['sign']>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtVerify']>().type.toBe<JWT['verify']>()
 
 declare module 'fastify' {
   interface FastifyInstance extends FastifyJwtNamespace<{ namespace: 'tsdTest' }> {
