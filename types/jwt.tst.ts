@@ -157,45 +157,45 @@ declare module 'fastify' {
   }
 }
 
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>).decode
-).type.toBe<JWT['decode']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>).securityJwtSign
-).type.toBe<JWT['sign']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>).securityJwtVerify
-).type.toBe<JWT['verify']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['decode']
+>().type.toBe<JWT['decode']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['securityJwtSign']
+>().type.toBe<JWT['sign']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['securityJwtVerify']
+>().type.toBe<JWT['verify']>()
 
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>).securityJwtDecode
-).type.toBe<JWT['decode']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'sign' }>).sign
-).type.toBe<JWT['sign']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>).securityJwtVerify
-).type.toBe<JWT['verify']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>['securityJwtDecode']
+>().type.toBe<JWT['decode']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'sign' }>['sign']
+>().type.toBe<JWT['sign']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>['securityJwtVerify']
+>().type.toBe<JWT['verify']>()
 
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>).securityJwtDecode
-).type.toBe<JWT['decode']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>).securityJwtSign
-).type.toBe<JWT['sign']>()
-expect(
-  ({} as FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>).verify
-).type.toBe<JWT['verify']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['securityJwtDecode']
+>().type.toBe<JWT['decode']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['securityJwtSign']
+>().type.toBe<JWT['sign']>()
+expect<
+  FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['verify']
+>().type.toBe<JWT['verify']>()
 
-expect(
-  ({} as FastifyJwtNamespace<{ jwtDecode: 'decode' }>).decode
-).type.toBe<JWT['decode']>()
-expect(
-  ({} as FastifyJwtNamespace<{ jwtSign: 'sign' }>).sign
-).type.toBe<JWT['sign']>()
-expect(
-  ({} as FastifyJwtNamespace<{ jwtVerify: 'verify' }>).verify
-).type.toBe<JWT['verify']>()
+expect<
+  FastifyJwtNamespace<{ jwtDecode: 'decode' }>['decode']
+>().type.toBe<JWT['decode']>()
+expect<
+  FastifyJwtNamespace<{ jwtSign: 'sign' }>['sign']
+>().type.toBe<JWT['sign']>()
+expect<
+  FastifyJwtNamespace<{ jwtVerify: 'verify' }>['verify']
+>().type.toBe<JWT['verify']>()
 
 let signOptions: SignOptions = {
   key: 'supersecret',
