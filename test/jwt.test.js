@@ -1280,7 +1280,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
 })
 
 test('sign and verify with trusted token', async function (t) {
-  t.plan(2)
+  t.plan(3)
   await t.test('Trusted token verification', async function (t) {
     t.plan(2)
 
@@ -1339,6 +1339,38 @@ test('sign and verify with trusted token', async function (t) {
     })
 
     t.assert.strictEqual(response.statusCode, 200)
+  })
+
+  await t.test('Trusted token - async verification rejects', async function (t) {
+    t.plan(2)
+
+    const f = Fastify()
+    f.register(jwt, {
+      secret: 'test',
+      trusted: () => Promise.reject(new Error('boom'))
+    })
+    f.get('/', (request, reply) => {
+      request.jwtVerify()
+        .then(function (decodedToken) {
+          return reply.send(decodedToken)
+        })
+        .catch(function (error) {
+          return reply.code(500).send({ message: error.message })
+        })
+    })
+
+    const signer = createSigner({ key: 'test', jti: 'trusted' })
+    const token = signer({ foo: 'bar' })
+    const response = await f.inject({
+      method: 'get',
+      url: '/',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+
+    t.assert.strictEqual(response.statusCode, 500)
+    t.assert.strictEqual(response.json().message, 'boom')
   })
 })
 
