@@ -3,9 +3,9 @@
 const { test } = require('node:test')
 const Fastify = require('fastify')
 const { createSigner } = require('fast-jwt')
-const jwt = require('../jwt')
-const defaultExport = require('../jwt').default
-const { fastifyJwt: namedExport } = require('../jwt')
+const jwt = require('..')
+const defaultExport = require('..').default
+const { fastifyJwt: namedExport } = require('..')
 
 const helper = require('./helper')
 

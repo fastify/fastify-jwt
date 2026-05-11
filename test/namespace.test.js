@@ -2,7 +2,7 @@
 
 const { test } = require('node:test')
 const Fastify = require('fastify')
-const jwt = require('../jwt')
+const jwt = require('..')
 
 test('Unable to add the namespace twice', async function (t) {
   t.plan(1)
