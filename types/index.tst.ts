@@ -1,5 +1,5 @@
 import fastify from 'fastify'
-import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from './jwt'
+import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from '..'
 import { expect } from 'tstyche'
 import fastifyRateLimit from '@fastify/rate-limit'
 
