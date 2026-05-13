@@ -22,9 +22,15 @@ function isString (x) {
   return Object.prototype.toString.call(x) === '[object String]'
 }
 
-function wrapStaticSecretInCallback (secret) {
-  return function (_request, _payload, cb) {
-    return cb(null, secret)
+function resolveSecret (secretValue, context, callback) {
+  if (typeof secretValue !== 'function') {
+    return callback(null, secretValue)
+  }
+
+  const result = secretValue(context, callback)
+
+  if (result && typeof result.then === 'function') {
+    result.then(secret => callback(null, secret), callback)
   }
 }
 
@@ -121,16 +127,8 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
-  let hasStaticPublicKey = false
-  let secretCallbackSign = secretOrPrivateKey
-  let secretCallbackVerify = secretOrPublicKey
-  if (typeof secretCallbackSign !== 'function') {
-    secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
-  }
-  if (typeof secretCallbackVerify !== 'function') {
-    secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
-    hasStaticPublicKey = true
-  }
+  const hasStaticPublicKey = typeof secretOrPublicKey !== 'function'
+  const hasStaticPrivateKey = typeof secretOrPrivateKey !== 'function'
 
   const signOptions = convertTemporalProps(initialSignOptions)
   const verifyOptions = convertTemporalProps(initialVerifyOptions, true)
@@ -192,13 +190,17 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateReply(jwtSignName, replySign)
 
   const signerConfig = checkAndMergeSignOptions()
-  // no signer when configured in verify-mode
+  // no signer when configured in verify-mode or when secret is a function
   const signer = signerConfig.options.key
     ? createSigner(signerConfig.options)
     : null
   const decoder = createDecoder(decodeOptions)
+  const completeDecoder = createDecoder(Object.assign({}, decodeOptions, { complete: true }))
   const verifierConfig = checkAndMergeVerifyOptions()
-  const verifier = createVerifier(verifierConfig.options)
+  // no global verifier when secret is a function (resolved per-call)
+  const verifier = verifierConfig.options.key
+    ? createVerifier(verifierConfig.options)
+    : null
 
   next()
 
@@ -230,8 +232,6 @@ function fastifyJwt (fastify, options, next) {
     try {
       return selectedDecoder(token)
     } catch (error) {
-      // Ignoring the else branch because it's not possible to test it,
-      // it's just a safeguard for future changes in the fast-jwt library
       if (error.code === TokenError.codes.malformed) {
         throw new AuthorizationTokenInvalidError(error.message)
       } else if (error.code === TokenError.codes.invalidType) {
@@ -281,21 +281,25 @@ function fastifyJwt (fastify, options, next) {
     return token
   }
 
-  function mergeOptionsWithKey (options, useProvidedPrivateKey) {
-    if (useProvidedPrivateKey && (typeof useProvidedPrivateKey !== 'boolean')) {
-      return Object.assign({}, options, { key: useProvidedPrivateKey })
-    } else {
-      const key = useProvidedPrivateKey ? secretOrPrivateKey : secretOrPublicKey
-      return Object.assign(!options.key ? { key } : {}, options)
+  function withStaticKey (options, usePrivateKey) {
+    const key = usePrivateKey ? secretOrPrivateKey : secretOrPublicKey
+    if (typeof key === 'function') {
+      // Key will be resolved per-call via resolveSecret
+      return Object.assign({}, options)
     }
+    return Object.assign(!options.key ? { key } : {}, options)
+  }
+
+  function withResolvedKey (options, key) {
+    return Object.assign({}, options, { key })
   }
 
   function checkAndMergeOptions (options, defaultOptions, usePrivateKey, callback) {
     if (typeof options === 'function') {
-      return { options: mergeOptionsWithKey(defaultOptions, usePrivateKey), callback: options }
+      return { options: withStaticKey(defaultOptions, usePrivateKey), callback: options }
     }
 
-    return { options: mergeOptionsWithKey(options || defaultOptions, usePrivateKey), callback }
+    return { options: withStaticKey(options || defaultOptions, usePrivateKey), callback }
   }
 
   function checkAndMergeSignOptions (options, callback) {
@@ -308,50 +312,60 @@ function fastifyJwt (fastify, options, next) {
 
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
-    // if a global signer was not created, sign mode is not supported
-    assert(signer, 'unable to sign: secret is configured in verify mode')
-
-    let localSigner = signer
+    assert(secretOrPrivateKey, 'unable to sign: secret is configured in verify mode')
 
     const localOptions = convertTemporalProps(options)
     const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
-    if (options && typeof options !== 'function') {
-      localSigner = createSigner(signerConfig.options)
-    }
-
-    if (typeof signerConfig.callback === 'function') {
-      const token = localSigner(payload)
-      signerConfig.callback(null, token)
-    } else {
+    if (typeof signerConfig.callback !== 'function') {
+      assert(hasStaticPrivateKey, 'callback is required when secret is a function')
+      let localSigner = signer
+      if (options && typeof options !== 'function') {
+        localSigner = createSigner(signerConfig.options)
+      }
       return localSigner(payload)
     }
+
+    const cb = signerConfig.callback
+    const context = { operation: 'sign', payload }
+    resolveSecret(secretOrPrivateKey, context, function (err, secret) {
+      if (err) return cb(err)
+      const resolvedOptions = withResolvedKey(signerConfig.options, secret)
+      const localSigner = createSigner(resolvedOptions)
+      cb(null, localSigner(payload))
+    })
   }
 
   function verify (token, options, callback) {
     assert(token, 'missing token')
     assert(secretOrPublicKey, 'missing secret')
 
-    let localVerifier = verifier
-
     const localOptions = convertTemporalProps(options, true)
     const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
-    if (options && typeof options !== 'function') {
-      localVerifier = getVerifier(verifierConfig.options)
-    }
-
-    if (typeof verifierConfig.callback === 'function') {
-      const result = localVerifier(token)
-      verifierConfig.callback(null, result)
-    } else {
+    if (typeof verifierConfig.callback !== 'function') {
+      assert(hasStaticPublicKey, 'callback is required when secret is a function')
+      let localVerifier = verifier
+      if (options && typeof options !== 'function') {
+        localVerifier = getVerifier(verifierConfig.options)
+      }
       return localVerifier(token)
     }
+
+    const cb = verifierConfig.callback
+    const decoded = completeDecoder(token)
+    const context = { operation: 'verify', header: decoded.header, payload: decoded.payload, signature: decoded.signature }
+    resolveSecret(secretOrPublicKey, context, function (err, secret) {
+      if (err) return cb(err)
+      const resolvedOptions = withResolvedKey(verifierConfig.options, secret)
+      const localVerifier = getVerifier(resolvedOptions)
+      cb(null, localVerifier(token))
+    })
   }
 
   function replySign (payload, options, next) {
-    // if a global signer was not created, sign mode is not supported
-    assert(signer, 'unable to sign: secret is configured in verify mode')
+    // sign mode is not supported when only a public key is provided
+    assert(secretOrPrivateKey, 'unable to sign: secret is configured in verify mode')
 
     let useLocalSigner = true
     if (typeof options === 'function') {
@@ -379,12 +393,12 @@ function fastifyJwt (fastify, options, next) {
       const localSignOptions = convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
       options = {
-        sign: mergeOptionsWithKey(Object.assign({}, signOptions, localSignOptions), true)
+        sign: withStaticKey(Object.assign({}, signOptions, localSignOptions), true)
       }
     } else {
       const localOptions = convertTemporalProps(options)
       // Original contract, options supports only sign
-      options = mergeOptionsWithKey(Object.assign({}, signOptions, localOptions), true)
+      options = withStaticKey(Object.assign({}, signOptions, localOptions), true)
     }
 
     if (!payload) {
@@ -393,20 +407,19 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        const signResult = secretCallbackSign(reply.request, payload, callback)
-
-        if (signResult && typeof signResult.then === 'function') {
-          signResult.then(result => callback(null, result), callback)
-        }
+        const context = { operation: 'sign', payload, request: reply.request }
+        resolveSecret(secretOrPrivateKey, context, callback)
       },
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
-          const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
+          const signerOptions = withResolvedKey(options.sign || options, secretOrPrivateKey)
           const localSigner = createSigner(signerOptions)
           const token = localSigner(payload)
           callback(null, token)
         } else {
-          const token = signer(payload)
+          const signerOptions = withResolvedKey(signerConfig.options, secretOrPrivateKey)
+          const localSigner = signer || createSigner(signerOptions)
+          const token = localSigner(payload)
           callback(null, token)
         }
       }
@@ -489,18 +502,37 @@ function fastifyJwt (fastify, options, next) {
       return next(err)
     }
 
-    const decodedToken = decode(token, options.decode || decodeOptions)
+    let completeDecode
+    try {
+      completeDecode = completeDecoder(token)
+    } catch (error) {
+      // Ignoring the else branch because it's not possible to test it,
+      // it's just a safeguard for future changes in the fast-jwt library
+      if (error.code === TokenError.codes.malformed) {
+        return next(new AuthorizationTokenInvalidError(error.message))
+      } else if (error.code === TokenError.codes.invalidType) {
+        return next(new AuthorizationTokenInvalidError(error.message))
+      } /* c8 ignore start */ else {
+        return next(error)
+      } /* c8 ignore stop */
+    }
 
     steed.waterfall([
       function getSecret (callback) {
-        const verifyResult = secretCallbackVerify(request, decodedToken, callback)
-        if (verifyResult && typeof verifyResult.then === 'function') {
-          verifyResult.then(result => callback(null, result), callback)
+        const context = {
+          operation: 'verify',
+          header: completeDecode.header,
+          payload: completeDecode.payload,
+          signature: completeDecode.signature,
+          request
         }
+        resolveSecret(secretOrPublicKey, context, callback)
       },
       function verify (secretOrPublicKey, callback) {
         try {
-          const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
+          const verifierOptions = secretOrPublicKey
+            ? withResolvedKey(options.verify || options, secretOrPublicKey)
+            : Object.assign({}, options.verify || options)
           const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
           const verifyResult = localVerifier(token)
           if (verifyResult && typeof verifyResult.then === 'function') {
