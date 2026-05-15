@@ -267,7 +267,15 @@ function fastifyJwt (fastify, options, next) {
         if (request.cookies[cookie.cookieName]) {
           const tokenValue = request.cookies[cookie.cookieName]
 
-          token = cookie.signed ? request.unsignCookie(tokenValue).value : tokenValue
+          if (cookie.signed) {
+            const { valid, value } = request.unsignCookie(tokenValue)
+            if (!valid) {
+              throw new NoAuthorizationInCookieError()
+            }
+            token = value
+          } else {
+            token = tokenValue
+          }
         } else {
           throw new NoAuthorizationInCookieError()
         }
@@ -483,13 +491,13 @@ function fastifyJwt (fastify, options, next) {
     }
 
     let token
+    let decodedToken
     try {
       token = lookupToken(request, options.verify || options)
+      decodedToken = decode(token, options.decode || decodeOptions)
     } catch (err) {
       return next(err)
     }
-
-    const decodedToken = decode(token, options.decode || decodeOptions)
 
     steed.waterfall([
       function getSecret (callback) {
