@@ -916,6 +916,35 @@ test('sign and verify with function secret (server methods)', async function (t)
     t.assert.strictEqual(result.foo, 'bar')
   })
 
+  await t.test('sign with async function key that also calls callback does not double-invoke', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    // An async function that also calls the callback — only one should win
+    const keyFn = async function (_context, cb) {
+      cb(null, 'function-secret')
+      return 'function-secret'
+    }
+
+    fastify.jwt.sign({ foo: 'bar' }, { key: keyFn }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      const { createVerifier } = require('fast-jwt')
+      const localVerifier = createVerifier({ key: 'function-secret' })
+      const result = localVerifier(token)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
   await t.test('replySign with per-call static key override', async function (t) {
     const fastify = Fastify()
     fastify.register(jwt, {

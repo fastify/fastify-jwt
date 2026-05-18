@@ -27,10 +27,17 @@ function resolveSecret (secretValue, context, callback) {
     return callback(null, secretValue)
   }
 
-  const result = secretValue(context, callback)
+  let called = false
+  function once (err, val) {
+    if (called) return
+    called = true
+    callback(err, val)
+  }
+
+  const result = secretValue(context, once)
 
   if (result && typeof result.then === 'function') {
-    result.then(secret => callback(null, secret), callback)
+    result.then(secret => once(null, secret), once)
   }
 }
 
