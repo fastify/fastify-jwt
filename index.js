@@ -331,12 +331,29 @@ function fastifyJwt (fastify, options, next) {
     }
 
     const cb = signerConfig.callback
+
+    // Fast-path: reuse global signer when no custom options were passed
+    if (signer && (!options || typeof options === 'function')) {
+      try {
+        cb(null, signer(payload))
+      /* c8 ignore next 3 */
+      } catch (error) {
+        cb(error)
+      }
+      return
+    }
+
     const context = { operation: 'sign', payload }
     resolveSecret(signerConfig.options.key, context, function (err, secret) {
       if (err) return cb(err)
-      const resolvedOptions = withResolvedKey(signerConfig.options, secret)
-      const localSigner = createSigner(resolvedOptions)
-      cb(null, localSigner(payload))
+      try {
+        const resolvedOptions = withResolvedKey(signerConfig.options, secret)
+        const localSigner = createSigner(resolvedOptions)
+        cb(null, localSigner(payload))
+      /* c8 ignore next 3 */
+      } catch (error) {
+        cb(error)
+      }
     })
   }
 
@@ -357,13 +374,28 @@ function fastifyJwt (fastify, options, next) {
     }
 
     const cb = verifierConfig.callback
+
+    // Fast-path: reuse global verifier when no custom options were passed
+    if (verifier && (!options || typeof options === 'function')) {
+      try {
+        cb(null, verifier(token))
+      } catch (error) {
+        cb(error)
+      }
+      return
+    }
+
     const decoded = completeDecoder(token)
     const context = { operation: 'verify', header: decoded.header, payload: decoded.payload, signature: decoded.signature }
     resolveSecret(verifierConfig.options.key, context, function (err, secret) {
       if (err) return cb(err)
-      const resolvedOptions = withResolvedKey(verifierConfig.options, secret)
-      const localVerifier = getVerifier(resolvedOptions)
-      cb(null, localVerifier(token))
+      try {
+        const resolvedOptions = withResolvedKey(verifierConfig.options, secret)
+        const localVerifier = getVerifier(resolvedOptions)
+        cb(null, localVerifier(token))
+      } catch (error) {
+        cb(error)
+      }
     })
   }
 

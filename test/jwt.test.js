@@ -308,7 +308,7 @@ test('sign and verify with HS-secret', async function (t) {
   t.plan(2)
 
   await t.test('server methods', async function (t) {
-    t.plan(2)
+    t.plan(3)
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test' })
@@ -337,6 +337,22 @@ test('sign and verify with HS-secret', async function (t) {
           t.assert.strictEqual(decoded.foo, 'bar')
           resolve()
         })
+      })
+      return promise
+    })
+
+    await t.test('with callbacks and invalid token', function (t) {
+      t.plan(1)
+
+      const { promise, resolve } = helper.withResolvers()
+
+      const { createSigner: createLocalSigner } = require('fast-jwt')
+      const wrongSigner = createLocalSigner({ key: 'wrong-secret' })
+      const invalidToken = wrongSigner({ foo: 'bar' })
+
+      fastify.jwt.verify(invalidToken, function (error) {
+        t.assert.ok(error)
+        resolve()
       })
       return promise
     })
@@ -1913,6 +1929,67 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         t.assert.strictEqual(decodedToken.iss, 'test')
       })
     })
+  })
+})
+
+test('instance sign and verify honor custom options', async function (t) {
+  t.plan(4)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test' })
+
+  await fastify.ready()
+
+  await t.test('sign with expiresIn option (sync)', function (t) {
+    t.plan(2)
+
+    const token = fastify.jwt.sign({ foo: 'bar' }, { expiresIn: '1d' })
+    const decoded = fastify.jwt.verify(token)
+
+    t.assert.strictEqual(decoded.foo, 'bar')
+    t.assert.strictEqual(decoded.exp - decoded.iat, 24 * 60 * 60)
+  })
+
+  await t.test('sign with expiresIn option (callback)', function (t) {
+    t.plan(3)
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, { expiresIn: '2h' }, function (error, token) {
+      t.assert.ifError(error)
+
+      const decoded = fastify.jwt.verify(token)
+      t.assert.strictEqual(decoded.foo, 'bar')
+      t.assert.strictEqual(decoded.exp - decoded.iat, 2 * 60 * 60)
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('sign with notBefore option (sync)', function (t) {
+    t.plan(2)
+
+    const token = fastify.jwt.sign({ foo: 'bar' }, { notBefore: '1h' })
+    const decoded = fastify.jwt.decode(token)
+
+    t.assert.strictEqual(decoded.foo, 'bar')
+    t.assert.strictEqual(decoded.nbf - decoded.iat, 60 * 60)
+  })
+
+  await t.test('verify with maxAge option (callback)', function (t) {
+    t.plan(1)
+
+    const { promise, resolve } = helper.withResolvers()
+
+    // Sign a token with iat in the past (beyond maxAge)
+    const pastIat = Math.floor(Date.now() / 1000) - 120
+    const token = fastify.jwt.sign({ foo: 'bar', iat: pastIat })
+
+    fastify.jwt.verify(token, { maxAge: 60 }, function (error) {
+      t.assert.ok(error)
+      resolve()
+    })
+    return promise
   })
 })
 
