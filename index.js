@@ -127,9 +127,6 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
-  const hasStaticPublicKey = typeof secretOrPublicKey !== 'function'
-  const hasStaticPrivateKey = typeof secretOrPrivateKey !== 'function'
-
   const signOptions = convertTemporalProps(initialSignOptions)
   const verifyOptions = convertTemporalProps(initialVerifyOptions, true)
   const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
@@ -190,15 +187,15 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateReply(jwtSignName, replySign)
 
   const signerConfig = checkAndMergeSignOptions()
-  // no signer when configured in verify-mode or when secret is a function
-  const signer = signerConfig.options.key
+  // no signer when configured in verify-mode or when secret is a function (resolved per-call)
+  const signer = (signerConfig.options.key && typeof signerConfig.options.key !== 'function')
     ? createSigner(signerConfig.options)
     : null
   const decoder = createDecoder(decodeOptions)
   const completeDecoder = createDecoder(Object.assign({}, decodeOptions, { complete: true }))
   const verifierConfig = checkAndMergeVerifyOptions()
   // no global verifier when secret is a function (resolved per-call)
-  const verifier = verifierConfig.options.key
+  const verifier = (verifierConfig.options.key && typeof verifierConfig.options.key !== 'function')
     ? createVerifier(verifierConfig.options)
     : null
 
@@ -207,7 +204,7 @@ function fastifyJwt (fastify, options, next) {
   function getVerifier (options, globalOptions) {
     const useGlobalOptions = globalOptions ?? options === verifierConfig.options
     // Use global verifier if using global options with static key
-    if (useGlobalOptions && hasStaticPublicKey) return verifier
+    if (useGlobalOptions && verifier) return verifier
     // Only cache verifier when using default options (except for key)
     if (useGlobalOptions && options.key && typeof options.key === 'string') {
       let verifier = validatorCache.get(options.key)
@@ -232,6 +229,8 @@ function fastifyJwt (fastify, options, next) {
     try {
       return selectedDecoder(token)
     } catch (error) {
+      // Ignoring the else branch because it's not possible to test it,
+      // it's just a safeguard for future changes in the fast-jwt library
       if (error.code === TokenError.codes.malformed) {
         throw new AuthorizationTokenInvalidError(error.message)
       } else if (error.code === TokenError.codes.invalidType) {
@@ -282,12 +281,10 @@ function fastifyJwt (fastify, options, next) {
   }
 
   function withStaticKey (options, usePrivateKey) {
+    if (options.key) return Object.assign({}, options)
     const key = usePrivateKey ? secretOrPrivateKey : secretOrPublicKey
-    if (typeof key === 'function') {
-      // Key will be resolved per-call via resolveSecret
-      return Object.assign({}, options)
-    }
-    return Object.assign(!options.key ? { key } : {}, options)
+    if (!key) return Object.assign({}, options)
+    return Object.assign({}, options, { key })
   }
 
   function withResolvedKey (options, key) {
@@ -318,7 +315,7 @@ function fastifyJwt (fastify, options, next) {
     const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
     if (typeof signerConfig.callback !== 'function') {
-      assert(hasStaticPrivateKey, 'callback is required when secret is a function')
+      assert(typeof signerConfig.options.key !== 'function', 'callback is required when secret is a function')
       let localSigner = signer
       if (options && typeof options !== 'function') {
         localSigner = createSigner(signerConfig.options)
@@ -328,7 +325,7 @@ function fastifyJwt (fastify, options, next) {
 
     const cb = signerConfig.callback
     const context = { operation: 'sign', payload }
-    resolveSecret(secretOrPrivateKey, context, function (err, secret) {
+    resolveSecret(signerConfig.options.key, context, function (err, secret) {
       if (err) return cb(err)
       const resolvedOptions = withResolvedKey(signerConfig.options, secret)
       const localSigner = createSigner(resolvedOptions)
@@ -344,7 +341,7 @@ function fastifyJwt (fastify, options, next) {
     const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (typeof verifierConfig.callback !== 'function') {
-      assert(hasStaticPublicKey, 'callback is required when secret is a function')
+      assert(typeof verifierConfig.options.key !== 'function', 'callback is required when secret is a function')
       let localVerifier = verifier
       if (options && typeof options !== 'function') {
         localVerifier = getVerifier(verifierConfig.options)
@@ -355,7 +352,7 @@ function fastifyJwt (fastify, options, next) {
     const cb = verifierConfig.callback
     const decoded = completeDecoder(token)
     const context = { operation: 'verify', header: decoded.header, payload: decoded.payload, signature: decoded.signature }
-    resolveSecret(secretOrPublicKey, context, function (err, secret) {
+    resolveSecret(verifierConfig.options.key, context, function (err, secret) {
       if (err) return cb(err)
       const resolvedOptions = withResolvedKey(verifierConfig.options, secret)
       const localVerifier = getVerifier(resolvedOptions)
@@ -405,14 +402,16 @@ function fastifyJwt (fastify, options, next) {
       return next(new Error('jwtSign requires a payload'))
     }
 
+    const replySignOptions = options.sign || options
+
     steed.waterfall([
       function getSecret (callback) {
         const context = { operation: 'sign', payload, request: reply.request }
-        resolveSecret(secretOrPrivateKey, context, callback)
+        resolveSecret(replySignOptions.key, context, callback)
       },
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
-          const signerOptions = withResolvedKey(options.sign || options, secretOrPrivateKey)
+          const signerOptions = withResolvedKey(replySignOptions, secretOrPrivateKey)
           const localSigner = createSigner(signerOptions)
           const token = localSigner(payload)
           callback(null, token)
@@ -487,12 +486,12 @@ function fastifyJwt (fastify, options, next) {
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign({}, verifyOptions, localVerifyOptions)
+        verify: withStaticKey(Object.assign({}, verifyOptions, localVerifyOptions), false)
       }
     } else {
       const localOptions = convertTemporalProps(options, true)
       // Original contract, options supports only verify
-      options = Object.assign({}, verifyOptions, localOptions)
+      options = withStaticKey(Object.assign({}, verifyOptions, localOptions), false)
     }
 
     let token
@@ -517,6 +516,8 @@ function fastifyJwt (fastify, options, next) {
       } /* c8 ignore stop */
     }
 
+    const requestVerifyOptions = options.verify || options
+
     steed.waterfall([
       function getSecret (callback) {
         const context = {
@@ -526,15 +527,17 @@ function fastifyJwt (fastify, options, next) {
           signature: completeDecode.signature,
           request
         }
-        resolveSecret(secretOrPublicKey, context, callback)
+        resolveSecret(requestVerifyOptions.key, context, callback)
       },
       function verify (secretOrPublicKey, callback) {
         try {
           const verifierOptions = secretOrPublicKey
-            ? withResolvedKey(options.verify || options, secretOrPublicKey)
-            : Object.assign({}, options.verify || options)
+            ? withResolvedKey(requestVerifyOptions, secretOrPublicKey)
+            /* c8 ignore next */
+            : Object.assign({}, requestVerifyOptions)
           const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
           const verifyResult = localVerifier(token)
+          /* c8 ignore next 2 */
           if (verifyResult && typeof verifyResult.then === 'function') {
             verifyResult.then(result => callback(null, result), error => wrapError(error, callback))
           } else {

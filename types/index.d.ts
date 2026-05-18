@@ -135,16 +135,20 @@ declare namespace fastifyJwt {
     (err: Error, decoded: Decoded): void
   }
 
+  export type KeyOption = string | Buffer
+    | ((context: SecretContext, cb: (e: Error | null, secret: string | Buffer | undefined) => void) => void)
+    | ((context: SecretContext) => Promise<string | Buffer>)
+
   export interface SignOptions extends Omit<SignerOptions, 'expiresIn' | 'notBefore'> {
     expiresIn: number | string;
     notBefore: number | string;
-    key?: string | Buffer
+    key?: KeyOption
   }
 
   export interface VerifyOptions extends Omit<VerifierOptions, 'maxAge'> {
     maxAge: number | string;
     onlyCookie: boolean;
-    key?: string | Buffer
+    key?: KeyOption
   }
 
   export interface FastifyJWTOptions {
