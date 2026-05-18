@@ -90,7 +90,7 @@ test('register', async function (t) {
   await t.test('secret as a function with a callback returning a Buffer', async function (t) {
     const fastify = Fastify()
     await fastify.register(jwt, {
-      secret: (_request, _token, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
+      secret: (_context, callback) => { callback(null, Buffer.from('some secret', 'base64')) }
     }).ready()
   })
 
@@ -260,7 +260,7 @@ test('register', async function (t) {
   }
 
   await t.test('secret as a function with callback', t => {
-    return runWithSecret(t, function (_request, _token, callback) {
+    return runWithSecret(t, function (_context, callback) {
       callback(null, 'some-secret')
     })
   })
@@ -278,7 +278,7 @@ test('register', async function (t) {
   })
 
   await t.test('secret as a function with callback returning a Buffer', t => {
-    return runWithSecret(t, function (_request, _token, callback) {
+    return runWithSecret(t, function (_context, callback) {
       callback(null, Buffer.from('some-secret', 'base64'))
     })
   })
@@ -308,7 +308,7 @@ test('sign and verify with HS-secret', async function (t) {
   t.plan(2)
 
   await t.test('server methods', async function (t) {
-    t.plan(2)
+    t.plan(3)
 
     const fastify = Fastify()
     fastify.register(jwt, { secret: 'test' })
@@ -337,6 +337,22 @@ test('sign and verify with HS-secret', async function (t) {
           t.assert.strictEqual(decoded.foo, 'bar')
           resolve()
         })
+      })
+      return promise
+    })
+
+    await t.test('with callbacks and invalid token', function (t) {
+      t.plan(1)
+
+      const { promise, resolve } = helper.withResolvers()
+
+      const { createSigner: createLocalSigner } = require('fast-jwt')
+      const wrongSigner = createLocalSigner({ key: 'wrong-secret' })
+      const invalidToken = wrongSigner({ foo: 'bar' })
+
+      fastify.jwt.verify(invalidToken, function (error) {
+        t.assert.ok(error)
+        resolve()
       })
       return promise
     })
@@ -418,6 +434,643 @@ test('sign and verify with HS-secret', async function (t) {
       const decodedToken = JSON.parse(verifyResponse.payload)
       t.assert.strictEqual(decodedToken.foo, 'bar')
     })
+  })
+})
+
+test('sign and verify with function secret (server methods)', async function (t) {
+  await t.test('with callback secret', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        cb(null, 'test-secret')
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      fastify.jwt.verify(token, function (error, decoded) {
+        t.assert.ifError(error)
+        t.assert.strictEqual(decoded.foo, 'bar')
+        resolve()
+      })
+    })
+    return promise
+  })
+
+  await t.test('with async secret', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () {
+        return 'test-secret'
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      fastify.jwt.verify(token, function (error, decoded) {
+        t.assert.ifError(error)
+        t.assert.strictEqual(decoded.foo, 'bar')
+        resolve()
+      })
+    })
+    return promise
+  })
+
+  await t.test('sign context has operation and payload', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        t.assert.strictEqual(context.operation, 'sign')
+        t.assert.deepStrictEqual(context.payload, { foo: 'bar' })
+        t.assert.strictEqual(context.request, undefined)
+        t.assert.strictEqual(context.header, undefined)
+        t.assert.strictEqual(context.signature, undefined)
+        cb(null, 'test-secret')
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('verify context has operation and full decoded token', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'sign') {
+          return cb(null, 'test-secret')
+        }
+        t.assert.strictEqual(context.operation, 'verify')
+        t.assert.ok(context.header)
+        t.assert.strictEqual(context.payload.foo, 'bar')
+        t.assert.strictEqual(typeof context.payload.iat, 'number')
+        t.assert.ok(context.signature)
+        t.assert.strictEqual(context.request, undefined)
+        cb(null, 'test-secret')
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+
+      fastify.jwt.verify(token, function (error, decoded) {
+        t.assert.ifError(error)
+        t.assert.strictEqual(decoded.foo, 'bar')
+        resolve()
+      })
+    })
+    return promise
+  })
+
+  await t.test('requestVerify context includes request', async function (t) {
+    const fastify = Fastify()
+    let verifyContext = null
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'verify') {
+          verifyContext = context
+        }
+        cb(null, 'test-secret')
+      }
+    })
+
+    fastify.get('/verify', function (request) {
+      return request.jwtVerify()
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+
+      fastify.inject({
+        method: 'get',
+        url: '/verify',
+        headers: { authorization: `Bearer ${token}` }
+      }).then(function (response) {
+        const decoded = JSON.parse(response.payload)
+        t.assert.strictEqual(decoded.foo, 'bar')
+        t.assert.ok(verifyContext)
+        t.assert.strictEqual(verifyContext.operation, 'verify')
+        t.assert.ok(verifyContext.request)
+        t.assert.ok(verifyContext.header)
+        t.assert.strictEqual(verifyContext.payload.foo, 'bar')
+        t.assert.strictEqual(typeof verifyContext.payload.iat, 'number')
+        t.assert.ok(verifyContext.signature)
+        resolve()
+      })
+    })
+    return promise
+  })
+
+  await t.test('replySign context includes request', async function (t) {
+    const fastify = Fastify()
+    let signContext = null
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'sign') {
+          signContext = context
+        }
+        cb(null, 'test-secret')
+      }
+    })
+
+    fastify.post('/sign', async function (request, reply) {
+      const token = await reply.jwtSign(request.body)
+      return { token }
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    const result = JSON.parse(response.payload)
+    t.assert.ok(result.token)
+    t.assert.ok(signContext)
+    t.assert.strictEqual(signContext.operation, 'sign')
+    t.assert.ok(signContext.request)
+    t.assert.deepStrictEqual(signContext.payload, { foo: 'bar' })
+  })
+
+  await t.test('replySign context shape', async function (t) {
+    const fastify = Fastify()
+    let signContext = null
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'sign') {
+          signContext = context
+        }
+        cb(null, 'test-secret')
+      }
+    })
+
+    fastify.post('/sign', async function (request, reply) {
+      const token = await reply.jwtSign(request.body)
+      return { token }
+    })
+
+    await fastify.ready()
+
+    await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    t.assert.ok(signContext)
+    t.assert.strictEqual(signContext.operation, 'sign')
+    t.assert.deepStrictEqual(signContext.payload, { foo: 'bar' })
+    t.assert.ok(signContext.request)
+    t.assert.strictEqual(signContext.request.method, 'POST')
+    t.assert.strictEqual(signContext.header, undefined)
+    t.assert.strictEqual(signContext.signature, undefined)
+  })
+
+  await t.test('requestVerify context shape', async function (t) {
+    const fastify = Fastify()
+    let verifyContext = null
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'verify') {
+          verifyContext = context
+        }
+        cb(null, 'test-secret')
+      }
+    })
+
+    fastify.get('/verify', function (request) {
+      return request.jwtVerify()
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error, token) {
+      t.assert.ifError(error)
+
+      fastify.inject({
+        method: 'get',
+        url: '/verify',
+        headers: { authorization: `Bearer ${token}` }
+      }).then(function (response) {
+        t.assert.strictEqual(response.statusCode, 200)
+        t.assert.ok(verifyContext)
+        t.assert.strictEqual(verifyContext.operation, 'verify')
+        t.assert.strictEqual(verifyContext.payload.foo, 'bar')
+        t.assert.strictEqual(typeof verifyContext.payload.iat, 'number')
+        t.assert.strictEqual(verifyContext.header.alg, 'HS256')
+        t.assert.strictEqual(verifyContext.header.typ, 'JWT')
+        t.assert.strictEqual(typeof verifyContext.signature, 'string')
+        t.assert.ok(verifyContext.request)
+        t.assert.strictEqual(verifyContext.request.method, 'GET')
+        resolve()
+      })
+    })
+    return promise
+  })
+
+  await t.test('replySign with callback and function secret', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        cb(null, 'test-secret')
+      }
+    })
+
+    fastify.post('/sign', function (request, reply) {
+      reply.jwtSign(request.body, function (error, token) {
+        return reply.send(error || { token })
+      })
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    const result = JSON.parse(response.payload)
+    t.assert.ok(result.token)
+
+    const decoded = fastify.jwt.decode(result.token)
+    t.assert.strictEqual(decoded.foo, 'bar')
+  })
+
+  await t.test('sign requires callback when secret is a function', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'test-secret' }
+    })
+
+    await fastify.ready()
+
+    t.assert.throws(function () {
+      fastify.jwt.sign({ foo: 'bar' })
+    }, { message: 'callback is required when secret is a function' })
+  })
+
+  await t.test('verify requires callback when secret is a function', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'test-secret' }
+    })
+
+    await fastify.ready()
+
+    t.assert.throws(function () {
+      fastify.jwt.verify('some-token')
+    }, { message: 'callback is required when secret is a function' })
+  })
+
+  await t.test('sign propagates errors from secret function', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (_context, cb) {
+        cb(new Error('secret fetch failed'))
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, function (error) {
+      t.assert.ok(error)
+      t.assert.strictEqual(error.message, 'secret fetch failed')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('verify propagates errors from secret function', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (context, cb) {
+        if (context.operation === 'sign') {
+          return cb(null, 'test-secret')
+        }
+        cb(new Error('secret fetch failed'))
+      }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    const signer = createLocalSigner({ key: 'test-secret' })
+    const token = signer({ foo: 'bar' })
+
+    fastify.jwt.verify(token, function (error) {
+      t.assert.ok(error)
+      t.assert.strictEqual(error.message, 'secret fetch failed')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('sign with per-call static key override when global secret is a function', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, { key: 'override-secret' }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      const { createVerifier } = require('fast-jwt')
+      const localVerifier = createVerifier({ key: 'override-secret' })
+      const result = localVerifier(token)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('verify with per-call static key override when global secret is a function', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    const signer = createLocalSigner({ key: 'override-secret' })
+    const token = signer({ foo: 'bar' })
+
+    fastify.jwt.verify(token, { key: 'override-secret' }, function (error, result) {
+      t.assert.ifError(error)
+      t.assert.ok(result)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('sign with per-call function key override', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    const keyFn = function (_context, cb) { cb(null, 'function-secret') }
+
+    fastify.jwt.sign({ foo: 'bar' }, { key: keyFn }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      const { createVerifier } = require('fast-jwt')
+      const localVerifier = createVerifier({ key: 'function-secret' })
+      const result = localVerifier(token)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('verify with per-call function key override', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    const signer = createLocalSigner({ key: 'function-secret' })
+    const token = signer({ foo: 'bar' })
+
+    const keyFn = function (_context, cb) { cb(null, 'function-secret') }
+
+    fastify.jwt.verify(token, { key: keyFn }, function (error, result) {
+      t.assert.ifError(error)
+      t.assert.ok(result)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('sign sync with per-call static key when global secret is a function', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    await fastify.ready()
+
+    const token = fastify.jwt.sign({ foo: 'bar' }, { key: 'override-secret' })
+    t.assert.ok(token)
+
+    const { createVerifier } = require('fast-jwt')
+    const localVerifier = createVerifier({ key: 'override-secret' })
+    const result = localVerifier(token)
+    t.assert.strictEqual(result.foo, 'bar')
+  })
+
+  await t.test('verify sync with per-call static key when global secret is a function', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    await fastify.ready()
+
+    const signer = createLocalSigner({ key: 'override-secret' })
+    const token = signer({ foo: 'bar' })
+
+    const result = fastify.jwt.verify(token, { key: 'override-secret' })
+    t.assert.ok(result)
+    t.assert.strictEqual(result.foo, 'bar')
+  })
+
+  await t.test('sign with async function key that also calls callback does not double-invoke', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    await fastify.ready()
+
+    const { promise, resolve } = helper.withResolvers()
+
+    // An async function that also calls the callback — only one should win
+    const keyFn = async function (_context, cb) {
+      cb(null, 'function-secret')
+      return 'function-secret'
+    }
+
+    fastify.jwt.sign({ foo: 'bar' }, { key: keyFn }, function (error, token) {
+      t.assert.ifError(error)
+      t.assert.ok(token)
+
+      const { createVerifier } = require('fast-jwt')
+      const localVerifier = createVerifier({ key: 'function-secret' })
+      const result = localVerifier(token)
+      t.assert.strictEqual(result.foo, 'bar')
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('replySign with per-call static key override', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    fastify.post('/sign', async function (request, reply) {
+      const token = await reply.jwtSign(request.body, { sign: { key: 'override-secret' } })
+      return { token }
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    const result = JSON.parse(response.payload)
+    t.assert.ok(result.token)
+
+    const { createVerifier } = require('fast-jwt')
+    const localVerifier = createVerifier({ key: 'override-secret' })
+    const decoded = localVerifier(result.token)
+    t.assert.strictEqual(decoded.foo, 'bar')
+  })
+
+  await t.test('replySign with per-call function key override', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    fastify.post('/sign', async function (request, reply) {
+      const keyFn = function (_context, cb) { cb(null, 'function-secret') }
+      const token = await reply.jwtSign(request.body, { sign: { key: keyFn } })
+      return { token }
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    const result = JSON.parse(response.payload)
+    t.assert.ok(result.token)
+
+    const { createVerifier } = require('fast-jwt')
+    const localVerifier = createVerifier({ key: 'function-secret' })
+    const decoded = localVerifier(result.token)
+    t.assert.strictEqual(decoded.foo, 'bar')
+  })
+
+  await t.test('requestVerify with per-call static key override', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: async function () { return 'global-secret' }
+    })
+
+    fastify.get('/verify', async function (request) {
+      return request.jwtVerify({ verify: { key: 'override-secret' } })
+    })
+
+    await fastify.ready()
+
+    const signer = createLocalSigner({ key: 'override-secret' })
+    const token = signer({ foo: 'bar' })
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: { authorization: `Bearer ${token}` }
+    })
+
+    t.assert.strictEqual(response.statusCode, 200)
+    const result = JSON.parse(response.payload)
+    t.assert.strictEqual(result.foo, 'bar')
+  })
+
+  await t.test('requestVerify with per-call function key override', async function (t) {
+    const { createSigner: createLocalSigner } = require('fast-jwt')
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: 'global-secret'
+    })
+
+    fastify.get('/verify', async function (request) {
+      const keyFn = function (_context, cb) { cb(null, 'function-secret') }
+      return request.jwtVerify({ verify: { key: keyFn } })
+    })
+
+    await fastify.ready()
+
+    const signer = createLocalSigner({ key: 'function-secret' })
+    const token = signer({ foo: 'bar' })
+
+    const response = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: { authorization: `Bearer ${token}` }
+    })
+
+    t.assert.strictEqual(response.statusCode, 200)
+    const result = JSON.parse(response.payload)
+    t.assert.strictEqual(result.foo, 'bar')
   })
 })
 
@@ -1279,6 +1932,67 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
   })
 })
 
+test('instance sign and verify honor custom options', async function (t) {
+  t.plan(4)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test' })
+
+  await fastify.ready()
+
+  await t.test('sign with expiresIn option (sync)', function (t) {
+    t.plan(2)
+
+    const token = fastify.jwt.sign({ foo: 'bar' }, { expiresIn: '1d' })
+    const decoded = fastify.jwt.verify(token)
+
+    t.assert.strictEqual(decoded.foo, 'bar')
+    t.assert.strictEqual(decoded.exp - decoded.iat, 24 * 60 * 60)
+  })
+
+  await t.test('sign with expiresIn option (callback)', function (t) {
+    t.plan(3)
+
+    const { promise, resolve } = helper.withResolvers()
+
+    fastify.jwt.sign({ foo: 'bar' }, { expiresIn: '2h' }, function (error, token) {
+      t.assert.ifError(error)
+
+      const decoded = fastify.jwt.verify(token)
+      t.assert.strictEqual(decoded.foo, 'bar')
+      t.assert.strictEqual(decoded.exp - decoded.iat, 2 * 60 * 60)
+      resolve()
+    })
+    return promise
+  })
+
+  await t.test('sign with notBefore option (sync)', function (t) {
+    t.plan(2)
+
+    const token = fastify.jwt.sign({ foo: 'bar' }, { notBefore: '1h' })
+    const decoded = fastify.jwt.decode(token)
+
+    t.assert.strictEqual(decoded.foo, 'bar')
+    t.assert.strictEqual(decoded.nbf - decoded.iat, 60 * 60)
+  })
+
+  await t.test('verify with maxAge option (callback)', function (t) {
+    t.plan(1)
+
+    const { promise, resolve } = helper.withResolvers()
+
+    // Sign a token with iat in the past (beyond maxAge)
+    const pastIat = Math.floor(Date.now() / 1000) - 120
+    const token = fastify.jwt.sign({ foo: 'bar', iat: pastIat })
+
+    fastify.jwt.verify(token, { maxAge: 60 }, function (error) {
+      t.assert.ok(error)
+      resolve()
+    })
+    return promise
+  })
+})
+
 test('sign and verify with trusted token', async function (t) {
   t.plan(2)
   await t.test('Trusted token verification', async function (t) {
@@ -1343,7 +2057,7 @@ test('sign and verify with trusted token', async function (t) {
 })
 
 test('decode', async function (t) {
-  t.plan(2)
+  t.plan(4)
 
   await t.test('without global options', async function (t) {
     t.plan(2)
@@ -1416,6 +2130,33 @@ test('decode', async function (t) {
       t.assert.strictEqual(decoded.signature, undefined)
       t.assert.strictEqual(decoded.foo, 'bar')
     })
+  })
+
+  await t.test('malformed token error', async function (t) {
+    t.plan(1)
+
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test' })
+
+    await fastify.ready()
+
+    t.assert.throws(function () {
+      fastify.jwt.decode('not-a-jwt-token')
+    }, { code: 'FST_JWT_AUTHORIZATION_TOKEN_INVALID' })
+  })
+
+  await t.test('invalid type token error', async function (t) {
+    t.plan(1)
+
+    const fastify = Fastify()
+    fastify.register(jwt, { secret: 'test', decode: { checkTyp: 'JWT' } })
+
+    await fastify.ready()
+
+    // Token with typ: "JWR" instead of "JWT"
+    t.assert.throws(function () {
+      fastify.jwt.decode('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUiJ9.e30.ha5mKb-6aDOVHh5lRaUBNdDmMAYLOl1no3LQkV2mAMQ')
+    }, { code: 'FST_JWT_AUTHORIZATION_TOKEN_INVALID' })
   })
 })
 
@@ -2858,7 +3599,7 @@ test('supporting time definitions for "maxAge", "expiresIn" and "notBefore"', as
 
     const token = JSON.parse(signResponse.payload).token
     t.assert.ok(token)
-    fastify.jwt.verify(token, { secret: 'test' }, (err, result) => {
+    fastify.jwt.verify(token, (err, result) => {
       t.assert.ifError(err)
       t.assert.ok(result)
       t.assert.ok(result.exp)

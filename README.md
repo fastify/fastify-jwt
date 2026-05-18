@@ -117,7 +117,16 @@ In this object `{ private, public }` the `private` key is a string, buffer, or o
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
-Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `token`, and `callback` parameters.
+Function based `secret` is supported by all methods (`request.jwtVerify()`, `reply.jwtSign()`, `fastify.jwt.sign()`, and `fastify.jwt.verify()`) and is called with a `context` object and a `callback`.
+
+The `context` object has the following shape:
+- `operation`: `'sign'` or `'verify'`
+- `payload`: the JWT payload
+- `header`: the JWT header (only for `'verify'`)
+- `signature`: the JWT signature (only for `'verify'`)
+- `request`: the Fastify request object (only available in `request.jwtVerify()` and `reply.jwtSign()`)
+
+When using a function-based secret with `fastify.jwt.sign()` or `fastify.jwt.verify()`, a callback argument is required.
 
 #### Verify-only mode
 
@@ -140,20 +149,21 @@ const jwt = require('@fastify/jwt')
 fastify.register(jwt, { secret: 'supersecret' })
 // secret as a function with callback
 fastify.register(jwt, {
-  secret: function (request, token, callback) {
-    // do something
+  secret: function (context, callback) {
+    // context.operation is 'sign' or 'verify'
+    // context.payload, context.header, context.signature, context.request
     callback(null, 'supersecret')
   }
 })
 // secret as a function returning a promise
 fastify.register(jwt, {
-  secret: function (request, token) {
+  secret: function (context) {
     return Promise.resolve('supersecret')
   }
 })
 // secret as an async function
 fastify.register(jwt, {
-  secret: async function (request, token) {
+  secret: async function (context) {
     return 'supersecret'
   }
 })
@@ -780,8 +790,8 @@ const jwt = require('@fastify/jwt')
 const request = require('request')
 
 fastify.register(jwt, {
-  secret: function (request, reply, callback) {
-    // do something
+  secret: function (context, callback) {
+    // context.operation is 'sign' or 'verify'
     callback(null, 'supersecret')
   }
 })

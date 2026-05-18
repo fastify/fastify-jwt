@@ -108,11 +108,25 @@ declare namespace fastifyJwt {
     ? T
     : SignPayloadType
 
-  export type TokenOrHeader = JwtHeader | { header: JwtHeader; payload: any }
+  export interface SecretContextVerify {
+    operation: 'verify'
+    header: JwtHeader
+    payload: any
+    signature: string
+    request?: FastifyRequest
+  }
+
+  export interface SecretContextSign {
+    operation: 'sign'
+    payload: any
+    request?: FastifyRequest
+  }
+
+  export type SecretContext = SecretContextVerify | SecretContextSign
 
   export type Secret = string | Buffer | KeyFetcher | { key: Secret; passphrase: string }
-    | ((request: FastifyRequest, tokenOrHeader: TokenOrHeader, cb: (e: Error | null, secret: string | Buffer | undefined) => void) => void)
-    | ((request: FastifyRequest, tokenOrHeader: TokenOrHeader) => Promise<string | Buffer>)
+    | ((context: SecretContext, cb: (e: Error | null, secret: string | Buffer | undefined) => void) => void)
+    | ((context: SecretContext) => Promise<string | Buffer>)
 
   export type VerifyPayloadType = object | string
   export type DecodePayloadType = object | string
@@ -121,16 +135,20 @@ declare namespace fastifyJwt {
     (err: Error, decoded: Decoded): void
   }
 
+  export type KeyOption = string | Buffer
+    | ((context: SecretContext, cb: (e: Error | null, secret: string | Buffer | undefined) => void) => void)
+    | ((context: SecretContext) => Promise<string | Buffer>)
+
   export interface SignOptions extends Omit<SignerOptions, 'expiresIn' | 'notBefore'> {
     expiresIn: number | string;
     notBefore: number | string;
-    key?: string | Buffer
+    key?: KeyOption
   }
 
   export interface VerifyOptions extends Omit<VerifierOptions, 'maxAge'> {
     maxAge: number | string;
     onlyCookie: boolean;
-    key?: string | Buffer
+    key?: KeyOption
   }
 
   export interface FastifyJWTOptions {
