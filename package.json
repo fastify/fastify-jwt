@@ -63,7 +63,7 @@
     "@fastify/error": "^4.2.0",
     "@lukeed/ms": "^2.0.2",
     "fast-jwt": "^6.2.4",
-    "fastify-plugin": "^5.0.1",
+    "fastify-plugin": "^6.0.0",
     "steed": "^1.1.3"
   },
   "devDependencies": {
