@@ -2,7 +2,7 @@
 
 ## RSA Signatures - Certificates (without passphrase)
 
-Certificates `private.key` and `public.key` are generated with http://travistidwell.com/jsencrypt/demo/ or with the following command
+Certificates `private.key` and `public.key` are generated with https://travistidwell.com/jsencrypt/demo/ or with the following command
 
 ```sh
 openssl genrsa -out private.key 2048
