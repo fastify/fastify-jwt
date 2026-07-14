@@ -14,7 +14,7 @@ import {
 
 declare module 'fastify' {
   interface FastifyInstance {
-    jwt: fastifyJwt.JWT
+    jwt: fastifyJwt.JwtDecorator
   }
 
   interface FastifyReply {
@@ -92,11 +92,37 @@ declare namespace fastifyJwt {
    *   }
    * }
    * ```
+   * @example
+   * ```
+   * // With the `namespace` registration option, `fastify.jwt` is a
+   * // namespace -> JWT map at runtime. Declare the registered
+   * // namespaces to type it accordingly.
+   * declare module '@fastify/jwt' {
+   *   interface FastifyJWT {
+   *     namespaces: 'auth' | 'admin'
+   *   }
+   * }
+   * ```
    */
   export interface FastifyJWT {
     // payload: ...
     // user: ...
+    // namespaces: ...
   }
+
+  /**
+   * Type of the `fastify.jwt` decorator.
+   *
+   * Defaults to {@link JWT}. When namespaces are declared via the
+   * {@link FastifyJWT} declaration-merging interface, it becomes a
+   * namespace -> {@link JWT} map, matching the runtime shape produced
+   * by registering the plugin with the `namespace` option.
+   */
+  export type JwtDecorator = FastifyJWT extends { namespaces: infer Namespaces }
+    ? [Namespaces] extends [string]
+        ? Record<Namespaces, JWT>
+        : JWT
+    : JWT
 
   export type SignPayloadType = FastifyJWT extends { payload: infer T }
     ? T extends string | object | Buffer
