@@ -214,7 +214,7 @@ expect<JwtSignFunction>().type.not.toBe<JWT['sign']>()
 expect<JwtVerifyFunction>().type.not.toBe<JWT['verify']>()
 expect<JwtDecodeFunction>().type.not.toBe<JWT['decode']>()
 
-// Issue #348: namespaced sign/verify/decode decorators on the request and
+// Issue #348 (https://github.com/fastify/fastify-jwt/issues/348): namespaced sign/verify/decode decorators on the request and
 // reply objects should be callable just like the default `jwtSign`,
 // `jwtVerify` and `jwtDecode` decorators.
 declare module 'fastify' {
