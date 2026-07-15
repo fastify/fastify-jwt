@@ -439,6 +439,11 @@ When you omit the `jwtVerify`, `jwtDecode`, or `jwtSign` options, the default
 function name will be `<namespace>JwtVerify`, `<namespace>JwtDecode` and
 `<namespace>JwtSign` correspondingly.
 
+When `namespace` is used, `fastify.jwt` stores one JWT utility object per
+namespace. For example, `namespace: 'security'` exposes
+`fastify.jwt.security.sign()`, `fastify.jwt.security.verify()`, and
+`fastify.jwt.security.decode()`.
+
 #### Example with namespace
 
 ```js
