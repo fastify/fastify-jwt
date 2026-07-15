@@ -1905,6 +1905,40 @@ test('token in a signed cookie, with @fastify/cookie parsing', async function (t
   t.assert.strictEqual(decodedToken.foo, 'bar')
 })
 
+test('invalid signed cookie should return 401, not 500', async function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, {
+    secret: 'test',
+    cookie: { cookieName: 'jwt', signed: true }
+  })
+  fastify.register(require('@fastify/cookie'), {
+    secret: 'cookieSecret'
+  })
+
+  fastify.get('/verify', function (request, reply) {
+    return request.jwtVerify()
+      .then(function (decodedToken) {
+        return reply.send(decodedToken)
+      })
+      .catch(function (err) {
+        reply.send(err)
+      })
+  })
+
+  const response = await fastify.inject({
+    method: 'get',
+    url: '/verify',
+    cookies: {
+      jwt: 'invalid-signature' // not a valid signed cookie
+    }
+  })
+
+  t.assert.strictEqual(response.statusCode, 401)
+  t.assert.strictEqual(response.json().message, 'No Authorization was found in request.cookies')
+})
+
 test('token in cookie only, when onlyCookie is passed to verifyJWT()', async function (t) {
   t.plan(4)
 

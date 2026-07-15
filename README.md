@@ -113,7 +113,7 @@ If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fasti
 ### `secret` (required)
 You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
 
-In this object `{ private, public }` the `private` key is a string, buffer, or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html#crypto_sign_sign_private_key_output_format)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
+In this object `{ private, public }` the `private` key is a string, buffer, or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
@@ -438,6 +438,11 @@ To define multiple JWT validators on the same routes, you may use the
 When you omit the `jwtVerify`, `jwtDecode`, or `jwtSign` options, the default
 function name will be `<namespace>JwtVerify`, `<namespace>JwtDecode` and
 `<namespace>JwtSign` correspondingly.
+
+When `namespace` is used, `fastify.jwt` stores one JWT utility object per
+namespace. For example, `namespace: 'security'` exposes
+`fastify.jwt.security.sign()`, `fastify.jwt.security.verify()`, and
+`fastify.jwt.security.decode()`.
 
 #### Example with namespace
 
@@ -911,8 +916,8 @@ fastify.get('/', async (request, reply) => {
 
 ## Acknowledgments
 
-This project is kindly sponsored by:
-- [LetzDoIt](https://www.letzdoitapp.com/)
+Past sponsors:
+- LetzDoIt
 
 ## License
 
