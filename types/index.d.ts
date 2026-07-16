@@ -18,25 +18,12 @@ declare module 'fastify' {
   }
 
   interface FastifyReply {
-    jwtSign(payload: fastifyJwt.SignPayloadType, options?: fastifyJwt.FastifyJwtSignOptions): Promise<string>
-    jwtSign(payload: fastifyJwt.SignPayloadType, callback: SignerCallback): void
-    jwtSign(payload: fastifyJwt.SignPayloadType, options: fastifyJwt.FastifyJwtSignOptions, callback: SignerCallback): void
-    jwtSign(payload: fastifyJwt.SignPayloadType, options?: Partial<fastifyJwt.SignOptions>): Promise<string>
-    jwtSign(payload: fastifyJwt.SignPayloadType, options: Partial<fastifyJwt.SignOptions>, callback: SignerCallback): void
+    jwtSign: fastifyJwt.JwtSignFunction
   }
 
   interface FastifyRequest {
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: fastifyJwt.FastifyJwtVerifyOptions): Promise<Decoded>
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(callback: VerifierCallback): void
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: fastifyJwt.FastifyJwtVerifyOptions, callback: VerifierCallback): void
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options?: Partial<fastifyJwt.VerifyOptions>): Promise<Decoded>
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    jwtVerify<Decoded extends fastifyJwt.VerifyPayloadType>(options: Partial<fastifyJwt.VerifyOptions>, callback: VerifierCallback): void
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options?: fastifyJwt.FastifyJwtDecodeOptions): Promise<Decoded>
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(callback: fastifyJwt.DecodeCallback<Decoded>): void
-    jwtDecode<Decoded extends fastifyJwt.DecodePayloadType>(options: fastifyJwt.FastifyJwtDecodeOptions, callback: fastifyJwt.DecodeCallback<Decoded>): void
+    jwtVerify: fastifyJwt.JwtVerifyFunction
+    jwtDecode: fastifyJwt.JwtDecodeFunction
     user: fastifyJwt.UserType
   }
 }
@@ -44,6 +31,31 @@ declare module 'fastify' {
 type FastifyJwt = FastifyPluginCallback<fastifyJwt.FastifyJWTOptions>
 
 declare namespace fastifyJwt {
+
+  export interface JwtSignFunction {
+    (payload: SignPayloadType, options?: FastifyJwtSignOptions): Promise<string>
+    (payload: SignPayloadType, callback: SignerCallback): void
+    (payload: SignPayloadType, options: FastifyJwtSignOptions, callback: SignerCallback): void
+    (payload: SignPayloadType, options?: Partial<SignOptions>): Promise<string>
+    (payload: SignPayloadType, options: Partial<SignOptions>, callback: SignerCallback): void
+  }
+
+  export interface JwtVerifyFunction {
+    <Decoded extends VerifyPayloadType>(options?: FastifyJwtVerifyOptions): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    <Decoded extends VerifyPayloadType>(callback: VerifierCallback): void
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    <Decoded extends VerifyPayloadType>(options: FastifyJwtVerifyOptions, callback: VerifierCallback): void
+    <Decoded extends VerifyPayloadType>(options?: Partial<VerifyOptions>): Promise<Decoded>
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    <Decoded extends VerifyPayloadType>(options: Partial<VerifyOptions>, callback: VerifierCallback): void
+  }
+
+  export interface JwtDecodeFunction {
+    <Decoded extends DecodePayloadType>(options?: FastifyJwtDecodeOptions): Promise<Decoded>
+    <Decoded extends DecodePayloadType>(callback: DecodeCallback<Decoded>): void
+    <Decoded extends DecodePayloadType>(options: FastifyJwtDecodeOptions, callback: DecodeCallback<Decoded>): void
+  }
 
   export type FastifyJwtNamespace<C extends {
     namespace?: string;
@@ -56,21 +68,21 @@ declare namespace fastifyJwt {
     : C extends { namespace: string }
       ? `${C['namespace']}JwtDecode`
       : never,
-  JWT['decode']>
+  JwtDecodeFunction>
   &
   Record<C extends { jwtSign: string }
     ? C['jwtSign']
     : C extends { namespace: string }
       ? `${C['namespace']}JwtSign`
       : never,
-  JWT['sign']>
+  JwtSignFunction>
   &
   Record<C extends { jwtVerify: string }
     ? C['jwtVerify']
     : C extends { namespace: string }
       ? `${C['namespace']}JwtVerify`
       : never,
-  JWT['verify']>
+  JwtVerifyFunction>
 
   /**
    * for declaration merging

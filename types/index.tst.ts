@@ -1,5 +1,14 @@
 import fastify from 'fastify'
-import fastifyJwt, { FastifyJWTOptions, FastifyJwtNamespace, JWT, SignOptions, VerifyOptions } from '..'
+import fastifyJwt, {
+  FastifyJWTOptions,
+  FastifyJwtNamespace,
+  JwtDecodeFunction,
+  JwtSignFunction,
+  JwtVerifyFunction,
+  JWT,
+  SignOptions,
+  VerifyOptions
+} from '..'
 import { expect } from 'tstyche'
 import fastifyRateLimit from '@fastify/rate-limit'
 
@@ -148,9 +157,9 @@ app.post('/signup', {
 //   }
 // }
 
-expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtDecode']>().type.toBe<JWT['decode']>()
-expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtSign']>().type.toBe<JWT['sign']>()
-expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtVerify']>().type.toBe<JWT['verify']>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtDecode']>().type.toBe<JwtDecodeFunction>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtSign']>().type.toBe<JwtSignFunction>()
+expect<FastifyJwtNamespace<{ namespace: 'security' }>['securityJwtVerify']>().type.toBe<JwtVerifyFunction>()
 
 declare module 'fastify' {
   interface FastifyInstance extends FastifyJwtNamespace<{ namespace: 'tsdTest' }> {
@@ -159,43 +168,85 @@ declare module 'fastify' {
 
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['decode']
->().type.toBe<JWT['decode']>()
+>().type.toBe<JwtDecodeFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['securityJwtSign']
->().type.toBe<JWT['sign']>()
+>().type.toBe<JwtSignFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtDecode: 'decode' }>['securityJwtVerify']
->().type.toBe<JWT['verify']>()
+>().type.toBe<JwtVerifyFunction>()
 
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>['securityJwtDecode']
->().type.toBe<JWT['decode']>()
+>().type.toBe<JwtDecodeFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'sign' }>['sign']
->().type.toBe<JWT['sign']>()
+>().type.toBe<JwtSignFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtSign: 'decode' }>['securityJwtVerify']
->().type.toBe<JWT['verify']>()
+>().type.toBe<JwtVerifyFunction>()
 
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['securityJwtDecode']
->().type.toBe<JWT['decode']>()
+>().type.toBe<JwtDecodeFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['securityJwtSign']
->().type.toBe<JWT['sign']>()
+>().type.toBe<JwtSignFunction>()
 expect<
   FastifyJwtNamespace<{ namespace: 'security', jwtVerify: 'verify' }>['verify']
->().type.toBe<JWT['verify']>()
+>().type.toBe<JwtVerifyFunction>()
 
 expect<
   FastifyJwtNamespace<{ jwtDecode: 'decode' }>['decode']
->().type.toBe<JWT['decode']>()
+>().type.toBe<JwtDecodeFunction>()
 expect<
   FastifyJwtNamespace<{ jwtSign: 'sign' }>['sign']
->().type.toBe<JWT['sign']>()
+>().type.toBe<JwtSignFunction>()
 expect<
   FastifyJwtNamespace<{ jwtVerify: 'verify' }>['verify']
->().type.toBe<JWT['verify']>()
+>().type.toBe<JwtVerifyFunction>()
+
+// Verify that JWT instance methods are still distinct from request/reply
+// decorator methods — the JWT instance methods take a token argument and
+// are synchronous, while the request/reply decorators infer the token from
+// the request and are asynchronous.
+expect<JwtSignFunction>().type.not.toBe<JWT['sign']>()
+expect<JwtVerifyFunction>().type.not.toBe<JWT['verify']>()
+expect<JwtDecodeFunction>().type.not.toBe<JWT['decode']>()
+
+// Issue #348 (https://github.com/fastify/fastify-jwt/issues/348): namespaced sign/verify/decode decorators on the request and
+// reply objects should be callable just like the default `jwtSign`,
+// `jwtVerify` and `jwtDecode` decorators.
+declare module 'fastify' {
+  interface FastifyInstance extends FastifyJwtNamespace<{
+    namespace: 'accessToken',
+    jwtDecode: 'accessTokenDecode',
+    jwtSign: 'accessTokenSign',
+    jwtVerify: 'accessTokenVerify'
+  }> {}
+
+  interface FastifyReply {
+    accessTokenSign: JwtSignFunction
+  }
+
+  interface FastifyRequest {
+    accessTokenVerify: JwtVerifyFunction
+    accessTokenDecode: JwtDecodeFunction
+  }
+}
+
+app.addHook('preHandler', async (request, reply) => {
+  // Namespaced sign on reply should accept the same overloads as jwtSign.
+  expect(await reply.accessTokenSign({ user: 'userName' })).type.toBe<string>()
+  expect(await reply.accessTokenSign({ user: 'userName' }, { expiresIn: '1h' })).type.toBe<string>()
+
+  // Namespaced verify/decode on request should resolve to the decoded payload
+  // without requiring a token argument.
+  expect(await request.accessTokenVerify()).type.toBe<object | string>()
+  expect(await request.accessTokenVerify<{ user: string }>()).type.toBe<{ user: string }>()
+  expect(await request.accessTokenDecode()).type.toBe<object | string>()
+  expect(await request.accessTokenDecode<{ user: string }>()).type.toBe<{ user: string }>()
+})
 
 let signOptions: SignOptions = {
   key: 'supersecret',
