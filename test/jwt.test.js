@@ -3036,3 +3036,28 @@ test('local sign options should not overwrite global sign options', async functi
 
   t.assert.strictEqual(fastify.jwt.options.sign.expiresIn, '15m')
 })
+
+test('request.jwtVerify should honor a per-request verify.key override', async function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'hunter2' })
+
+  fastify.get('/verify', async function (request) {
+    return request.jwtVerify({ verify: { key: 'override' } })
+  })
+
+  await fastify.ready()
+
+  // Token signed with the override key, not the registration secret.
+  const token = createSigner({ key: 'override' })({ foo: 'bar' })
+
+  const response = await fastify.inject({
+    method: 'get',
+    url: '/verify',
+    headers: { authorization: `Bearer ${token}` }
+  })
+
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.strictEqual(JSON.parse(response.payload).foo, 'bar')
+})
