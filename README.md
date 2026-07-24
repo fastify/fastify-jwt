@@ -531,6 +531,18 @@ declare module 'fastify' {
 }
 ```
 
+When registering the plugin with `namespace`, `fastify.jwt` is a namespace → `JWT` map at runtime instead of a single `JWT` instance. Declare the registered namespaces in the `FastifyJWT` interface to type it accordingly:
+
+```typescript
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    namespaces: 'security' | 'airDrop'
+  }
+}
+
+// fastify.jwt.security.sign(...) and fastify.jwt.airDrop.sign(...) are now typed
+```
+
 ### `messages`
 For your convenience, you can override the default HTTP response messages sent when an unauthorized or bad request error occurs. You can choose the specific messages to override and the rest will fallback to the default messages. The object must be in the format specified in the example below.
 
