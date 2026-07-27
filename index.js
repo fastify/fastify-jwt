@@ -291,7 +291,7 @@ function fastifyJwt (fastify, options, next) {
 
   function mergeOptionsWithKey (options, useProvidedPrivateKey) {
     if (useProvidedPrivateKey && (typeof useProvidedPrivateKey !== 'boolean')) {
-      return Object.assign({}, options, { key: options.key ?? useProvidedPrivateKey })
+      return Object.assign({ key: useProvidedPrivateKey }, options)
     } else {
       const key = useProvidedPrivateKey ? secretOrPrivateKey : secretOrPublicKey
       return Object.assign(!options.key ? { key } : {}, options)
@@ -383,10 +383,6 @@ function fastifyJwt (fastify, options, next) {
       })
     }
 
-    // Capture any per-request `key` before merging, so it can take precedence
-    // over the resolved secret (as documented for the `sign.key` option).
-    const requestSignKey = options.sign ? options.sign.key : options.key
-
     if (options.sign) {
       const localSignOptions = convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
@@ -414,10 +410,7 @@ function fastifyJwt (fastify, options, next) {
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
           const localSignOptions = options.sign || options
-          // A per-request `key` overrides the resolved secret; otherwise the resolved secret is used.
-          const signerOptions = requestSignKey
-            ? localSignOptions
-            : mergeOptionsWithKey(localSignOptions, secretOrPrivateKey)
+          const signerOptions = mergeOptionsWithKey(localSignOptions, secretOrPrivateKey)
           const localSigner = createSigner(signerOptions)
           const token = localSigner(payload)
           callback(null, token)
@@ -485,10 +478,6 @@ function fastifyJwt (fastify, options, next) {
       options = {}
     }
 
-    // Capture any per-request `key` before merging, so it can take precedence
-    // over the resolved secret (as documented for the `verify.key` option).
-    const requestVerifyKey = options.verify ? options.verify.key : options.key
-
     if (options.decode || options.verify) {
       const localVerifyOptions = convertTemporalProps(options.verify, true)
       // New supported contract, options supports both decode and verify
@@ -521,10 +510,7 @@ function fastifyJwt (fastify, options, next) {
       function verify (secretOrPublicKey, callback) {
         try {
           const localVerifyOptions = options.verify || options
-          // A per-request `key` overrides the resolved secret; otherwise the resolved secret is used.
-          const verifierOptions = requestVerifyKey
-            ? localVerifyOptions
-            : mergeOptionsWithKey(localVerifyOptions, secretOrPublicKey)
+          const verifierOptions = mergeOptionsWithKey(localVerifyOptions, secretOrPublicKey)
           const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
           const verifyResult = localVerifier(token)
           if (verifyResult && typeof verifyResult.then === 'function') {
