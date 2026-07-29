@@ -2,7 +2,7 @@
 
 const { test } = require('node:test')
 const Fastify = require('fastify')
-const { createSigner } = require('fast-jwt')
+const { createSigner, createVerifier } = require('fast-jwt')
 const jwt = require('..')
 const defaultExport = require('..').default
 const { fastifyJwt: namedExport } = require('..')
@@ -3132,6 +3132,30 @@ test('local sign options should not overwrite global sign options', async functi
   t.assert.ok(calculatedDifference >= tokensDifference && calculatedDifference <= tokensDifference + 5)
 
   t.assert.strictEqual(fastify.jwt.options.sign.expiresIn, '15m')
+})
+
+test('reply.jwtSign should honor a per-request sign.key override', async function (t) {
+  t.plan(2)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'hunter2' })
+
+  fastify.post('/sign', async function (request, reply) {
+    return reply.jwtSign(request.body, { sign: { key: 'override' } })
+  })
+
+  await fastify.ready()
+
+  const response = await fastify.inject({
+    method: 'post',
+    url: '/sign',
+    payload: { foo: 'bar' }
+  })
+
+  t.assert.strictEqual(response.statusCode, 200)
+
+  const decoded = createVerifier({ key: 'override' })(response.payload)
+  t.assert.strictEqual(decoded.foo, 'bar')
 })
 
 test('request.jwtVerify should honor a per-request verify.key override', async function (t) {
