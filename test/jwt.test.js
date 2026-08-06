@@ -1857,7 +1857,7 @@ test('errors', async function (t) {
     })
 
     const error = JSON.parse(verifyResponse.payload)
-    t.assert.strictEqual(error.message, 'The clockTimestamp option must be a positive number.')
+    t.assert.strictEqual(error.code, 'FAST_JWT_INVALID_OPTION')
     t.assert.strictEqual(verifyResponse.statusCode, 500)
   })
 
