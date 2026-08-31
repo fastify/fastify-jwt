@@ -302,10 +302,6 @@ function fastifyJwt (fastify, options, next) {
     }
   }
 
-  function hasKeyOption (options) {
-    return !!options && Object.prototype.hasOwnProperty.call(options, 'key')
-  }
-
   function checkAndMergeOptions (options, defaultOptions, usePrivateKey, callback) {
     if (typeof options === 'function') {
       return { options: mergeOptionsWithKey(defaultOptions, usePrivateKey), callback: options }
@@ -381,7 +377,6 @@ function fastifyJwt (fastify, options, next) {
       useLocalSigner = false
     }
 
-    let preferLocalKey = false
     const reply = this
 
     if (next === undefined) {
@@ -394,14 +389,12 @@ function fastifyJwt (fastify, options, next) {
 
     if (options.sign) {
       const localSignOptions = convertTemporalProps(options.sign)
-      preferLocalKey = hasKeyOption(localSignOptions)
       // New supported contract, options supports sign and can expand
       options = {
         sign: Object.assign({}, signOptions, localSignOptions)
       }
     } else {
       const localOptions = convertTemporalProps(options)
-      preferLocalKey = hasKeyOption(localOptions)
       // Original contract, options supports only sign
       options = Object.assign({}, signOptions, localOptions)
     }
@@ -421,7 +414,7 @@ function fastifyJwt (fastify, options, next) {
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
           const localSignOptions = options.sign || options
-          const signerOptions = mergeOptionsWithKey(localSignOptions, secretOrPrivateKey, hasStaticPrivateKey && preferLocalKey)
+          const signerOptions = mergeOptionsWithKey(localSignOptions, secretOrPrivateKey, hasStaticPrivateKey)
           const localSigner = createSigner(signerOptions)
           const token = localSigner(payload)
           callback(null, token)
@@ -479,8 +472,6 @@ function fastifyJwt (fastify, options, next) {
     }
 
     const useGlobalOptions = !options
-    let preferLocalKey = false
-
     if (typeof options === 'function') {
       next = options
       options = {}
@@ -492,7 +483,6 @@ function fastifyJwt (fastify, options, next) {
 
     if (options.decode || options.verify) {
       const localVerifyOptions = convertTemporalProps(options.verify, true)
-      preferLocalKey = hasKeyOption(localVerifyOptions)
       // New supported contract, options supports both decode and verify
       options = {
         decode: Object.assign({}, decodeOptions, options.decode),
@@ -500,7 +490,6 @@ function fastifyJwt (fastify, options, next) {
       }
     } else {
       const localOptions = convertTemporalProps(options, true)
-      preferLocalKey = hasKeyOption(localOptions)
       // Original contract, options supports only verify
       options = Object.assign({}, verifyOptions, localOptions)
     }
@@ -524,7 +513,7 @@ function fastifyJwt (fastify, options, next) {
       function verify (secretOrPublicKey, callback) {
         try {
           const localVerifyOptions = options.verify || options
-          const verifierOptions = mergeOptionsWithKey(localVerifyOptions, secretOrPublicKey, hasStaticPublicKey && preferLocalKey)
+          const verifierOptions = mergeOptionsWithKey(localVerifyOptions, secretOrPublicKey, hasStaticPublicKey)
           const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
           const verifyResult = localVerifier(token)
           if (verifyResult && typeof verifyResult.then === 'function') {
