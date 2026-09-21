@@ -6,7 +6,7 @@ const jwt = require('..')
 const { AssertionError } = require('node:assert')
 
 test('Options validation', async function (t) {
-  t.plan(3)
+  t.plan(4)
 
   await t.test('Options are required', async function (t) {
     t.plan(1)
@@ -143,5 +143,17 @@ test('Options validation', async function (t) {
         }).ready(), new Error('ECDSA Signatures set as Algorithm in the options require a private and public key to be set as the secret'))
       })
     })
+  })
+
+  await t.test('Verify options', async function (t) {
+    t.plan(3)
+
+    const fastify = Fastify()
+    await fastify.register(jwt, { secret: 'test' })
+    const token = fastify.jwt.sign({ foo: 'bar' })
+
+    t.assert.strictEqual(fastify.jwt.verify(token, { cacheTTL: Infinity }).foo, 'bar')
+    t.assert.throws(() => fastify.jwt.verify(token, { cacheTTL: NaN }), { code: 'FAST_JWT_INVALID_OPTION' })
+    t.assert.throws(() => fastify.jwt.verify(token, { clockTolerance: Infinity }), { code: 'FAST_JWT_INVALID_OPTION' })
   })
 })
