@@ -28,30 +28,41 @@ function wrapStaticSecretInCallback (secret) {
   }
 }
 
-function convertToMs (time) {
+function convertToMs (time, optionName) {
+  let milliseconds
+
   // by default if time is number we assume that they are seconds - see README.md
   if (typeof time === 'number') {
-    return time * 1000
+    milliseconds = time * 1000
+  } else if (typeof time === 'string' && time.trim() !== '') {
+    milliseconds = parse(time)
   }
-  return parse(time)
+
+  if (!Number.isFinite(milliseconds)) {
+    throw new TokenError(
+      TokenError.codes.invalidOption,
+      `The ${optionName} option must be a finite number or a valid string.`
+    )
+  }
+
+  return milliseconds
 }
 
 function convertTemporalProps (options, isVerifyOptions) {
-  if (!options || typeof options === 'function') {
+  if (!options) {
     return options
   }
 
   const formatedOptions = Object.assign({}, options)
+  const temporalProps = isVerifyOptions ? ['maxAge'] : ['expiresIn', 'notBefore']
 
-  if (isVerifyOptions && formatedOptions.maxAge) {
-    formatedOptions.maxAge = convertToMs(formatedOptions.maxAge)
-  } else if (formatedOptions.expiresIn || formatedOptions.notBefore) {
-    if (formatedOptions.expiresIn) {
-      formatedOptions.expiresIn = convertToMs(formatedOptions.expiresIn)
-    }
+  for (const temporalProp of temporalProps) {
+    if (!Object.hasOwn(options, temporalProp)) continue
 
-    if (formatedOptions.notBefore) {
-      formatedOptions.notBefore = convertToMs(formatedOptions.notBefore)
+    if (options[temporalProp] === undefined || options[temporalProp] === null) {
+      delete formatedOptions[temporalProp]
+    } else {
+      formatedOptions[temporalProp] = convertToMs(options[temporalProp], temporalProp)
     }
   }
 
@@ -132,8 +143,14 @@ function fastifyJwt (fastify, options, next) {
     hasStaticPublicKey = true
   }
 
-  const signOptions = convertTemporalProps(initialSignOptions)
-  const verifyOptions = convertTemporalProps(initialVerifyOptions, true)
+  let signOptions
+  let verifyOptions
+  try {
+    signOptions = convertTemporalProps(initialSignOptions)
+    verifyOptions = convertTemporalProps(initialVerifyOptions, true)
+  } catch (e) {
+    return next(e)
+  }
   const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
   const namespace = typeof pluginOptions.namespace === 'string' ? pluginOptions.namespace : undefined
 
@@ -191,14 +208,22 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateRequest(jwtVerifyName, requestVerify)
   fastify.decorateReply(jwtSignName, replySign)
 
-  const signerConfig = checkAndMergeSignOptions()
-  // no signer when configured in verify-mode
-  const signer = signerConfig.options.key
-    ? createSigner(signerConfig.options)
-    : null
-  const decoder = createDecoder(decodeOptions)
-  const verifierConfig = checkAndMergeVerifyOptions()
-  const verifier = createVerifier(verifierConfig.options)
+  let signer
+  let decoder
+  let verifierConfig
+  let verifier
+  try {
+    const signerConfig = checkAndMergeSignOptions()
+    // no signer when configured in verify-mode
+    signer = signerConfig.options.key
+      ? createSigner(signerConfig.options)
+      : null
+    decoder = createDecoder(decodeOptions)
+    verifierConfig = checkAndMergeVerifyOptions()
+    verifier = createVerifier(verifierConfig.options)
+  } catch (e) {
+    return next(e)
+  }
 
   next()
 
@@ -321,7 +346,13 @@ function fastifyJwt (fastify, options, next) {
 
     let localSigner = signer
 
-    const localOptions = convertTemporalProps(options)
+    let localOptions
+    try {
+      localOptions = typeof options === 'function' ? options : convertTemporalProps(options)
+    } catch (error) {
+      if (typeof callback === 'function') return callback(error)
+      throw error
+    }
     const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
@@ -342,7 +373,13 @@ function fastifyJwt (fastify, options, next) {
 
     let localVerifier = verifier
 
-    const localOptions = convertTemporalProps(options, true)
+    let localOptions
+    try {
+      localOptions = typeof options === 'function' ? options : convertTemporalProps(options, true)
+    } catch (error) {
+      if (typeof callback === 'function') return callback(error)
+      throw error
+    }
     const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
     if (options && typeof options !== 'function') {
@@ -383,16 +420,20 @@ function fastifyJwt (fastify, options, next) {
       })
     }
 
-    if (options.sign) {
-      const localSignOptions = convertTemporalProps(options.sign)
-      // New supported contract, options supports sign and can expand
-      options = {
-        sign: Object.assign({}, signOptions, localSignOptions)
+    try {
+      if (options.sign) {
+        const localSignOptions = convertTemporalProps(options.sign)
+        // New supported contract, options supports sign and can expand
+        options = {
+          sign: Object.assign({}, signOptions, localSignOptions)
+        }
+      } else {
+        const localOptions = convertTemporalProps(options)
+        // Original contract, options supports only sign
+        options = Object.assign({}, signOptions, localOptions)
       }
-    } else {
-      const localOptions = convertTemporalProps(options)
-      // Original contract, options supports only sign
-      options = Object.assign({}, signOptions, localOptions)
+    } catch (error) {
+      return next(error)
     }
 
     if (!payload) {
@@ -477,17 +518,21 @@ function fastifyJwt (fastify, options, next) {
       options = {}
     }
 
-    if (options.decode || options.verify) {
-      const localVerifyOptions = convertTemporalProps(options.verify, true)
-      // New supported contract, options supports both decode and verify
-      options = {
-        decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign({}, verifyOptions, localVerifyOptions)
+    try {
+      if (options.decode || options.verify) {
+        const localVerifyOptions = convertTemporalProps(options.verify, true)
+        // New supported contract, options supports both decode and verify
+        options = {
+          decode: Object.assign({}, decodeOptions, options.decode),
+          verify: Object.assign({}, verifyOptions, localVerifyOptions)
+        }
+      } else {
+        const localOptions = convertTemporalProps(options, true)
+        // Original contract, options supports only verify
+        options = Object.assign({}, verifyOptions, localOptions)
       }
-    } else {
-      const localOptions = convertTemporalProps(options, true)
-      // Original contract, options supports only verify
-      options = Object.assign({}, verifyOptions, localOptions)
+    } catch (error) {
+      return next(error)
     }
 
     let token
