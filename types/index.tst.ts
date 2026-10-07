@@ -1,11 +1,18 @@
-import fastify from 'fastify'
+import fastify, { FastifyRequest } from 'fastify'
+import { KeyFetcher } from 'fast-jwt'
 import fastifyJwt, {
   FastifyJWTOptions,
   FastifyJwtNamespace,
   JwtDecodeFunction,
+  JwtHeader,
   JwtSignFunction,
   JwtVerifyFunction,
   JWT,
+  KeyOption,
+  Secret,
+  SecretContext,
+  SecretContextSign,
+  SecretProvider,
   SignOptions,
   VerifyOptions
 } from '..'
@@ -24,21 +31,64 @@ const secretOptions = {
     public: 'publicKey',
     private: 'privateKey'
   },
-  secretFnCallback: (_req: any, _token: any, cb: any) => { cb(null, 'supersecret') },
-  secretFnPromise: (_req: any, _token: any) => Promise.resolve('supersecret'),
-  secretFnAsync: async (_req: any, _token: any) => 'supersecret',
-  secretFnBufferCallback: (_req: any, _token: any, cb: any) => { cb(null, Buffer.from('some secret', 'base64')) },
-  secretFnBufferPromise: (_req: any, _token: any) => Promise.resolve(Buffer.from('some secret', 'base64')),
-  secretFnBufferAsync: async (_req: any, _token: any) => Buffer.from('some secret', 'base64'),
+  secretFnCallback: (context, cb) => {
+    expect(context).type.toBe<SecretContext>()
+    expect(context.request).type.toBe<FastifyRequest | undefined>()
+    expect(cb).type.toBe<(error: Error | null, secret: string | Buffer | undefined) => void>()
+    if (context.operation === 'verify') {
+      expect(context.header).type.toBe<JwtHeader>()
+      expect(context.signature).type.toBe<string>()
+    } else {
+      expect(context).type.toBe<SecretContextSign>()
+    }
+    cb(null, 'supersecret')
+  },
+  secretFnPromise: (context) => {
+    expect(context).type.toBe<SecretContext>()
+    return Promise.resolve('supersecret')
+  },
+  secretFnAsync: async (context) => {
+    expect(context).type.toBe<SecretContext>()
+    return 'supersecret'
+  },
+  secretFnAsyncCallback: async (_context, cb) => { cb(null, 'supersecret') },
+  secretFnBufferCallback: (_context, cb) => { cb(null, Buffer.from('some secret', 'base64')) },
+  secretFnBufferPromise: (_context) => Promise.resolve(Buffer.from('some secret', 'base64')),
+  secretFnBufferAsync: async (_context) => Buffer.from('some secret', 'base64'),
   publicPrivateKeyFn: {
-    public: (_req: any, _rep: any, cb: any) => { cb(null, 'publicKey') },
+    public: (_context, cb) => { cb(null, 'publicKey') },
     private: 'privateKey'
   },
   publicPrivateKeyFn2: {
     public: 'publicKey',
-    private: (_req: any, _rep: any, cb: any) => { cb(null, 'privateKey') },
+    private: (_context, cb) => { cb(null, 'privateKey') },
   }
-}
+} satisfies Record<string, FastifyJWTOptions['secret']>
+
+expect<SecretProvider>().type.toBeAssignableTo<Secret>()
+expect<SecretProvider>().type.toBeAssignableTo<KeyOption>()
+expect<KeyFetcher>().type.not.toBeAssignableTo<Secret>()
+expect<KeyFetcher>().type.not.toBeAssignableTo<KeyOption>()
+
+app.register(fastifyJwt, {
+  secret: secretOptions.secretFnCallback,
+  sign: { key: secretOptions.secretFnAsync },
+  verify: { key: secretOptions.secretFnBufferCallback }
+})
+
+app.jwt.sign({ foo: 'bar' }, {
+  key: (context, callback) => {
+    expect(context).type.toBe<SecretContext>()
+    callback(null, 'supersecret')
+  }
+}, () => {})
+
+app.jwt.verify('token', {
+  key: async (context) => {
+    expect(context).type.toBe<SecretContext>()
+    return Buffer.from('supersecret')
+  }
+}, () => {})
 
 const jwtOptions: FastifyJWTOptions = {
   secret: 'supersecret',

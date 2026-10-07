@@ -22,9 +22,31 @@ function isString (x) {
   return Object.prototype.toString.call(x) === '[object String]'
 }
 
-function wrapStaticSecretInCallback (secret) {
-  return function (_request, _payload, cb) {
-    return cb(null, secret)
+function resolveSecret (secretValue, context, callback) {
+  if (typeof secretValue !== 'function') {
+    return callback(null, secretValue)
+  }
+
+  let called = false
+  function once (err, val) {
+    if (called) return
+    called = true
+    // A function would otherwise reach fast-jwt as a native key fetcher, which uses a different contract
+    if (!err && (!val || typeof val === 'function' || val.length === 0)) {
+      err = new TokenError(TokenError.codes.keyFetchingError, 'The secret provider did not return a usable key.')
+    }
+    callback(err, val)
+  }
+
+  try {
+    const result = secretValue(context, once)
+
+    if (result && typeof result.then === 'function') {
+      result.then(secret => once(null, secret), once)
+    }
+  } catch (error) {
+    if (called) throw error
+    once(error)
   }
 }
 
@@ -121,17 +143,6 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
-  let hasStaticPublicKey = false
-  let secretCallbackSign = secretOrPrivateKey
-  let secretCallbackVerify = secretOrPublicKey
-  if (typeof secretCallbackSign !== 'function') {
-    secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
-  }
-  if (typeof secretCallbackVerify !== 'function') {
-    secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
-    hasStaticPublicKey = true
-  }
-
   const signOptions = convertTemporalProps(initialSignOptions)
   const verifyOptions = convertTemporalProps(initialVerifyOptions, true)
   const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
@@ -192,20 +203,27 @@ function fastifyJwt (fastify, options, next) {
   fastify.decorateReply(jwtSignName, replySign)
 
   const signerConfig = checkAndMergeSignOptions()
-  // no signer when configured in verify-mode
-  const signer = signerConfig.options.key
+  // no signer when configured in verify-mode or when secret is a function (resolved per-call)
+  const signer = (signerConfig.options.key && typeof signerConfig.options.key !== 'function')
     ? createSigner(signerConfig.options)
     : null
   const decoder = createDecoder(decodeOptions)
+  const completeDecodeOptions = Object.assign({}, decodeOptions, { complete: true })
+  const completeDecoder = createDecoder(completeDecodeOptions)
+  // instance verify only decodes to build the secret context, so decode options must not add checks here
+  const verifyDecoder = createDecoder({ complete: true })
   const verifierConfig = checkAndMergeVerifyOptions()
-  const verifier = createVerifier(verifierConfig.options)
+  // no global verifier when secret is a function (resolved per-call)
+  const verifier = (verifierConfig.options.key && typeof verifierConfig.options.key !== 'function')
+    ? createVerifier(verifierConfig.options)
+    : null
 
   next()
 
   function getVerifier (options, globalOptions) {
     const useGlobalOptions = globalOptions ?? options === verifierConfig.options
     // Use global verifier if using global options with static key
-    if (useGlobalOptions && hasStaticPublicKey) return verifier
+    if (useGlobalOptions && verifier) return verifier
     // Only cache verifier when using default options (except for key)
     if (useGlobalOptions && options.key && typeof options.key === 'string') {
       let verifier = validatorCache.get(options.key)
@@ -221,9 +239,12 @@ function fastifyJwt (fastify, options, next) {
   function decode (token, options) {
     assert(token, 'missing token')
 
-    let selectedDecoder = decoder
-
-    if (options && options !== decodeOptions && typeof options !== 'function') {
+    let selectedDecoder
+    if (!options || options === decodeOptions || typeof options === 'function') {
+      selectedDecoder = decoder
+    } else if (options === completeDecodeOptions) {
+      selectedDecoder = completeDecoder
+    } else {
       selectedDecoder = createDecoder(options)
     }
 
@@ -289,21 +310,23 @@ function fastifyJwt (fastify, options, next) {
     return token
   }
 
-  function mergeOptionsWithKey (options, useProvidedPrivateKey) {
-    if (useProvidedPrivateKey && (typeof useProvidedPrivateKey !== 'boolean')) {
-      return Object.assign({}, options, { key: options.key ?? useProvidedPrivateKey })
-    } else {
-      const key = useProvidedPrivateKey ? secretOrPrivateKey : secretOrPublicKey
-      return Object.assign(!options.key ? { key } : {}, options)
-    }
+  function withStaticKey (options, usePrivateKey) {
+    if (options.key) return Object.assign({}, options)
+    const key = usePrivateKey ? secretOrPrivateKey : secretOrPublicKey
+    if (!key) return Object.assign({}, options)
+    return Object.assign({}, options, { key })
+  }
+
+  function withResolvedKey (options, key) {
+    return Object.assign({}, options, { key })
   }
 
   function checkAndMergeOptions (options, defaultOptions, usePrivateKey, callback) {
     if (typeof options === 'function') {
-      return { options: mergeOptionsWithKey(defaultOptions, usePrivateKey), callback: options }
+      return { options: withStaticKey(defaultOptions, usePrivateKey), callback: options }
     }
 
-    return { options: mergeOptionsWithKey(options || defaultOptions, usePrivateKey), callback }
+    return { options: withStaticKey(options || defaultOptions, usePrivateKey), callback }
   }
 
   function checkAndMergeSignOptions (options, callback) {
@@ -316,50 +339,103 @@ function fastifyJwt (fastify, options, next) {
 
   function sign (payload, options, callback) {
     assert(payload, 'missing payload')
-    // if a global signer was not created, sign mode is not supported
-    assert(signer, 'unable to sign: secret is configured in verify mode')
-
-    let localSigner = signer
+    assert(secretOrPrivateKey, 'unable to sign: secret is configured in verify mode')
 
     const localOptions = convertTemporalProps(options)
     const signerConfig = checkAndMergeSignOptions(localOptions, callback)
 
-    if (options && typeof options !== 'function') {
-      localSigner = createSigner(signerConfig.options)
-    }
-
-    if (typeof signerConfig.callback === 'function') {
-      const token = localSigner(payload)
-      signerConfig.callback(null, token)
-    } else {
+    if (typeof signerConfig.callback !== 'function') {
+      assert(typeof signerConfig.options.key !== 'function', 'callback is required when secret is a function')
+      let localSigner = signer
+      if (options && typeof options !== 'function') {
+        localSigner = createSigner(signerConfig.options)
+      }
       return localSigner(payload)
     }
+
+    const cb = signerConfig.callback
+
+    // Fast-path: reuse global signer when no custom options were passed
+    if (signer && (!options || typeof options === 'function')) {
+      let token
+      try {
+        token = signer(payload)
+      } catch (error) {
+        return cb(error)
+      }
+      return cb(null, token)
+    }
+
+    const context = { operation: 'sign', payload }
+    resolveSecret(signerConfig.options.key, context, function (err, secret) {
+      if (err) return cb(err)
+      let token
+      try {
+        const resolvedOptions = withResolvedKey(signerConfig.options, secret)
+        const localSigner = createSigner(resolvedOptions)
+        token = localSigner(payload)
+      } catch (error) {
+        return cb(error)
+      }
+      cb(null, token)
+    })
   }
 
   function verify (token, options, callback) {
     assert(token, 'missing token')
     assert(secretOrPublicKey, 'missing secret')
 
-    let localVerifier = verifier
-
     const localOptions = convertTemporalProps(options, true)
     const verifierConfig = checkAndMergeVerifyOptions(localOptions, callback)
 
-    if (options && typeof options !== 'function') {
-      localVerifier = getVerifier(verifierConfig.options)
-    }
-
-    if (typeof verifierConfig.callback === 'function') {
-      const result = localVerifier(token)
-      verifierConfig.callback(null, result)
-    } else {
+    if (typeof verifierConfig.callback !== 'function') {
+      assert(typeof verifierConfig.options.key !== 'function', 'callback is required when secret is a function')
+      let localVerifier = verifier
+      if (options && typeof options !== 'function') {
+        localVerifier = getVerifier(verifierConfig.options)
+      }
       return localVerifier(token)
     }
+
+    const cb = verifierConfig.callback
+
+    // Fast-path: reuse global verifier when no custom options were passed
+    const useGlobalVerifier = verifier && (!options || typeof options === 'function')
+    if (useGlobalVerifier || typeof verifierConfig.options.key !== 'function') {
+      let result
+      try {
+        const localVerifier = useGlobalVerifier ? verifier : getVerifier(verifierConfig.options)
+        result = localVerifier(token)
+      } catch (error) {
+        return cb(error)
+      }
+      return cb(null, result)
+    }
+
+    let decoded
+    try {
+      decoded = verifyDecoder(token)
+    } catch (error) {
+      return cb(error)
+    }
+    const context = { operation: 'verify', header: decoded.header, payload: decoded.payload, signature: decoded.signature }
+    resolveSecret(verifierConfig.options.key, context, function (err, secret) {
+      if (err) return cb(err)
+      let result
+      try {
+        const resolvedOptions = withResolvedKey(verifierConfig.options, secret)
+        const localVerifier = getVerifier(resolvedOptions)
+        result = localVerifier(token)
+      } catch (error) {
+        return cb(error)
+      }
+      cb(null, result)
+    })
   }
 
   function replySign (payload, options, next) {
-    // if a global signer was not created, sign mode is not supported
-    assert(signer, 'unable to sign: secret is configured in verify mode')
+    // sign mode is not supported when only a public key is provided
+    assert(secretOrPrivateKey, 'unable to sign: secret is configured in verify mode')
 
     let useLocalSigner = true
     if (typeof options === 'function') {
@@ -387,34 +463,34 @@ function fastifyJwt (fastify, options, next) {
       const localSignOptions = convertTemporalProps(options.sign)
       // New supported contract, options supports sign and can expand
       options = {
-        sign: Object.assign({}, signOptions, localSignOptions)
+        sign: withStaticKey(Object.assign({}, signOptions, localSignOptions), true)
       }
     } else {
       const localOptions = convertTemporalProps(options)
       // Original contract, options supports only sign
-      options = Object.assign({}, signOptions, localOptions)
+      options = withStaticKey(Object.assign({}, signOptions, localOptions), true)
     }
 
     if (!payload) {
       return next(new Error('jwtSign requires a payload'))
     }
 
+    const replySignOptions = options.sign || options
+
     steed.waterfall([
       function getSecret (callback) {
-        const signResult = secretCallbackSign(reply.request, payload, callback)
-
-        if (signResult && typeof signResult.then === 'function') {
-          signResult.then(result => callback(null, result), callback)
-        }
+        const context = { operation: 'sign', payload, request: reply.request }
+        resolveSecret(replySignOptions.key, context, callback)
       },
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
-          const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
+          const signerOptions = withResolvedKey(replySignOptions, secretOrPrivateKey)
           const localSigner = createSigner(signerOptions)
           const token = localSigner(payload)
           callback(null, token)
         } else {
-          const token = signer(payload)
+          const localSigner = signer || createSigner(withResolvedKey(signerConfig.options, secretOrPrivateKey))
+          const token = localSigner(payload)
           callback(null, token)
         }
       }
@@ -481,44 +557,47 @@ function fastifyJwt (fastify, options, next) {
       const localVerifyOptions = convertTemporalProps(options.verify, true)
       // New supported contract, options supports both decode and verify
       options = {
-        decode: Object.assign({}, decodeOptions, options.decode),
-        verify: Object.assign({}, verifyOptions, localVerifyOptions)
+        decode: options.decode ? Object.assign({}, decodeOptions, options.decode, { complete: true }) : completeDecodeOptions,
+        verify: withStaticKey(Object.assign({}, verifyOptions, localVerifyOptions), false)
       }
     } else {
       const localOptions = convertTemporalProps(options, true)
       // Original contract, options supports only verify
-      options = Object.assign({}, verifyOptions, localOptions)
+      options = withStaticKey(Object.assign({}, verifyOptions, localOptions), false)
     }
 
     let token
-    let decodedToken
+    let completeDecode
     try {
       token = lookupToken(request, options.verify || options)
-      decodedToken = decode(token, options.decode || decodeOptions)
+      completeDecode = decode(token, options.decode || completeDecodeOptions)
     } catch (err) {
       return next(err)
     }
 
+    const requestVerifyOptions = options.verify || options
+
     steed.waterfall([
       function getSecret (callback) {
-        const verifyResult = secretCallbackVerify(request, decodedToken, callback)
-        if (verifyResult && typeof verifyResult.then === 'function') {
-          verifyResult.then(result => callback(null, result), callback)
+        const context = {
+          operation: 'verify',
+          header: completeDecode.header,
+          payload: completeDecode.payload,
+          signature: completeDecode.signature,
+          request
         }
+        resolveSecret(requestVerifyOptions.key, context, callback)
       },
       function verify (secretOrPublicKey, callback) {
+        let verifyResult
         try {
-          const verifierOptions = mergeOptionsWithKey(options.verify || options, secretOrPublicKey)
+          const verifierOptions = withResolvedKey(requestVerifyOptions, secretOrPublicKey)
           const localVerifier = getVerifier(verifierOptions, useGlobalOptions)
-          const verifyResult = localVerifier(token)
-          if (verifyResult && typeof verifyResult.then === 'function') {
-            verifyResult.then(result => callback(null, result), error => wrapError(error, callback))
-          } else {
-            callback(null, verifyResult)
-          }
+          verifyResult = localVerifier(token)
         } catch (error) {
           return wrapError(error, callback)
         }
+        callback(null, verifyResult)
       },
       function checkIfIsTrusted (result, callback) {
         if (!trusted) {

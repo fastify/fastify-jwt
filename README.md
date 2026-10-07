@@ -111,13 +111,26 @@ If you need to verify Auth0 issued HS256 or RS256 JWT tokens, you can use [fasti
 ## Options
 
 ### `secret` (required)
-You must pass a `secret` to the `options` parameter. The `secret` can be a primitive type String, a function that returns a String or an object `{ private, public }`.
+You must pass a `secret` to the `options` parameter. The `secret` can be a string, a buffer, a function that provides a string or buffer via a callback or Promise, or an object `{ private, public }`.
 
 In this object `{ private, public }` the `private` key is a string, buffer, or object containing either the secret for HMAC algorithms or the PEM encoded private key for RSA and ECDSA. In case of a private key with passphrase an object `{ private: { key, passphrase }, public }` can be used (based on [crypto documentation](https://nodejs.org/api/crypto.html)), in this case be sure you pass the `algorithm` inside the signing options prefixed by the `sign` key of the plugin registering options).
 
 In this object `{ private, public }` the `public` key is a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
 
-Function based `secret` is supported by the `request.jwtVerify()` and `reply.jwtSign()` methods and is called with `request`, `token`, and `callback` parameters.
+Function based `secret` is supported by all methods (`request.jwtVerify()`, `reply.jwtSign()`, `fastify.jwt.sign()`, and `fastify.jwt.verify()`) and is called with a `context` object and a `callback`.
+
+Providers can call `callback(null, key)` or return a Promise resolving to the key. A provider that produces no usable key fails with `FAST_JWT_KEY_FETCHING_ERROR`. Function-valued `sign.key` and `verify.key` options, including per-call overrides, use this same contract.
+
+The `context` object has the following shape:
+- `operation`: `'sign'` or `'verify'`
+- `payload`: the JWT payload
+- `header`: the JWT header (only for `'verify'`)
+- `signature`: the JWT signature (only for `'verify'`)
+- `request`: the Fastify request object (only available in `request.jwtVerify()` and `reply.jwtSign()`)
+
+During verification, the context contains decoded but unverified token data. Do not treat it as authenticated until verification succeeds.
+
+When the effective key is a function, `fastify.jwt.sign()` and `fastify.jwt.verify()` require a callback argument, even if the provider returns a Promise. A static `key` override allows synchronous calls even when the plugin's `secret` is a function. Request/reply methods continue to support both callbacks and Promises.
 
 #### Verify-only mode
 
@@ -140,20 +153,21 @@ const jwt = require('@fastify/jwt')
 fastify.register(jwt, { secret: 'supersecret' })
 // secret as a function with callback
 fastify.register(jwt, {
-  secret: function (request, token, callback) {
-    // do something
+  secret: function (context, callback) {
+    // context.operation is 'sign' or 'verify'
+    // context.payload, context.header, context.signature, context.request
     callback(null, 'supersecret')
   }
 })
 // secret as a function returning a promise
 fastify.register(jwt, {
-  secret: function (request, token) {
+  secret: function (context) {
     return Promise.resolve('supersecret')
   }
 })
 // secret as an async function
 fastify.register(jwt, {
-  secret: async function (request, token) {
+  secret: async function (context) {
     return 'supersecret'
   }
 })
@@ -797,8 +811,8 @@ const jwt = require('@fastify/jwt')
 const request = require('request')
 
 fastify.register(jwt, {
-  secret: function (request, reply, callback) {
-    // do something
+  secret: function (context, callback) {
+    // context.operation is 'sign' or 'verify'
     callback(null, 'supersecret')
   }
 })
@@ -867,9 +881,8 @@ const fastify = Fastify()
 const getJwks = buildGetJwks()
 
 fastify.register(fjwt, {
-  decode: { complete: true },
-  secret: (request, token) => {
-    const { header: { kid, alg }, payload: { iss } } = token
+  secret: (context) => {
+    const { header: { kid, alg }, payload: { iss } } = context
     return getJwks.getPublicKey({ kid, domain: iss, alg })
   }
 })
