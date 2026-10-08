@@ -282,7 +282,7 @@ function fastifyJwt (fastify, options, next) {
       }
     } else if (request.headers.authorization && !onlyCookie && /^Bearer\s/i.test(request.headers.authorization)) {
       const parts = request.headers.authorization.split(' ')
-      if (parts.length === 2) {
+      if (parts.length === 2 && parts[1]) {
         token = parts[1]
       } else {
         throw new BadRequestError()
