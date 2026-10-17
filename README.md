@@ -191,6 +191,10 @@ fastify.register(jwt, {
 
 Optionally you can define global default options that will be used by `@fastify/jwt` API if you do not override them.
 
+Per-call signing and verification options are merged over these defaults. Properties whose value is `undefined` are treated as omitted. Other values, including `null`, are passed to `fast-jwt` and may override a default. The top-level `fastify.jwt.decode()` method is the exception: its per-call options completely replace the global decode options.
+
+The route methods accept either the legacy flat option format or the nested `sign`, `verify`, and `decode` format. Do not mix the two formats in one options object; mixed options are rejected.
+
 #### Example
 ```js
 const { readFileSync } = require('node:fs')

@@ -69,6 +69,33 @@ function convertTemporalProps (options, isVerifyOptions) {
   return formatedOptions
 }
 
+function mergeDefinedOptions (defaultOptions, options) {
+  const mergedOptions = Object.assign({}, defaultOptions)
+
+  for (const key of Object.keys(options || {})) {
+    if (options[key] !== undefined) {
+      mergedOptions[key] = options[key]
+    }
+  }
+
+  return mergedOptions
+}
+
+const nestedOptionKeys = new Set(['decode', 'sign', 'verify'])
+
+function checkForMixedOptions (options, supportedNestedKeys) {
+  const hasNestedOptions = supportedNestedKeys.some(key => Object.hasOwn(options, key))
+
+  if (hasNestedOptions && Object.keys(options).some(key => !nestedOptionKeys.has(key))) {
+    throw new TokenError(
+      TokenError.codes.invalidOption,
+      'The options must use either the flat or nested format, not both.'
+    )
+  }
+
+  return hasNestedOptions
+}
+
 function validateOptions (options) {
   assert(options.secret, 'missing secret')
   assert(!options.options, 'options prefix is deprecated')
@@ -270,7 +297,7 @@ function fastifyJwt (fastify, options, next) {
   function lookupToken (request, options) {
     assert(request, 'missing request')
 
-    options = Object.assign({}, verifyOptions, options)
+    options = mergeDefinedOptions(verifyOptions, options)
 
     let token
     const extractToken = options.extractToken
@@ -328,7 +355,8 @@ function fastifyJwt (fastify, options, next) {
       return { options: mergeOptionsWithKey(defaultOptions, usePrivateKey), callback: options }
     }
 
-    return { options: mergeOptionsWithKey(options || defaultOptions, usePrivateKey), callback }
+    const mergedOptions = mergeDefinedOptions(defaultOptions, options)
+    return { options: mergeOptionsWithKey(mergedOptions, usePrivateKey), callback }
   }
 
   function checkAndMergeSignOptions (options, callback) {
@@ -421,16 +449,16 @@ function fastifyJwt (fastify, options, next) {
     }
 
     try {
-      if (options.sign) {
+      if (checkForMixedOptions(options, ['sign'])) {
         const localSignOptions = convertTemporalProps(options.sign)
         // New supported contract, options supports sign and can expand
         options = {
-          sign: Object.assign({}, signOptions, localSignOptions)
+          sign: mergeDefinedOptions(signOptions, localSignOptions)
         }
       } else {
         const localOptions = convertTemporalProps(options)
         // Original contract, options supports only sign
-        options = Object.assign({}, signOptions, localOptions)
+        options = mergeDefinedOptions(signOptions, localOptions)
       }
     } catch (error) {
       return next(error)
@@ -473,8 +501,8 @@ function fastifyJwt (fastify, options, next) {
     }
 
     options = {
-      decode: Object.assign({}, decodeOptions, options.decode),
-      verify: Object.assign({}, verifyOptions, options.verify)
+      decode: mergeDefinedOptions(decodeOptions, options.decode),
+      verify: mergeDefinedOptions(verifyOptions, options.verify)
     }
 
     const request = this
@@ -519,17 +547,17 @@ function fastifyJwt (fastify, options, next) {
     }
 
     try {
-      if (options.decode || options.verify) {
+      if (checkForMixedOptions(options, ['decode', 'verify'])) {
         const localVerifyOptions = convertTemporalProps(options.verify, true)
         // New supported contract, options supports both decode and verify
         options = {
-          decode: Object.assign({}, decodeOptions, options.decode),
-          verify: Object.assign({}, verifyOptions, localVerifyOptions)
+          decode: mergeDefinedOptions(decodeOptions, options.decode),
+          verify: mergeDefinedOptions(verifyOptions, localVerifyOptions)
         }
       } else {
         const localOptions = convertTemporalProps(options, true)
         // Original contract, options supports only verify
-        options = Object.assign({}, verifyOptions, localOptions)
+        options = mergeDefinedOptions(verifyOptions, localOptions)
       }
     } catch (error) {
       return next(error)

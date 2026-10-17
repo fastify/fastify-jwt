@@ -2,7 +2,7 @@
 
 const { test } = require('node:test')
 const Fastify = require('fastify')
-const { TokenError } = require('fast-jwt')
+const { createSigner, TokenError } = require('fast-jwt')
 const jwt = require('..')
 
 const secret = 'temporal-options-secret'
@@ -136,6 +136,59 @@ test('direct API callbacks receive temporal conversion errors', async function (
     t.assert.ifError(error)
     t.assert.strictEqual(result.value, true)
   })
+})
+
+test('direct APIs merge per-call options over global temporal defaults', async function (t) {
+  const fastify = Fastify()
+  await fastify.register(jwt, {
+    secret,
+    sign: {
+      expiresIn: '1 hour',
+      notBefore: '2 minutes',
+      iss: 'global'
+    },
+    verify: {
+      maxAge: 1,
+      allowedIss: 'global'
+    }
+  }).ready()
+  t.after(() => fastify.close())
+
+  const assertSignDefaults = (token, jti) => {
+    const payload = fastify.jwt.decode(token)
+    t.assert.strictEqual(payload.exp - payload.iat, 60 * 60)
+    t.assert.strictEqual(payload.nbf - payload.iat, 2 * 60)
+    t.assert.strictEqual(payload.iss, 'local')
+    t.assert.strictEqual(payload.jti, jti)
+  }
+
+  const token = fastify.jwt.sign({ value: true }, { iss: 'local', jti: 'sync' })
+  assertSignDefaults(token, 'sync')
+
+  fastify.jwt.sign({ value: true }, { iss: 'local', jti: 'callback' }, function (error, token) {
+    t.assert.ifError(error)
+    assertSignDefaults(token, 'callback')
+  })
+
+  const oldToken = createSigner({ key: secret })({
+    value: true,
+    iss: 'local',
+    iat: Math.floor(Date.now() / 1000) - 10
+  })
+
+  t.assert.throws(
+    () => fastify.jwt.verify(oldToken, { allowedIss: 'local' }),
+    error => error.code === TokenError.codes.expired
+  )
+
+  let callbackCalled = false
+  t.assert.throws(
+    () => fastify.jwt.verify(oldToken, { allowedIss: 'local' }, function () {
+      callbackCalled = true
+    }),
+    error => error.code === TokenError.codes.expired
+  )
+  t.assert.strictEqual(callbackCalled, false)
 })
 
 test('registration and direct APIs accept zero and convert finite numbers from seconds to milliseconds', async function (t) {
