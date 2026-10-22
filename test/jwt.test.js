@@ -3133,3 +3133,27 @@ test('local sign options should not overwrite global sign options', async functi
 
   t.assert.strictEqual(fastify.jwt.options.sign.expiresIn, '15m')
 })
+
+test('"expiresIn" and "notBefore" take precedence over "exp" and "nbf" in the payload', async function (t) {
+  t.plan(6)
+
+  const fastify = Fastify()
+  fastify.register(jwt, { secret: 'test' })
+  await fastify.ready()
+
+  const oneHourInSeconds = 60 * 60
+  const nowInSeconds = Math.floor(Date.now() / 1000)
+  const payloadClaim = nowInSeconds + 24 * oneHourInSeconds
+
+  const withExpiresIn = fastify.jwt.decode(fastify.jwt.sign({ foo: 'bar', exp: payloadClaim }, { expiresIn: '1h' }))
+  t.assert.notStrictEqual(withExpiresIn.exp, payloadClaim)
+  t.assert.ok(Math.abs(withExpiresIn.exp - (nowInSeconds + oneHourInSeconds)) <= 5)
+
+  const withNotBefore = fastify.jwt.decode(fastify.jwt.sign({ foo: 'bar', nbf: payloadClaim }, { notBefore: '1h' }))
+  t.assert.notStrictEqual(withNotBefore.nbf, payloadClaim)
+  t.assert.ok(Math.abs(withNotBefore.nbf - (nowInSeconds + oneHourInSeconds)) <= 5)
+
+  const withoutSignOptions = fastify.jwt.decode(fastify.jwt.sign({ foo: 'bar', exp: payloadClaim, nbf: payloadClaim }))
+  t.assert.strictEqual(withoutSignOptions.exp, payloadClaim)
+  t.assert.strictEqual(withoutSignOptions.nbf, payloadClaim)
+})
