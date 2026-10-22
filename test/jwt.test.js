@@ -1157,7 +1157,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         localOptions.iss = 'other'
 
         const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
-        const decoded = fastify.jwt.verify(token, { iss: 'other' })
+        const decoded = fastify.jwt.verify(token, { allowedIss: 'other' })
 
         t.assert.strictEqual(decoded.foo, 'bar')
         t.assert.strictEqual(decoded.iss, 'other')
@@ -1173,7 +1173,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
           t.assert.ifError(error)
 
-          fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
+          fastify.jwt.verify(token, { allowedIss: 'other' }, function (error, decoded) {
             t.assert.ifError(error)
             t.assert.strictEqual(decoded.foo, 'bar')
             t.assert.strictEqual(decoded.iss, 'other')
