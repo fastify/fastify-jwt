@@ -195,7 +195,7 @@ declare namespace fastifyJwt {
     trusted?: (
       request: FastifyRequest,
       decodedToken: { [k: string]: any }
-    ) => boolean | Promise<boolean> | SignPayloadType | Promise<SignPayloadType>
+    ) => boolean | Promise<boolean>
     formatUser?: (payload: SignPayloadType) => UserType
     jwtDecode?: string
     namespace?: string

@@ -378,7 +378,9 @@ fastify.listen({ port: 3000 }, err => {
 
 ### `trusted`
 
-Additionally, it is also possible to reject tokens selectively (i.e. blacklisting) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>|SignPayloadType|Promise<SignPayloadType>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Its result should be `false` or `Promise<false>` if the token should be rejected or, otherwise, be `true` or `Promise<true>` if the token should be accepted and, considering that `request.user` will be used after that, the return should be `decodedToken` itself.
+Additionally, it is also possible to reject tokens selectively (i.e. blacklisting) by providing the option `trusted` with the following signature: `(request, decodedToken) => boolean|Promise<boolean>` where `request` is a `FastifyRequest` and `decodedToken` is the parsed (and verified) token information. Return `false` (or a promise resolving to `false`) to reject the token, or `true` (or a promise resolving to `true`) to accept it.
+
+`trusted` is only a predicate: its return value is never used as the user. When the token is accepted, `request.user` is set to the verified token payload (passed through [`formatUser`](#formatuser), if configured). To replace or sanitize the claims exposed on `request.user`, use `formatUser`.
 
 #### Example trusted tokens
 ```js
