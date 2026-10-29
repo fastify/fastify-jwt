@@ -1,6 +1,6 @@
 {
   "name": "@fastify/jwt",
-  "version": "10.2.5",
+  "version": "10.2.6",
   "description": "JWT utils for Fastify",
   "main": "index.js",
   "type": "commonjs",
