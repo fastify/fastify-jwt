@@ -284,7 +284,7 @@ function fastifyJwt (fastify, options, next) {
     } catch (error) {
       // Ignoring the else branch because it's not possible to test it,
       // it's just a safeguard for future changes in the fast-jwt library
-      if (error.code === TokenError.codes.malformed) {
+      if (error.code === TokenError.codes.malformed || error.code === TokenError.codes.invalidPayload) {
         throw new AuthorizationTokenInvalidError(error.message)
       } else if (error.code === TokenError.codes.invalidType) {
         throw new AuthorizationTokenInvalidError(error.message)
@@ -631,7 +631,13 @@ function fastifyJwt (fastify, options, next) {
     if (error.code === TokenError.codes.invalidKey ||
         error.code === TokenError.codes.invalidSignature ||
         error.code === TokenError.codes.invalidClaimValue ||
-        error.code === TokenError.codes.missingRequiredClaim
+        error.code === TokenError.codes.missingRequiredClaim ||
+        error.code === TokenError.codes.invalidAlgorithm ||
+        error.code === TokenError.codes.invalidClaimType ||
+        error.code === TokenError.codes.invalidType ||
+        error.code === TokenError.codes.invalidCritHeader ||
+        error.code === TokenError.codes.inactive ||
+        error.code === TokenError.codes.verifyError
     ) {
       return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
         ? new AuthorizationTokenInvalidError(error.message)
