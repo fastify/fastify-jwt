@@ -1,5 +1,5 @@
 import fastify from 'fastify'
-import fastifyJwt, { JWT } from '..'
+import fastifyJwt, { FastifyJwtReplyNamespace, FastifyJwtRequestNamespace, JWT, JwtDecodeFunction, JwtSignFunction, JwtVerifyFunction } from '..'
 import { expect } from 'tstyche'
 
 // declare the registered namespaces so `fastify.jwt` is typed
@@ -29,3 +29,15 @@ expect(app.jwt).type.not.toHaveProperty('decode')
 
 // only declared namespaces are available
 expect(app.jwt).type.not.toHaveProperty('other')
+
+// namespace request/reply decorators augmentation
+declare module 'fastify' {
+  interface FastifyRequest extends FastifyJwtRequestNamespace<{ namespace: 'auth' }> {}
+  interface FastifyReply extends FastifyJwtReplyNamespace<{ namespace: 'auth' }> {}
+}
+
+app.get('/test', (request, reply) => {
+  expect(request.authJwtVerify).type.toBe<JwtVerifyFunction>()
+  expect(request.authJwtDecode).type.toBe<JwtDecodeFunction>()
+  expect(reply.authJwtSign).type.toBe<JwtSignFunction>()
+})
