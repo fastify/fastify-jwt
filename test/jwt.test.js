@@ -1374,6 +1374,49 @@ test('sign and verify with trusted token', async function (t) {
   })
 })
 
+test('secret provider completion is handled once', async function (t) {
+  t.plan(3)
+
+  const secret = 'test'
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  await fastify.register(jwt, {
+    secret: (_request, _token, callback) => {
+      return Promise.resolve(secret).then(key => callback(null, key))
+    },
+    trusted: async () => {
+      await new Promise(resolve => setImmediate(resolve))
+      return false
+    }
+  })
+
+  fastify.post('/sign', async function (_request, reply) {
+    return { token: await reply.jwtSign({ foo: 'bar' }) }
+  })
+
+  fastify.get('/verify', async function (request) {
+    return request.jwtVerify()
+  })
+
+  const signResponse = await fastify.inject({
+    method: 'POST',
+    url: '/sign'
+  })
+  const token = signResponse.json().token
+
+  t.assert.strictEqual(signResponse.statusCode, 200)
+  t.assert.ok(token)
+
+  const verifyResponse = await fastify.inject({
+    method: 'GET',
+    url: '/verify',
+    headers: { authorization: `Bearer ${token}` }
+  })
+
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
+})
+
 test('decode', async function (t) {
   t.plan(2)
 
