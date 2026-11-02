@@ -28,6 +28,16 @@ function wrapStaticSecretInCallback (secret) {
   }
 }
 
+function wrapSecretCallback (callback) {
+  let called = false
+
+  return function (err, result) {
+    if (called) return
+    called = true
+    return callback(err, result)
+  }
+}
+
 function convertToMs (time, optionName) {
   let milliseconds
 
@@ -470,10 +480,11 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        const signResult = secretCallbackSign(reply.request, payload, callback)
+        const complete = wrapSecretCallback(callback)
+        const signResult = secretCallbackSign(reply.request, payload, complete)
 
         if (signResult && typeof signResult.then === 'function') {
-          signResult.then(result => callback(null, result), callback)
+          signResult.then(result => complete(null, result), complete)
         }
       },
       function sign (secretOrPrivateKey, callback) {
@@ -574,9 +585,10 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        const verifyResult = secretCallbackVerify(request, decodedToken, callback)
+        const complete = wrapSecretCallback(callback)
+        const verifyResult = secretCallbackVerify(request, decodedToken, complete)
         if (verifyResult && typeof verifyResult.then === 'function') {
-          verifyResult.then(result => callback(null, result), callback)
+          verifyResult.then(result => complete(null, result), complete)
         }
       },
       function verify (secretOrPublicKey, callback) {
