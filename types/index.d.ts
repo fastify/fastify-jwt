@@ -63,6 +63,13 @@ declare namespace fastifyJwt {
     jwtVerify?: string;
     jwtSign?: string;
   }> =
+  FastifyJwtRequestNamespace<C> & FastifyJwtReplyNamespace<C>
+
+  export type FastifyJwtRequestNamespace<C extends {
+    namespace?: string;
+    jwtDecode?: string;
+    jwtVerify?: string;
+  }> =
   Record<C extends { jwtDecode: string }
     ? C['jwtDecode']
     : C extends { namespace: string }
@@ -70,19 +77,23 @@ declare namespace fastifyJwt {
       : never,
   JwtDecodeFunction>
   &
-  Record<C extends { jwtSign: string }
-    ? C['jwtSign']
-    : C extends { namespace: string }
-      ? `${C['namespace']}JwtSign`
-      : never,
-  JwtSignFunction>
-  &
   Record<C extends { jwtVerify: string }
     ? C['jwtVerify']
     : C extends { namespace: string }
       ? `${C['namespace']}JwtVerify`
       : never,
   JwtVerifyFunction>
+
+  export type FastifyJwtReplyNamespace<C extends {
+    namespace?: string;
+    jwtSign?: string;
+  }> =
+  Record<C extends { jwtSign: string }
+    ? C['jwtSign']
+    : C extends { namespace: string }
+      ? `${C['namespace']}JwtSign`
+      : never,
+  JwtSignFunction>
 
   /**
    * for declaration merging
