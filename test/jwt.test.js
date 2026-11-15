@@ -1157,7 +1157,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         localOptions.iss = 'other'
 
         const token = fastify.jwt.sign({ foo: 'bar' }, localOptions)
-        const decoded = fastify.jwt.verify(token, { iss: 'other' })
+        const decoded = fastify.jwt.verify(token, { allowedIss: 'other' })
 
         t.assert.strictEqual(decoded.foo, 'bar')
         t.assert.strictEqual(decoded.iss, 'other')
@@ -1173,7 +1173,7 @@ test('sign and verify with RSA/ECDSA certificates and global options', async fun
         fastify.jwt.sign({ foo: 'bar' }, localOptions, function (error, token) {
           t.assert.ifError(error)
 
-          fastify.jwt.verify(token, { iss: 'other' }, function (error, decoded) {
+          fastify.jwt.verify(token, { allowedIss: 'other' }, function (error, decoded) {
             t.assert.ifError(error)
             t.assert.strictEqual(decoded.foo, 'bar')
             t.assert.strictEqual(decoded.iss, 'other')
@@ -1372,6 +1372,49 @@ test('sign and verify with trusted token', async function (t) {
     t.assert.strictEqual(response.statusCode, 500)
     t.assert.strictEqual(response.json().message, 'boom')
   })
+})
+
+test('secret provider completion is handled once', async function (t) {
+  t.plan(3)
+
+  const secret = 'test'
+  const fastify = Fastify()
+  t.after(() => fastify.close())
+
+  await fastify.register(jwt, {
+    secret: (_request, _token, callback) => {
+      return Promise.resolve(secret).then(key => callback(null, key))
+    },
+    trusted: async () => {
+      await new Promise(resolve => setImmediate(resolve))
+      return false
+    }
+  })
+
+  fastify.post('/sign', async function (_request, reply) {
+    return { token: await reply.jwtSign({ foo: 'bar' }) }
+  })
+
+  fastify.get('/verify', async function (request) {
+    return request.jwtVerify()
+  })
+
+  const signResponse = await fastify.inject({
+    method: 'POST',
+    url: '/sign'
+  })
+  const token = signResponse.json().token
+
+  t.assert.strictEqual(signResponse.statusCode, 200)
+  t.assert.ok(token)
+
+  const verifyResponse = await fastify.inject({
+    method: 'GET',
+    url: '/verify',
+    headers: { authorization: `Bearer ${token}` }
+  })
+
+  t.assert.strictEqual(verifyResponse.statusCode, 401)
 })
 
 test('decode', async function (t) {
