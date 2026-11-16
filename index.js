@@ -169,11 +169,13 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
+  let hasStaticPrivateKey = false
   let hasStaticPublicKey = false
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
   if (typeof secretCallbackSign !== 'function') {
     secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
+    hasStaticPrivateKey = true
   }
   if (typeof secretCallbackVerify !== 'function') {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
@@ -440,12 +442,12 @@ function fastifyJwt (fastify, options, next) {
     if (typeof options === 'function') {
       next = options
       options = {}
-      useLocalSigner = false
+      useLocalSigner = !hasStaticPrivateKey
     } // support no options
 
     if (!options) {
       options = {}
-      useLocalSigner = false
+      useLocalSigner = !hasStaticPrivateKey
     }
 
     const reply = this
