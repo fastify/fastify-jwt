@@ -169,11 +169,13 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
+  let hasStaticPrivateKey = false
   let hasStaticPublicKey = false
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
   if (typeof secretCallbackSign !== 'function') {
     secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
+    hasStaticPrivateKey = true
   }
   if (typeof secretCallbackVerify !== 'function') {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
@@ -436,18 +438,12 @@ function fastifyJwt (fastify, options, next) {
     // if a global signer was not created, sign mode is not supported
     assert(signer, 'unable to sign: secret is configured in verify mode')
 
-    let useLocalSigner = true
     if (typeof options === 'function') {
       next = options
-      options = {}
-      useLocalSigner = false
-    } // support no options
-
-    if (!options) {
-      options = {}
-      useLocalSigner = false
+      options = undefined
     }
 
+    const useGlobalOptions = !options
     const reply = this
 
     if (next === undefined) {
@@ -456,6 +452,18 @@ function fastifyJwt (fastify, options, next) {
           err ? reject(err) : resolve(val)
         })
       })
+    }
+
+    if (!payload) {
+      return next(new Error('jwtSign requires a payload'))
+    }
+
+    if (useGlobalOptions && hasStaticPrivateKey) {
+      return next(null, signer(payload))
+    }
+
+    if (!options) {
+      options = {}
     }
 
     try {
@@ -474,8 +482,12 @@ function fastifyJwt (fastify, options, next) {
       return next(error)
     }
 
-    if (!payload) {
-      return next(new Error('jwtSign requires a payload'))
+    const resolvedSignOptions = options.sign || options
+
+    if (hasStaticPrivateKey) {
+      const signerOptions = mergeOptionsWithKey(resolvedSignOptions, true)
+      const localSigner = createSigner(signerOptions)
+      return next(null, localSigner(payload))
     }
 
     steed.waterfall([
@@ -487,16 +499,11 @@ function fastifyJwt (fastify, options, next) {
           signResult.then(result => complete(null, result), complete)
         }
       },
-      function sign (secretOrPrivateKey, callback) {
-        if (useLocalSigner) {
-          const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
-          const localSigner = createSigner(signerOptions)
-          const token = localSigner(payload)
-          callback(null, token)
-        } else {
-          const token = signer(payload)
-          callback(null, token)
-        }
+      function signWithSecret (secretOrPrivateKey, callback) {
+        const signerOptions = mergeOptionsWithKey(resolvedSignOptions, secretOrPrivateKey)
+        const localSigner = createSigner(signerOptions)
+        const token = localSigner(payload)
+        callback(null, token)
       }
     ], next)
   }
