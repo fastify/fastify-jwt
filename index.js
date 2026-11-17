@@ -106,6 +106,22 @@ function checkForMixedOptions (options, supportedNestedKeys) {
   return hasNestedOptions
 }
 
+// fastify.jwt.sign() and fastify.jwt.verify() only accept flat options.
+// Reject the nested format instead of silently ignoring it, so a per-call
+// key passed as { verify: { key } } can't fall back to the global secret.
+function assertFlatOptions (options) {
+  if (!options || typeof options !== 'object') return
+
+  for (const key of nestedOptionKeys) {
+    if (Object.hasOwn(options, key) && options[key] !== undefined) {
+      throw new TokenError(
+        TokenError.codes.invalidOption,
+        `The "${key}" option is not supported here, pass the options in the flat format.`
+      )
+    }
+  }
+}
+
 function validateOptions (options) {
   assert(options.secret, 'missing secret')
   assert(!options.options, 'options prefix is deprecated')
@@ -386,6 +402,7 @@ function fastifyJwt (fastify, options, next) {
 
     let localOptions
     try {
+      assertFlatOptions(options)
       localOptions = typeof options === 'function' ? options : convertTemporalProps(options)
     } catch (error) {
       if (typeof callback === 'function') return callback(error)
@@ -413,6 +430,7 @@ function fastifyJwt (fastify, options, next) {
 
     let localOptions
     try {
+      assertFlatOptions(options)
       localOptions = typeof options === 'function' ? options : convertTemporalProps(options, true)
     } catch (error) {
       if (typeof callback === 'function') return callback(error)
