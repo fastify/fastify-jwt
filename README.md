@@ -657,11 +657,11 @@ fastify.register(require('@fastify/jwt'), {
 ### fastify.jwt.sign(payload [,options] [,callback])
 This method is used to sign the provided `payload`. It returns the token.
 The `payload` must be an `Object`. Can be used asynchronously by passing a callback function; synchronously without a callback.
-`options` must be an `Object` and can contain [sign](#sign) options.
+`options` must be an `Object` and can contain [sign](#sign) options in the flat format, e.g. `{ key, expiresIn }`. The nested `{ sign: { ... } }` format is only supported by `reply.jwtSign`; passing a `decode`, `sign` or `verify` option here throws an error.
 
 ### fastify.jwt.verify(token, [,options] [,callback])
 This method is used to verify provided token. It accepts a `token` (as `Buffer` or a `string`) and returns the payload or the sections of the token. Can be used asynchronously by passing a callback function; synchronously without a callback.
-`options` must be an `Object` and can contain [verify](#verify) options.
+`options` must be an `Object` and can contain [verify](#verify) options in the flat format, e.g. `{ key, maxAge }`. The nested `{ verify: { ... } }` format is only supported by `request.jwtVerify`; passing a `decode`, `sign` or `verify` option here throws an error.
 
 #### Example
 ```js

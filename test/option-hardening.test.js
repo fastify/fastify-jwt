@@ -199,3 +199,60 @@ test('fast-jwt cache rejects tokens after exp when iat is absent', async functio
     await fastify.close()
   }
 })
+
+test('direct sign and verify reject nested options', async function (t) {
+  const fastify = Fastify()
+  await fastify.register(jwt, { secret })
+  await fastify.register(jwt, { secret, namespace: 'other' })
+  await fastify.ready()
+  t.after(() => fastify.close())
+
+  const otherKey = 'other-domain-secret'
+  const globalToken = fastify.jwt.sign({ value: true })
+
+  function isNestedOptionError (key) {
+    return error => error.code === TokenError.codes.invalidOption &&
+      error.message === `The "${key}" option is not supported here, pass the options in the flat format.`
+  }
+
+  for (const decorator of [fastify.jwt, fastify.jwt.other]) {
+    for (const key of ['decode', 'sign', 'verify']) {
+      t.assert.throws(
+        () => decorator.sign({ value: true }, { [key]: { key: otherKey } }),
+        isNestedOptionError(key)
+      )
+      t.assert.throws(
+        () => decorator.verify(globalToken, { [key]: { key: otherKey } }),
+        isNestedOptionError(key)
+      )
+    }
+  }
+
+  await new Promise((resolve) => {
+    fastify.jwt.sign({ value: true }, { sign: { key: otherKey } }, (error, token) => {
+      t.assert.ok(isNestedOptionError('sign')(error))
+      t.assert.strictEqual(token, undefined)
+      resolve()
+    })
+  })
+
+  await new Promise((resolve) => {
+    fastify.jwt.verify(globalToken, { verify: { key: otherKey } }, (error, payload) => {
+      t.assert.ok(isNestedOptionError('verify')(error))
+      t.assert.strictEqual(payload, undefined)
+      resolve()
+    })
+  })
+
+  // undefined nested keys have no effect, so they are still accepted
+  const token = fastify.jwt.sign({ value: true }, { sign: undefined, jti: 'flat' })
+  t.assert.strictEqual(fastify.jwt.verify(token, { verify: undefined }).jti, 'flat')
+
+  // the flat format still honors a per-call key
+  t.assert.throws(
+    () => fastify.jwt.verify(globalToken, { key: otherKey }),
+    error => error.code === TokenError.codes.invalidSignature
+  )
+  const otherToken = fastify.jwt.sign({ value: true }, { key: otherKey })
+  t.assert.strictEqual(fastify.jwt.verify(otherToken, { key: otherKey }).value, true)
+})
