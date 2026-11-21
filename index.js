@@ -18,6 +18,34 @@ const messages = {
   authorizationTokenUnsigned: 'Unsigned authorization token'
 }
 
+const MAX_KEY_CACHE_SIZE = 1000
+
+function getCacheKey (key) {
+  if (typeof key === 'string') {
+    return key.length > 0 ? `s:${key}` : null
+  }
+  if (Buffer.isBuffer(key)) {
+    return key.length > 0 ? `b:${key.toString('base64')}` : null
+  }
+  return null
+}
+
+function getCachedDynamicFactory (cache, createFn, options) {
+  const cacheKey = getCacheKey(options.key)
+  if (cacheKey !== null) {
+    let cached = cache.get(cacheKey)
+    if (!cached) {
+      cached = createFn(options)
+      if (cache.size >= MAX_KEY_CACHE_SIZE) {
+        cache.delete(cache.keys().next().value)
+      }
+      cache.set(cacheKey, cached)
+    }
+    return cached
+  }
+  return createFn(options)
+}
+
 function isString (x) {
   return Object.prototype.toString.call(x) === '[object String]'
 }
@@ -154,6 +182,7 @@ function fastifyJwt (fastify, options, next) {
     ...pluginOptions
   } = options
 
+  const signerCache = new Map()
   const validatorCache = new Map()
 
   let secretOrPrivateKey
@@ -169,15 +198,15 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
-  let hasStaticPublicKey = false
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
-  if (typeof secretCallbackSign !== 'function') {
+  const isSecretSignStatic = typeof secretCallbackSign !== 'function'
+  const isSecretVerifyStatic = typeof secretCallbackVerify !== 'function'
+  if (isSecretSignStatic) {
     secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
   }
-  if (typeof secretCallbackVerify !== 'function') {
+  if (isSecretVerifyStatic) {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
-    hasStaticPublicKey = true
   }
 
   let signOptions
@@ -188,6 +217,8 @@ function fastifyJwt (fastify, options, next) {
   } catch (e) {
     return next(e)
   }
+  const hasStaticPrivateKey = isSecretSignStatic && typeof signOptions.key !== 'function'
+  const hasStaticPublicKey = isSecretVerifyStatic && typeof verifyOptions.key !== 'function'
   const messagesOptions = Object.assign({}, messages, pluginOptions.messages)
   const namespace = typeof pluginOptions.namespace === 'string' ? pluginOptions.namespace : undefined
 
@@ -269,13 +300,8 @@ function fastifyJwt (fastify, options, next) {
     // Use global verifier if using global options with static key
     if (useGlobalOptions && hasStaticPublicKey) return verifier
     // Only cache verifier when using default options (except for key)
-    if (useGlobalOptions && options.key && typeof options.key === 'string') {
-      let verifier = validatorCache.get(options.key)
-      if (!verifier) {
-        verifier = createVerifier(options)
-        validatorCache.set(options.key, verifier)
-      }
-      return verifier
+    if (useGlobalOptions) {
+      return getCachedDynamicFactory(validatorCache, createVerifier, options)
     }
     return createVerifier(options)
   }
@@ -304,11 +330,7 @@ function fastifyJwt (fastify, options, next) {
     }
   }
 
-  function lookupToken (request, options) {
-    assert(request, 'missing request')
-
-    options = mergeDefinedOptions(verifyOptions, options)
-
+  function lookupTokenResolved (request, options) {
     let token
     const extractToken = options.extractToken
     const onlyCookie = options.onlyCookie
@@ -349,6 +371,12 @@ function fastifyJwt (fastify, options, next) {
     }
 
     return token
+  }
+
+  function lookupToken (request, options) {
+    assert(request, 'missing request')
+
+    return lookupTokenResolved(request, mergeDefinedOptions(verifyOptions, options))
   }
 
   function mergeOptionsWithKey (options, useProvidedPrivateKey) {
@@ -436,18 +464,13 @@ function fastifyJwt (fastify, options, next) {
     // if a global signer was not created, sign mode is not supported
     assert(signer, 'unable to sign: secret is configured in verify mode')
 
-    let useLocalSigner = true
     if (typeof options === 'function') {
       next = options
-      options = {}
-      useLocalSigner = false
+      options = undefined
     } // support no options
 
-    if (!options) {
-      options = {}
-      useLocalSigner = false
-    }
-
+    const useGlobalOptions = !options
+    const useLocalSigner = !useGlobalOptions || !hasStaticPrivateKey
     const reply = this
 
     if (next === undefined) {
@@ -456,6 +479,10 @@ function fastifyJwt (fastify, options, next) {
           err ? reject(err) : resolve(val)
         })
       })
+    }
+
+    if (!options) {
+      options = {}
     }
 
     try {
@@ -490,9 +517,15 @@ function fastifyJwt (fastify, options, next) {
       function sign (secretOrPrivateKey, callback) {
         if (useLocalSigner) {
           const signerOptions = mergeOptionsWithKey(options.sign || options, secretOrPrivateKey)
-          const localSigner = createSigner(signerOptions)
+          const localSigner = useGlobalOptions
+            ? getCachedDynamicFactory(signerCache, createSigner, signerOptions)
+            : createSigner(signerOptions)
           const token = localSigner(payload)
-          callback(null, token)
+          if (token && typeof token.then === 'function') {
+            token.then(resolvedToken => callback(null, resolvedToken), callback)
+          } else {
+            callback(null, token)
+          }
         } else {
           const token = signer(payload)
           callback(null, token)
@@ -535,8 +568,84 @@ function fastifyJwt (fastify, options, next) {
     }
   }
 
+  function assignUser (request, result) {
+    const user = formatUser ? formatUser(result) : result
+    request[decoratorName] = user
+    return user
+  }
+
+  function handleSuccess (request, result, next) {
+    let user
+    try {
+      user = assignUser(request, result)
+    } catch (err) {
+      return next ? next(err) : Promise.reject(err)
+    }
+    return next ? next(null, user) : Promise.resolve(user)
+  }
+
+  function verifyWithStaticFastPath (request, next) {
+    let token
+    try {
+      token = lookupTokenResolved(request, verifyOptions)
+    } catch (err) {
+      return next ? next(err) : Promise.reject(err)
+    }
+
+    let result
+    try {
+      result = verifier(token)
+    } catch (err) {
+      const wrapped = wrapVerifyError(err, true, typeof token !== 'string' && !Buffer.isBuffer(token))
+      return next ? next(wrapped) : Promise.reject(wrapped)
+    }
+
+    if (!trusted) {
+      return handleSuccess(request, result, next)
+    }
+
+    let maybePromise
+    try {
+      maybePromise = trusted(request, result)
+    } catch (err) {
+      return next ? next(err) : Promise.reject(err)
+    }
+
+    if (maybePromise?.then) {
+      const settled = maybePromise.then(isTrusted => {
+        if (!isTrusted) {
+          throw new AuthorizationTokenUntrustedError()
+        }
+        return assignUser(request, result)
+      })
+      if (next === undefined) {
+        return settled
+      }
+      settled.then(user => next(null, user), err => next(err))
+      return
+    }
+
+    if (maybePromise) {
+      return handleSuccess(request, result, next)
+    }
+
+    const untrustedError = new AuthorizationTokenUntrustedError()
+    return next ? next(untrustedError) : Promise.reject(untrustedError)
+  }
+
   function requestVerify (options, next) {
     const request = this
+
+    if (typeof options === 'function') {
+      next = options
+      options = undefined
+    }
+
+    const useGlobalOptions = !options
+
+    if (useGlobalOptions && hasStaticPublicKey && !decodeOptions.checkTyp) {
+      return verifyWithStaticFastPath(request, next)
+    }
 
     if (next === undefined) {
       return new Promise(function (resolve, reject) {
@@ -545,13 +654,6 @@ function fastifyJwt (fastify, options, next) {
         })
       })
     }
-
-    const useGlobalOptions = !options
-
-    if (typeof options === 'function') {
-      next = options
-      options = {}
-    } // support no options
 
     if (!options) {
       options = {}
@@ -577,7 +679,7 @@ function fastifyJwt (fastify, options, next) {
     let token
     let decodedToken
     try {
-      token = lookupToken(request, options.verify || options)
+      token = lookupTokenResolved(request, options.verify || options)
       decodedToken = decode(token, options.decode || decodeOptions)
     } catch (err) {
       return next(err)
@@ -628,33 +730,45 @@ function fastifyJwt (fastify, options, next) {
       if (err) {
         next(err)
       } else {
-        const user = formatUser ? formatUser(result) : result
-        request[decoratorName] = user
+        let user
+        try {
+          user = assignUser(request, result)
+        } catch (assignErr) {
+          return next(assignErr)
+        }
         next(null, user)
       }
     })
   }
 
-  function wrapError (error, callback) {
+  function wrapVerifyError (error, wrapMalformed, invalidTokenType) {
     if (error.code === TokenError.codes.expired) {
-      return callback(new AuthorizationTokenExpiredError())
+      return new AuthorizationTokenExpiredError()
     }
 
     if (error.code === TokenError.codes.invalidKey ||
         error.code === TokenError.codes.invalidSignature ||
         error.code === TokenError.codes.invalidClaimValue ||
-        error.code === TokenError.codes.missingRequiredClaim
+        error.code === TokenError.codes.missingRequiredClaim ||
+        (wrapMalformed && (
+          error.code === TokenError.codes.malformed ||
+          (error.code === TokenError.codes.invalidType && invalidTokenType)
+        ))
     ) {
-      return callback(typeof messagesOptions.authorizationTokenInvalid === 'function'
+      return typeof messagesOptions.authorizationTokenInvalid === 'function'
         ? new AuthorizationTokenInvalidError(error.message)
-        : new AuthorizationTokenInvalidError())
+        : new AuthorizationTokenInvalidError()
     }
 
     if (error.code === TokenError.codes.missingSignature) {
-      return callback(new AuthorizationTokenUnsignedError())
+      return new AuthorizationTokenUnsignedError()
     }
 
-    return callback(error)
+    return error
+  }
+
+  function wrapError (error, callback) {
+    return callback(wrapVerifyError(error, false, false))
   }
 }
 
