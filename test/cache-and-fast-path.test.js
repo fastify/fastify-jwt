@@ -396,3 +396,178 @@ test('static fast paths handle payload errors, callbacks, lookupToken, verify er
   t.assert.strictEqual(malformedCustomRes.statusCode, 401)
   t.assert.strictEqual(malformedCustomRes.json().message, 'invalid token')
 })
+
+test('jwtVerify catches formatUser errors across static fast path, trusted hooks, and slow path in promise and callback modes', async function (t) {
+  const customError = new Error('formatUser failed')
+
+  // 1. Static fast path without trusted hook
+  const fastPathApp = Fastify()
+  t.after(() => fastPathApp.close())
+
+  let shouldThrow = true
+  await fastPathApp.register(jwt, {
+    secret,
+    formatUser: payload => {
+      if (shouldThrow) throw customError
+      return { formatted: payload.user }
+    }
+  })
+
+  fastPathApp.get('/verify-promise', async request => {
+    return request.jwtVerify()
+  })
+  fastPathApp.get('/verify-callback', (request, reply) => {
+    request.jwtVerify((err, user) => {
+      if (err) return reply.status(500).send({ message: err.message })
+      reply.send(user)
+    })
+  })
+  await fastPathApp.ready()
+
+  const validToken = createSigner({ key: secret })({ user: 'alice' })
+
+  // Promise mode fast path rejecting
+  const promiseRes = await fastPathApp.inject({
+    method: 'GET',
+    url: '/verify-promise',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(promiseRes.statusCode, 500)
+  t.assert.strictEqual(promiseRes.json().message, 'formatUser failed')
+
+  // Callback mode fast path error
+  const callbackRes = await fastPathApp.inject({
+    method: 'GET',
+    url: '/verify-callback',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(callbackRes.statusCode, 500)
+  t.assert.strictEqual(callbackRes.json().message, 'formatUser failed')
+
+  // Successful fast path when not throwing (covers handleSuccess resolving and calling callback)
+  shouldThrow = false
+  const promiseSuccessRes = await fastPathApp.inject({
+    method: 'GET',
+    url: '/verify-promise',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(promiseSuccessRes.statusCode, 200)
+  t.assert.strictEqual(promiseSuccessRes.json().formatted, 'alice')
+
+  const callbackSuccessRes = await fastPathApp.inject({
+    method: 'GET',
+    url: '/verify-callback',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(callbackSuccessRes.statusCode, 200)
+  t.assert.strictEqual(callbackSuccessRes.json().formatted, 'alice')
+
+  // 2. Static fast path with synchronous trusted hook
+  const syncTrustedApp = Fastify()
+  t.after(() => syncTrustedApp.close())
+  shouldThrow = true
+  await syncTrustedApp.register(jwt, {
+    secret,
+    trusted: () => true,
+    formatUser: () => {
+      if (shouldThrow) throw customError
+      return { ok: true }
+    }
+  })
+  syncTrustedApp.get('/verify-promise', async request => request.jwtVerify())
+  syncTrustedApp.get('/verify-callback', (request, reply) => {
+    request.jwtVerify((err, user) => {
+      if (err) return reply.status(500).send({ message: err.message })
+      reply.send(user)
+    })
+  })
+  await syncTrustedApp.ready()
+
+  const syncTrustedPromiseRes = await syncTrustedApp.inject({
+    method: 'GET',
+    url: '/verify-promise',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(syncTrustedPromiseRes.statusCode, 500)
+  t.assert.strictEqual(syncTrustedPromiseRes.json().message, 'formatUser failed')
+
+  const syncTrustedCallbackRes = await syncTrustedApp.inject({
+    method: 'GET',
+    url: '/verify-callback',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(syncTrustedCallbackRes.statusCode, 500)
+  t.assert.strictEqual(syncTrustedCallbackRes.json().message, 'formatUser failed')
+
+  // 3. Static fast path with async trusted hook
+  const asyncTrustedApp = Fastify()
+  t.after(() => asyncTrustedApp.close())
+  await asyncTrustedApp.register(jwt, {
+    secret,
+    trusted: async () => true,
+    formatUser: () => {
+      throw customError
+    }
+  })
+  asyncTrustedApp.get('/verify-promise', async request => request.jwtVerify())
+  asyncTrustedApp.get('/verify-callback', (request, reply) => {
+    request.jwtVerify((err, user) => {
+      if (err) return reply.status(500).send({ message: err.message })
+      reply.send(user)
+    })
+  })
+  await asyncTrustedApp.ready()
+
+  const asyncTrustedPromiseRes = await asyncTrustedApp.inject({
+    method: 'GET',
+    url: '/verify-promise',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(asyncTrustedPromiseRes.statusCode, 500)
+  t.assert.strictEqual(asyncTrustedPromiseRes.json().message, 'formatUser failed')
+
+  const asyncTrustedCallbackRes = await asyncTrustedApp.inject({
+    method: 'GET',
+    url: '/verify-callback',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(asyncTrustedCallbackRes.statusCode, 500)
+  t.assert.strictEqual(asyncTrustedCallbackRes.json().message, 'formatUser failed')
+
+  // 4. Slow path (dynamic secret or route options) with throwing formatUser
+  const slowPathApp = Fastify()
+  t.after(() => slowPathApp.close())
+  await slowPathApp.register(jwt, {
+    secret: {
+      private: 'private-secret',
+      public: (_req, _tok, cb) => cb(null, secret)
+    },
+    formatUser: () => {
+      throw customError
+    }
+  })
+  slowPathApp.get('/verify-promise', async request => request.jwtVerify())
+  slowPathApp.get('/verify-callback', (request, reply) => {
+    request.jwtVerify((err, user) => {
+      if (err) return reply.status(500).send({ message: err.message })
+      reply.send(user)
+    })
+  })
+  await slowPathApp.ready()
+
+  const slowPromiseRes = await slowPathApp.inject({
+    method: 'GET',
+    url: '/verify-promise',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(slowPromiseRes.statusCode, 500)
+  t.assert.strictEqual(slowPromiseRes.json().message, 'formatUser failed')
+
+  const slowCallbackRes = await slowPathApp.inject({
+    method: 'GET',
+    url: '/verify-callback',
+    headers: { authorization: `Bearer ${validToken}` }
+  })
+  t.assert.strictEqual(slowCallbackRes.statusCode, 500)
+  t.assert.strictEqual(slowCallbackRes.json().message, 'formatUser failed')
+})

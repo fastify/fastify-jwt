@@ -574,6 +574,16 @@ function fastifyJwt (fastify, options, next) {
     return user
   }
 
+  function handleSuccess (request, result, next) {
+    let user
+    try {
+      user = assignUser(request, result)
+    } catch (err) {
+      return next ? next(err) : Promise.reject(err)
+    }
+    return next ? next(null, user) : Promise.resolve(user)
+  }
+
   function verifyWithStaticFastPath (request, next) {
     let token
     try {
@@ -591,8 +601,7 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (!trusted) {
-      const user = assignUser(request, result)
-      return next ? next(null, user) : Promise.resolve(user)
+      return handleSuccess(request, result, next)
     }
 
     let maybePromise
@@ -617,8 +626,7 @@ function fastifyJwt (fastify, options, next) {
     }
 
     if (maybePromise) {
-      const user = assignUser(request, result)
-      return next ? next(null, user) : Promise.resolve(user)
+      return handleSuccess(request, result, next)
     }
 
     const untrustedError = new AuthorizationTokenUntrustedError()
@@ -722,7 +730,13 @@ function fastifyJwt (fastify, options, next) {
       if (err) {
         next(err)
       } else {
-        next(null, assignUser(request, result))
+        let user
+        try {
+          user = assignUser(request, result)
+        } catch (assignErr) {
+          return next(assignErr)
+        }
+        next(null, user)
       }
     })
   }
