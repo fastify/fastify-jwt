@@ -388,6 +388,48 @@ test('reply.jwtSign in callback mode with dynamic secret', async function (t) {
     t.assert.strictEqual(verifyResponse.statusCode, 200)
     t.assert.strictEqual(JSON.parse(verifyResponse.payload).foo, 'bar')
   })
+
+  await t.test('with null options and dynamic secret callback', async function (t) {
+    const fastify = Fastify()
+    fastify.register(jwt, {
+      secret: function (_request, _payload, callback) {
+        callback(null, 'some-secret')
+      }
+    })
+
+    fastify.post('/sign', function (request, reply) {
+      reply.jwtSign(request.body, null, function (err, token) {
+        if (err) return reply.send(err)
+        reply.send({ token })
+      })
+    })
+
+    fastify.get('/verify', function (request) {
+      return request.jwtVerify()
+    })
+
+    await fastify.ready()
+
+    const signResponse = await fastify.inject({
+      method: 'post',
+      url: '/sign',
+      payload: { foo: 'bar' }
+    })
+
+    t.assert.strictEqual(signResponse.statusCode, 200)
+    const token = JSON.parse(signResponse.payload).token
+    t.assert.ok(token)
+
+    const verifyResponse = await fastify.inject({
+      method: 'get',
+      url: '/verify',
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    })
+    t.assert.strictEqual(verifyResponse.statusCode, 200)
+    t.assert.strictEqual(JSON.parse(verifyResponse.payload).foo, 'bar')
+  })
 })
 
 test('sign and verify with HS-secret', async function (t) {
