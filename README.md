@@ -514,28 +514,42 @@ fastify.listen(3000, function (err) {
 
 #### Typescript
 
-To simplify the use of namespaces in TypeScript you can use the `FastifyJwtNamespace` helper type:
+To simplify the use of namespaces in TypeScript, declare your namespaces on `FastifyJWT` to type `fastify.jwt.<namespace>`, and augment `FastifyRequest` and `FastifyReply` using the `FastifyJwtRequestNamespace` and `FastifyJwtReplyNamespace` helper types:
 
 ```typescript
-declare module 'fastify' {
-  interface FastifyInstance extends
-  FastifyJwtNamespace<{namespace: 'security'}> {
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    namespaces: 'security'
   }
 }
+
+declare module 'fastify' {
+  interface FastifyRequest extends
+    FastifyJwtRequestNamespace<{ namespace: 'security' }> {}
+
+  interface FastifyReply extends
+    FastifyJwtReplyNamespace<{ namespace: 'security' }> {}
+}
 ```
 
-Alternatively you can type each key explicitly:
+Alternatively, you can type each method key explicitly:
 
 ```typescript
 declare module 'fastify' {
-  interface FastifyInstance extends
-  FastifyJwtNamespace<{
-    jwtDecode: 'securityJwtDecode',
-    jwtSign: 'securityJwtSign',
-    jwtVerify: 'securityJwtVerify',
-  }> { }
+  interface FastifyRequest extends
+    FastifyJwtRequestNamespace<{
+      jwtDecode: 'securityJwtDecode',
+      jwtVerify: 'securityJwtVerify',
+    }> {}
+
+  interface FastifyReply extends
+    FastifyJwtReplyNamespace<{
+      jwtSign: 'securityJwtSign',
+    }> {}
 }
 ```
+
+> **Note:** The legacy `FastifyJwtNamespace` union helper combining both request and reply methods is kept for backwards compatibility.
 
 When registering the plugin with `namespace`, `fastify.jwt` is a namespace → `JWT` map at runtime instead of a single `JWT` instance. Declare the registered namespaces in the `FastifyJWT` interface to type it accordingly:
 
