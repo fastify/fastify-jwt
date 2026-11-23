@@ -28,6 +28,16 @@ function wrapStaticSecretInCallback (secret) {
   }
 }
 
+function wrapSecretCallback (callback) {
+  let called = false
+
+  return function (err, result) {
+    if (called) return
+    called = true
+    return callback(err, result)
+  }
+}
+
 function convertToMs (time, optionName) {
   let milliseconds
 
@@ -159,11 +169,13 @@ function fastifyJwt (fastify, options, next) {
     secretOrPrivateKey = secretOrPublicKey = secret
   }
 
+  let hasStaticPrivateKey = false
   let hasStaticPublicKey = false
   let secretCallbackSign = secretOrPrivateKey
   let secretCallbackVerify = secretOrPublicKey
   if (typeof secretCallbackSign !== 'function') {
     secretCallbackSign = wrapStaticSecretInCallback(secretCallbackSign)
+    hasStaticPrivateKey = true
   }
   if (typeof secretCallbackVerify !== 'function') {
     secretCallbackVerify = wrapStaticSecretInCallback(secretCallbackVerify)
@@ -309,7 +321,7 @@ function fastifyJwt (fastify, options, next) {
       }
     } else if (request.headers.authorization && !onlyCookie && /^Bearer\s/i.test(request.headers.authorization)) {
       const parts = request.headers.authorization.split(' ')
-      if (parts.length === 2) {
+      if (parts.length === 2 && parts[1]) {
         token = parts[1]
       } else {
         throw new BadRequestError()
@@ -430,12 +442,12 @@ function fastifyJwt (fastify, options, next) {
     if (typeof options === 'function') {
       next = options
       options = {}
-      useLocalSigner = false
+      useLocalSigner = !hasStaticPrivateKey
     } // support no options
 
     if (!options) {
       options = {}
-      useLocalSigner = false
+      useLocalSigner = !hasStaticPrivateKey
     }
 
     const reply = this
@@ -470,10 +482,11 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        const signResult = secretCallbackSign(reply.request, payload, callback)
+        const complete = wrapSecretCallback(callback)
+        const signResult = secretCallbackSign(reply.request, payload, complete)
 
         if (signResult && typeof signResult.then === 'function') {
-          signResult.then(result => callback(null, result), callback)
+          signResult.then(result => complete(null, result), complete)
         }
       },
       function sign (secretOrPrivateKey, callback) {
@@ -574,9 +587,10 @@ function fastifyJwt (fastify, options, next) {
 
     steed.waterfall([
       function getSecret (callback) {
-        const verifyResult = secretCallbackVerify(request, decodedToken, callback)
+        const complete = wrapSecretCallback(callback)
+        const verifyResult = secretCallbackVerify(request, decodedToken, complete)
         if (verifyResult && typeof verifyResult.then === 'function') {
-          verifyResult.then(result => callback(null, result), callback)
+          verifyResult.then(result => complete(null, result), complete)
         }
       },
       function verify (secretOrPublicKey, callback) {

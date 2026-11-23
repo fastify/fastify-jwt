@@ -66,7 +66,7 @@ const jwtOptions: FastifyJWTOptions = {
     authorizationTokenInvalid: (err) => `${err.message}`,
     authorizationTokenUntrusted: 'Token untrusted'
   },
-  trusted: () => false || '' || Buffer.from('foo'),
+  trusted: () => false,
   formatUser: payload => {
     const objectPayload = typeof payload === 'string'
       ? JSON.parse(payload)
@@ -86,7 +86,10 @@ Object.values(secretOptions).forEach((value) => {
   app.register(fastifyJwt, { ...jwtOptions, secret: value })
 })
 
-app.register(fastifyJwt, { ...jwtOptions, trusted: () => Promise.resolve(false || '' || Buffer.from('foo')) })
+app.register(fastifyJwt, { ...jwtOptions, trusted: () => Promise.resolve(true) })
+
+expect(fastifyJwt).type.not.toBeCallableWith(app, { ...jwtOptions, trusted: () => ({ role: 'viewer' }) })
+expect(fastifyJwt).type.not.toBeCallableWith(app, { ...jwtOptions, trusted: () => Promise.resolve({ role: 'viewer' }) })
 
 app.register(fastifyJwt, {
   secret: {
