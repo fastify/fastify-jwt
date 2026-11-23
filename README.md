@@ -627,6 +627,8 @@ fastify.register(require('@fastify/jwt'), {
 })
 ```
 
+See [Custom decorator name](#custom-decorator-name) for the TypeScript typing.
+
 ### `decode`
 
 * `complete`: Return an object with the decoded header, payload, signature, and input (the token part before the signature), instead of just the content of the payload. Default is `false`.
@@ -931,6 +933,42 @@ fastify.get('/', async (request, reply) => {
 })
 
 ```
+
+### Custom decorator name
+
+When the plugin is registered with `decoratorName`, the decoded token is stored on that property instead of `request.user`. The plugin cannot infer the new property name, so declare it yourself by augmenting `FastifyRequest` in the `fastify` module (not in `@fastify/jwt`, where `FastifyRequest` is not declared):
+
+```ts
+// fastify-jwt.d.ts
+import "@fastify/jwt"
+
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: { id: number }
+    user: { id: number, name: string } // still the key for the user type
+  }
+}
+
+declare module "fastify" {
+  interface FastifyRequest {
+    jwtUser: { id: number, name: string }
+  }
+}
+
+// index.ts
+fastify.register(fastifyJwt, {
+  secret: 'supersecret',
+  decoratorName: 'jwtUser',
+  formatUser: (payload) => ({ id: payload.id, name: 'user' })
+})
+
+fastify.get('/', async (request, reply) => {
+  await request.jwtVerify()
+  request.jwtUser.name // string
+})
+```
+
+The `user` key in `FastifyJWT` names the user type, not the decorator, so keep it as `user` whatever `decoratorName` is. It types the return value of `formatUser`; adding a `jwtUser` key to `FastifyJWT` has no effect. The `request.user` property stays declared on `FastifyRequest`, but it is not set at runtime when a custom `decoratorName` is used.
 
 ## Acknowledgments
 
